@@ -126,7 +126,7 @@ All targets are initial and will be reset after the week-2 baseline. Every numbe
 
 | Weeks | Deliverable |
 |---|---|
-| 1–2 (Sep 29 – Oct 12) | Repo, CI, Docker Compose (Temporal, Postgres, Langfuse); single-agent baseline on 5 dev tasks; E2B template; SWE-bench-on-E2B check |
+| 1–2 (Oct2 – Oct 12) | Repo, CI, Docker Compose (Temporal, Postgres, Langfuse); single-agent baseline on 5 dev tasks; E2B template; SWE-bench-on-E2B check |
 | 3 (Oct 13–19) | **MVP:** Temporal workflow + LangGraph Planner/Coder/Tester; first dev-set numbers |
 | 4–6 (Oct 20 – Nov 9) | Eval harness and CI gate; Reviewer, approval signal, GitHub PR with idempotency and webhook hardening; OpenTelemetry/Langfuse/Grafana; SSE events |
 | 7–9 (Nov 10–30) | Fault-injection suite and sandbox recovery; benchmark runs, pass^k, judge calibration; security suite and redaction |
