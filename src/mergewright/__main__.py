@@ -9,7 +9,7 @@ from pathlib import Path
 
 from mergewright.config import ConfigError, Limits, load_dotenv, load_live_settings
 from mergewright.graph import AgentDeps, build_graph
-from mergewright.llm import LiteLLMClient, LLMClient, RecordingLLM, ScriptedLLM
+from mergewright.llm import LLMClient, OpenAIClient, RecordingLLM, ScriptedLLM
 from mergewright.runlog import RunLog
 from mergewright.runner import run_agent
 from mergewright.tools import Workspace
@@ -44,7 +44,7 @@ def _make_llm(args: argparse.Namespace, limits: Limits) -> LLMClient:
             raise ConfigError(f"replay file not found: {args.replay_file}")
         return ScriptedLLM.from_file(args.replay_file)
     load_dotenv(Path(".env"), os.environ)
-    client: LLMClient = LiteLLMClient(load_live_settings(), timeout_s=limits.llm_timeout_s)
+    client: LLMClient = OpenAIClient(load_live_settings(), timeout_s=limits.llm_timeout_s)
     return RecordingLLM(client, args.record) if args.record else client
 
 

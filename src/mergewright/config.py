@@ -25,7 +25,7 @@ class Limits:
 
 @dataclass(frozen=True)
 class LiveSettings:
-    """Settings for a live model reached through LiteLLM."""
+    """Settings for a live model on an OpenAI-compatible chat server."""
 
     model: str
     api_base: str | None

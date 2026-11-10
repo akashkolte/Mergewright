@@ -208,7 +208,7 @@ class ToolSpec:
     run: Callable[..., Any]
 
     def schema(self) -> dict[str, Any]:
-        """OpenAI-style function schema, which LiteLLM passes to any provider."""
+        """OpenAI-style function schema for the chat completions `tools` parameter."""
         params = self.args_model.model_json_schema()
         params.pop("title", None)
         return {

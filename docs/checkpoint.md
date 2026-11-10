@@ -27,7 +27,7 @@ This is **not** the full system in `docs/mergewright-spec.md`. It is the smalles
 | A1. Runs live on one input, end to end | 2 | `mergewright run --llm live` on the bundled `examples/buggy_calc` repo and its issue, with the UB-hosted model. The agent edits the code and the repo's tests pass. | Terminal shows status `DONE`, the diff and `passed=6 failed=0` |
 | A2. At least two tools, each called and tested | 2 | Four tools: `read_file`, `search_code`, `edit_file`, `run_tests`. Each has its own tests. | Console and `runs/<run_id>/run.jsonl` show each `tool_call`; `tests/test_tools.py` |
 | A3. Workflow graph defined in code | 1 | LangGraph `StateGraph` in `build_graph()`, `src/mergewright/graph.py`. `mergewright graph` prints it from the code as Mermaid. | Open `graph.py` and the Mermaid output |
-| A4. At least 10 test cases | 1 | 52 tests (§5). | `pytest` prints `52 passed` |
+| A4. At least 10 test cases | 1 | 54 tests (§5). | `pytest` prints `54 passed` |
 | B1. README setup works | 2 | The README is tested on a fresh clone in an empty directory. The replay mode needs no API key. | Graded from the commit |
 | B2. Repository is clean | 2 | `.gitignore`, `.env.example`, a secret scan before push, no notebooks, a clear `src/` layout. | Graded from the commit |
 
@@ -38,7 +38,7 @@ This is **not** the full system in `docs/mergewright-spec.md`. It is the smalles
 - One LangGraph graph: the Coder ⇄ Tester loop. This is "option 2" from the design review. LangGraph owns the agent loop *inside* one step. Later, Temporal runs this graph as an activity, and the graph code does not change.
 - Four tools with per-tool input validation and a path guard.
 - Two LLM modes behind one interface:
-  - `live`: a real model through LiteLLM. The model, base URL and key come from `.env`. The team uses the UB-hosted model (GLM-5.2) through its OpenAI-compatible API.
+  - `live`: a real model through the `openai` package, on any OpenAI-compatible chat server. The model, base URL and key come from `.env`. The team uses the UB-hosted model `zai-org/GLM-5.2`.
   - `replay`: recorded responses from `examples/inputs/buggy_calc_replay.json`. No key, no network, deterministic.
 - A JSONL run log and readable console output.
 - Hard bounds: max LLM steps, max test attempts, a timeout per tool call, and a wall-clock limit.
@@ -64,7 +64,7 @@ README.md
 src/mergewright/
   __main__.py               # CLI: `run`, `graph`
   config.py                 # Limits; reads env and .env, validates, fails fast
-  llm.py                    # LLMClient protocol; LiteLLMClient; ScriptedLLM; RecordingLLM
+  llm.py                    # LLMClient protocol; OpenAIClient; ScriptedLLM; RecordingLLM
   tools.py                  # 4 tools + registry (allow-list, JSON schemas, validation)
   graph.py                  # AgentState, nodes, routing, build_graph()
   runner.py                 # one run: workspace copy, graph invoke, diff
@@ -135,16 +135,16 @@ flowchart LR
 
 `runs/<run_id>/run.jsonl` gets one JSON line per event: `run_started`, `llm_call` (model, tokens, latency), `tool_call` (name, args, result summary, duration, ok/error), `test_result`, `run_finished` (status, diff stats). The console prints the same events in short form, then the final diff. `runs/` is git-ignored.
 
-## 5. Tests (52, all deterministic, no network)
+## 5. Tests (54, all deterministic, no network)
 
-Tests use a scripted model (`ScriptedLLM`), a fake `litellm.completion`, and temporary copies of `examples/buggy_calc`. No test calls a real model. Counts are pytest test cases (parametrized cases count separately).
+Tests use a scripted model (`ScriptedLLM`), a fake object in place of the `openai` SDK client, and temporary copies of `examples/buggy_calc`. No test calls a real model. Counts are pytest test cases (parametrized cases count separately).
 
 | File | Cases | What it covers |
 |---|---|---|
 | `tests/test_tools.py` | 29 | `read_file`: line range, missing file, 3 path-traversal forms, symlink escape, truncation. `search_code`: match, no match, invalid regex. `edit_file`: unique match, not found, ambiguous, outside workspace, 4 protected paths (`tests/`, `.github/`, `.git/`, `conftest.py`). `run_tests`: failing names on the buggy repo, pass after the fix, timeout as a result, no secrets in the subprocess (canary env var). Registry: unknown tool, allow-list, 3 invalid-argument forms, tool error as result, schemas. |
 | `tests/test_graph.py` | 11 | Fix path to `DONE` (and which tools ran); test failure loops back to `coder` with the failing test names; `FAILED_NO_FIX` after 3 attempts; step cap and wall-clock cap give `FAILED_BUDGET`; unknown tool, malformed arguments and a disallowed tool are reported to the model and the run continues; a model failure gives `FAILED_ERROR`; the model is offered only the Coder tools; exact nodes and edges of the graph. |
 | `tests/test_cli.py` | 5 | Replay run exits 0 and logs a `tool_call` for all four tools; the example repo is unchanged after a run; live mode with no model fails fast with exit 2; missing issue file is a clear error; `graph` prints Mermaid. |
-| `tests/test_config_and_llm.py` | 7 | `.env` loading; live settings need a model; settings for an OpenAI-compatible server; LiteLLM client parses tool calls and passes `api_base`; retries with backoff, then `LLMError`; record then replay returns the same responses; scripted model fails when it runs out. |
+| `tests/test_config_and_llm.py` | 9 | `.env` loading; live settings need a model; settings for an OpenAI-compatible server; OpenAI client sends the model name, tools and temperature and parses tool calls; SDK configured with base URL, key, timeout and retries; SDK errors become `LLMError`; a response with no choices is an `LLMError`; record then replay returns the same responses; scripted model fails when it runs out. |
 
 ## 6. Work plan (24 hours, two people)
 
@@ -157,7 +157,7 @@ Push to `main` at the end of each phase, after a fresh-clone check. If time runs
 | 0 | 0–0.5 | Confirm the deadline. Approve the dependencies (§7). Choose the provider and model for live mode. | Both | Decisions written into §9 |
 | 1 | 0.5–2 | `pyproject.toml`, `.gitignore`, `.env.example`, package skeleton, `examples/buggy_calc`, a first README. Push. | Akash | Fresh clone installs and `pytest` runs |
 | 2a | 2–6 | `tools.py` + tests 1–15. `runlog.py`. `config.py` + test 24. | Akash | Tool tests pass |
-| 2b | 2–6 | `llm.py` (protocol, LiteLLM client, replay client). `graph.py` + `prompts.py`. Tests 16–22 with the scripted LLM. | Sheetal | Graph tests pass |
+| 2b | 2–6 | `llm.py` (protocol, live client, replay client). `graph.py` + `prompts.py`. Tests 16–22 with the scripted LLM. | Sheetal | Graph tests pass |
 | 3 | 6–9 | CLI (`run`, `graph`). Wire everything together. Tests 23 and 25. | Akash | `run --llm replay` reaches `DONE` |
 | 4 | 9–12 | Live run on the example with a real key. Tune the prompt until the run reaches `DONE` 3 times in a row. Record the demo cassette from a real live run. Push. | Sheetal | Live and replay both reach `DONE` |
 | 5 | 12–14 | Finish the README. Add the Mermaid graph to the README. `ruff check` and `ruff format`. Optional: a GitHub Actions job for ruff and pytest. | Akash | Lint clean |
@@ -169,7 +169,7 @@ Push to `main` at the end of each phase, after a fresh-clone check. If time runs
 | Package | Why | Alternative |
 |---|---|---|
 | `langgraph` | The workflow graph (rubric A3) and the planned agent loop | A hand-written state machine; it also passes A3, but drops LangGraph from the design |
-| `litellm` | Live mode works with whatever provider key the instructor has; the spec already uses LiteLLM as the gateway | A single provider SDK: smaller, but it locks the instructors to one provider |
+| `openai` | Live mode on any OpenAI-compatible server, such as the UB-hosted model. Replaced `litellm` on 10 Nov (§12) | `litellm`: the planned gateway for the full system, but it needs a provider prefix on the model name and is a much larger install |
 | `pydantic` | Typed state and validated tool arguments | dataclasses plus manual checks |
 | `pytest` (dev) | Tests | — |
 | `ruff` (dev) | Lint and format | — |
@@ -179,7 +179,7 @@ Pin exact versions in `pyproject.toml` at install time. Python 3.11 or later.
 ## 8. Release check (run before the final push)
 
 - [x] Fresh copy of only tracked and non-ignored files in an empty directory; README followed word for word (10 Nov, see §12). Repeat with a real `git clone` after the push.
-- [x] `pytest` prints `52 passed`, 0 failed.
+- [x] `pytest` prints `54 passed`, 0 failed.
 - [x] The replay run reaches `DONE` with no `.env` file present.
 - [ ] **The live run reaches `DONE` with the UB-hosted model.** Not yet run: needs the UB network and the endpoint details.
 - [x] `mergewright graph` prints the Mermaid graph.
@@ -195,7 +195,7 @@ Before you sit down: be on the UB network, open a terminal in the repo root with
 
 1. **0:00–1:30. Live run (A1, A2).** `mergewright run --llm live`. As lines print, point at each `[tool]` line (`search_code`, `read_file`, `edit_file`, then `run_tests`), then `DONE` and the diff.
 2. **1:30–2:15. Run log.** Open the new `runs/<run_id>/run.jsonl`. Show one `tool_call` line for each tool, with its arguments and result.
-3. **2:15–3:15. Tests (A2, A4).** `pytest`: show `52 passed`. In `test_tools.py`, show one test group per tool.
+3. **2:15–3:15. Tests (A2, A4).** `pytest`: show `54 passed`. In `test_tools.py`, show one test group per tool.
 4. **3:15–4:15. Graph (A3).** Show `build_graph()` in `graph.py`, then `mergewright graph`.
 5. **4:15–5:00. Questions.** Likely ones: why the model cannot call `run_tests` (allow-list in code); what stops a loop (step, attempt and wall-clock caps); why the tests cannot be edited (`edit_file` protection).
 
@@ -215,7 +215,7 @@ Before you sit down: be on the UB network, open a terminal in the repo root with
 ## 11. Open decisions
 
 1. ~~Submission cut-off~~: Tue 10 Nov, midnight.
-2. ~~Live-mode model~~: the UB-hosted model (GLM-5.2), through its OpenAI-compatible API. Still needed: the exact model name the server lists, the base URL, and how the key is issued.
+2. ~~Live-mode model~~: the UB-hosted model `zai-org/GLM-5.2`, through its OpenAI-compatible API.
 3. Whether to commit `docs/mergewright-spec.md`. `docs/architecture.md` already refers to it.
 4. Whether to add a GitHub Actions job (ruff + pytest). Not added; optional after the deadline.
 5. Whether to re-record `examples/inputs/buggy_calc_replay.json` from a real live run (`--record`). Recommended: it makes replay mode a true recording instead of a hand-written script.
@@ -225,13 +225,13 @@ Before you sit down: be on the UB network, open a terminal in the repo root with
 ### Decisions
 
 - 10 Nov: dependencies in §7 approved. Pinned: `langgraph==1.2.20`, `litellm==1.108.4`, `pydantic==2.14.3`, `pytest==9.2.0`, `ruff==0.17.4`.
+- 10 Nov: `litellm` replaced by `openai==3.49.0` for the checkpoint. The first live run failed because LiteLLM read `zai-org` in `zai-org/GLM-5.2` as a provider name. The `openai` SDK sends the model name as is, and it retries only connection errors, timeouts, 429 and 5xx, so a wrong model name or key fails at once instead of after 3 attempts. LiteLLM stays the planned gateway in the full design (`docs/proposal.md`).
 - `examples/buggy_calc/pytest.ini` makes the example its own pytest root, so the project config (and the agent's workspace copies under `runs/`) never mix with the project's tests.
 - The issue text and the replay file live in `examples/inputs/`, outside the repo the agent works on, because the replay file contains the fix.
 - `setup_workspace` moved out of the graph into `runner.run_agent()` (§4.2).
 - `edit_file` also protects test files, so a fix cannot pass by editing the tests.
 - `run_tests` is called only by the `tester` node; the model is offered three tools.
 - `.env` is parsed by a 15-line function in `config.py` instead of adding `python-dotenv`.
-- LiteLLM is imported only inside `LiteLLMClient.complete()`, so replay mode and the tests never import it.
 
 ### Phases 1–5 (built 10 Nov, not pushed)
 
@@ -245,6 +245,13 @@ Validation, 10 Nov:
 - `mergewright graph`: prints the Mermaid graph with nodes `coder`, `tools`, `tester`.
 - Fresh-copy check: only the 35 files that would be committed, copied to an empty directory; README followed word for word on Python 3.12 and again on Python 3.13. Both: install works, replay run `DONE`, `52 passed`, `graph` prints, live mode without `.env` exits 2 with a clear message, the example keeps its bug. Python 3.11 (the stated minimum) was not available locally and is untested.
 - Live-mode HTTP path, checked against a local fake OpenAI-compatible server (not the UB endpoint): LiteLLM sent `POST /v1/chat/completions` with model `GLM-5.2`, the three Coder tool schemas and a Bearer key; the run reached `DONE`; `--record` wrote a replay file that replayed to `DONE`.
+
+Re-validation after the switch to `openai`, 10 Nov:
+
+- `ruff check .` and `ruff format --check .`: clean. `pytest`: 54 passed.
+- Fresh copy of the files to be committed (presentation excluded), README followed on Python 3.12: install pulls `openai` and not `litellm`; `54 passed`; replay run `DONE`; the example keeps its bug; live mode without `.env` exits 2.
+- Live-mode HTTP path against the local fake OpenAI-compatible server: the `openai` SDK sent `POST /v1/chat/completions` with model `zai-org/GLM-5.2` (no prefix), the three Coder tool schemas and a Bearer key; the run reached `DONE`; the `--record` file replayed to `DONE`.
+- Not yet run: live mode against the real UB endpoint.
 - Secret scan of all files to be committed: no matches.
 
 ### Next steps (before midnight)

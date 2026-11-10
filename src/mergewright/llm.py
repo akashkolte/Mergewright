@@ -1,7 +1,6 @@
 """Model access behind one small interface.
 
-- LiteLLMClient: a live model. For an OpenAI-compatible server, the model string is
-  openai/<name> and api_base points at the server.
+- OpenAIClient: a live model on any OpenAI-compatible chat server, through the openai package.
 - ScriptedLLM: returns pre-set responses in order. Used by replay mode and by the tests.
 - RecordingLLM: wraps a live client and saves its responses, so a live run can be replayed.
 """
@@ -9,11 +8,11 @@
 from __future__ import annotations
 
 import json
-import time
-from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
+
+import openai
 
 from mergewright.config import LiveSettings
 
@@ -69,47 +68,37 @@ class LLMClient(Protocol):
         ...
 
 
-class LiteLLMClient:
-    """A live model through LiteLLM, with a few retries and exponential backoff."""
+class OpenAIClient:
+    """A live model on an OpenAI-compatible server (POST {base_url}/chat/completions).
+
+    The openai SDK retries connection errors, timeouts, 429 and 5xx with backoff. It does not
+    retry other 4xx errors, such as a wrong model name or key, because they cannot succeed.
+    """
 
     def __init__(
-        self,
-        settings: LiveSettings,
-        timeout_s: float,
-        retries: int = 2,
-        sleep: Callable[[float], None] = time.sleep,
+        self, settings: LiveSettings, timeout_s: float, retries: int = 2, client: Any = None
     ) -> None:
         self.model = settings.model
-        self._settings = settings
-        self._timeout_s = timeout_s
-        self._retries = retries
-        self._sleep = sleep
+        self._client = client or openai.OpenAI(
+            base_url=settings.api_base,
+            api_key=settings.api_key or "unused",  # some local servers need no key
+            timeout=timeout_s,
+            max_retries=retries,
+        )
 
     def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> LLMResponse:
-        import litellm  # imported here: slow to import, and not needed in replay mode or tests
-
-        litellm.suppress_debug_info = True
-        last_error: Exception | None = None
-        for attempt in range(self._retries + 1):
-            try:
-                raw = litellm.completion(
-                    model=self._settings.model,
-                    api_base=self._settings.api_base,
-                    api_key=self._settings.api_key,
-                    messages=messages,
-                    tools=tools,
-                    temperature=0,
-                    timeout=self._timeout_s,
-                )
-                return _parse_litellm(raw)
-            except Exception as exc:  # LiteLLM maps provider errors to many exception types
-                last_error = exc
-                if attempt < self._retries:
-                    self._sleep(2**attempt)
-        raise LLMError(f"model call failed after {self._retries + 1} attempts: {last_error}")
+        try:
+            raw = self._client.chat.completions.create(
+                model=self.model, messages=messages, tools=tools, temperature=0
+            )
+        except openai.OpenAIError as exc:
+            raise LLMError(f"model call failed: {exc}") from exc
+        if not raw.choices:
+            raise LLMError("model returned no choices")
+        return _parse_completion(raw)
 
 
-def _parse_litellm(raw: Any) -> LLMResponse:
+def _parse_completion(raw: Any) -> LLMResponse:
     message = raw.choices[0].message
     calls = [
         ToolCall(id=call.id, name=call.function.name, arguments=call.function.arguments or "{}")

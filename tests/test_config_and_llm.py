@@ -2,13 +2,14 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import openai
 import pytest
 
 from mergewright.config import ConfigError, LiveSettings, load_dotenv, load_live_settings
 from mergewright.llm import (
-    LiteLLMClient,
     LLMError,
     LLMResponse,
+    OpenAIClient,
     RecordingLLM,
     ScriptedLLM,
     ToolCall,
@@ -18,13 +19,13 @@ from mergewright.llm import (
 def test_load_dotenv_reads_values_and_keeps_existing_ones(tmp_path: Path):
     env_file = tmp_path / ".env"
     env_file.write_text(
-        "# comment\nMERGEWRIGHT_MODEL='openai/glm'\nMERGEWRIGHT_API_KEY=\nA=from-file\n"
+        "# comment\nMERGEWRIGHT_MODEL='zai-org/GLM-5.2'\nMERGEWRIGHT_API_KEY=\nA=from-file\n"
     )
     environ = {"A": "already-set"}
 
     load_dotenv(env_file, environ)
 
-    assert environ == {"MERGEWRIGHT_MODEL": "openai/glm", "A": "already-set"}
+    assert environ == {"MERGEWRIGHT_MODEL": "zai-org/GLM-5.2", "A": "already-set"}
 
 
 def test_live_settings_require_a_model():
@@ -35,60 +36,76 @@ def test_live_settings_require_a_model():
 def test_live_settings_for_an_openai_compatible_server():
     settings = load_live_settings(
         {
-            "MERGEWRIGHT_MODEL": "openai/GLM-5.2",
+            "MERGEWRIGHT_MODEL": "zai-org/GLM-5.2",
             "MERGEWRIGHT_API_BASE": "http://llm.example.test/v1",
             "MERGEWRIGHT_API_KEY": "placeholder",
         }
     )
 
-    assert settings == LiveSettings("openai/GLM-5.2", "http://llm.example.test/v1", "placeholder")
+    assert settings == SETTINGS
 
 
-def _fake_completion(message):
+SETTINGS = LiveSettings("zai-org/GLM-5.2", "http://llm.example.test/v1", "placeholder")
+
+
+def _fake_sdk(create):
+    """An object shaped like openai.OpenAI, so no test opens a network connection."""
+    return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+
+
+def _completion(message):
     return SimpleNamespace(
         choices=[SimpleNamespace(message=message)],
         usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5),
     )
 
 
-def test_litellm_client_parses_tool_calls_and_passes_settings(monkeypatch: pytest.MonkeyPatch):
-    import litellm
-
+def test_openai_client_sends_the_request_and_parses_tool_calls():
     captured = {}
     tool_call = SimpleNamespace(
         id="c1", function=SimpleNamespace(name="read_file", arguments='{"path": "calc.py"}')
     )
 
-    def fake(**kwargs):
+    def create(**kwargs):
         captured.update(kwargs)
-        return _fake_completion(SimpleNamespace(content=None, tool_calls=[tool_call]))
+        return _completion(SimpleNamespace(content=None, tool_calls=[tool_call]))
 
-    monkeypatch.setattr(litellm, "completion", fake)
-    client = LiteLLMClient(LiveSettings("openai/GLM-5.2", "http://x.test/v1", "k"), timeout_s=5)
+    tools = [{"type": "function", "function": {"name": "read_file"}}]
+    client = OpenAIClient(SETTINGS, timeout_s=5, client=_fake_sdk(create))
 
-    response = client.complete([{"role": "user", "content": "hi"}], tools=[])
+    response = client.complete([{"role": "user", "content": "hi"}], tools=tools)
 
     assert response.tool_calls == [ToolCall("c1", "read_file", '{"path": "calc.py"}')]
     assert (response.prompt_tokens, response.completion_tokens) == (10, 5)
-    assert captured["api_base"] == "http://x.test/v1" and captured["model"] == "openai/GLM-5.2"
+    assert captured["model"] == "zai-org/GLM-5.2"  # sent as is, with no provider prefix
+    assert captured["tools"] == tools and captured["temperature"] == 0
 
 
-def test_litellm_client_retries_then_raises(monkeypatch: pytest.MonkeyPatch):
-    import litellm
+def test_openai_client_configures_the_sdk_from_settings():
+    client = OpenAIClient(SETTINGS, timeout_s=7, retries=4)
 
-    attempts = []
-    sleeps: list[float] = []
+    sdk = client._client
+    assert str(sdk.base_url).rstrip("/") == "http://llm.example.test/v1"
+    assert (sdk.api_key, sdk.timeout, sdk.max_retries) == ("placeholder", 7, 4)
 
-    def failing(**kwargs):
-        attempts.append(1)
-        raise RuntimeError("503 service unavailable")
 
-    monkeypatch.setattr(litellm, "completion", failing)
-    client = LiteLLMClient(LiveSettings("openai/m", None, None), 5, retries=2, sleep=sleeps.append)
+def test_openai_client_turns_sdk_errors_into_llm_error():
+    def create(**kwargs):
+        raise openai.OpenAIError("404 model not found")
 
-    with pytest.raises(LLMError, match="after 3 attempts"):
+    client = OpenAIClient(SETTINGS, timeout_s=5, client=_fake_sdk(create))
+
+    with pytest.raises(LLMError, match="model not found"):
         client.complete([], [])
-    assert len(attempts) == 3 and sleeps == [1, 2]  # exponential backoff
+
+
+def test_openai_client_rejects_a_response_with_no_choices():
+    client = OpenAIClient(
+        SETTINGS, timeout_s=5, client=_fake_sdk(lambda **_: SimpleNamespace(choices=[]))
+    )
+
+    with pytest.raises(LLMError, match="no choices"):
+        client.complete([], [])
 
 
 def test_recording_then_replay_returns_the_same_responses(tmp_path: Path):

@@ -55,7 +55,7 @@ The agent works on a copy in `runs/<run_id>/workspace`, so [examples/buggy_calc]
 
 ## Live mode (real model)
 
-Live mode calls a real model through [LiteLLM](https://docs.litellm.ai/). Any OpenAI-compatible chat server works, including the UB-hosted model (reachable only on the UB network or VPN).
+Live mode calls a real model with the [`openai`](https://github.com/openai/openai-python) package. Any OpenAI-compatible chat server works, including the UB-hosted model (reachable only on the UB network or VPN).
 
 1. Copy the settings template and fill it in:
 
@@ -65,9 +65,9 @@ Live mode calls a real model through [LiteLLM](https://docs.litellm.ai/). Any Op
 
    | Variable | Value |
    |---|---|
-   | `MERGEWRIGHT_MODEL` | `openai/<model name as the server lists it>`, for example `openai/GLM-5.2` |
+   | `MERGEWRIGHT_MODEL` | The model name as the server lists it, for example `zai-org/GLM-5.2` |
    | `MERGEWRIGHT_API_BASE` | The server's base URL, usually ending in `/v1` |
-   | `MERGEWRIGHT_API_KEY` | The server's API key (any placeholder if the server needs none) |
+   | `MERGEWRIGHT_API_KEY` | The server's API key (leave empty if the server needs none) |
 
 2. Run:
 
@@ -91,14 +91,14 @@ mergewright run --llm live --repo path/to/repo --issue path/to/issue.md
 pytest
 ```
 
-Expected: `52 passed`. The tests are deterministic and make no network or model calls: they use a scripted model and temporary copies of the demo repository. The demo repository's own test, which fails on purpose, is not part of this run.
+Expected: `54 passed`. The tests are deterministic and make no network or model calls: they use a scripted model and temporary copies of the demo repository. The demo repository's own test, which fails on purpose, is not part of this run.
 
 | File | What it tests |
 |---|---|
 | [tests/test_tools.py](tests/test_tools.py) | Each tool, its error cases, the path guard, the edit protections and the tool registry |
 | [tests/test_graph.py](tests/test_graph.py) | The graph: fix path, test-failure loop, step and wall-clock caps, bad tool calls, model failure |
 | [tests/test_cli.py](tests/test_cli.py) | The command line, end to end in replay mode |
-| [tests/test_config_and_llm.py](tests/test_config_and_llm.py) | Settings, the LiteLLM client (with a fake LiteLLM), retries, record and replay |
+| [tests/test_config_and_llm.py](tests/test_config_and_llm.py) | Settings, the live model client (with a fake OpenAI client), error handling, record and replay |
 
 ## Workflow graph
 
