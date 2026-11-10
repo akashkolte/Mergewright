@@ -1,0 +1,27 @@
+{
+  "model": "replay (hand-written; re-record with: mergewright run --llm live --record <file>)",
+  "responses": [
+    {
+      "content": "I will find the median function first.",
+      "tool_calls": [
+        {"id": "call_1", "name": "search_code", "arguments": "{\"pattern\": \"def median\"}"}
+      ]
+    },
+    {
+      "content": "Reading median() to see how it picks the middle value.",
+      "tool_calls": [
+        {"id": "call_2", "name": "read_file", "arguments": "{\"path\": \"calc.py\", \"start\": 11, \"end\": 16}"}
+      ]
+    },
+    {
+      "content": "For an even number of values it returns the upper middle value instead of the mean of the two middle values. Fixing that.",
+      "tool_calls": [
+        {"id": "call_3", "name": "edit_file", "arguments": "{\"path\": \"calc.py\", \"old\": \"    return ordered[len(ordered) // 2]\\n\", \"new\": \"    middle = len(ordered) // 2\\n    if len(ordered) % 2 == 0:\\n        return (ordered[middle - 1] + ordered[middle]) / 2\\n    return ordered[middle]\\n\"}"}
+      ]
+    },
+    {
+      "content": "median() now returns the mean of the two middle values when the list has an even length, and the middle value otherwise. The odd-length behaviour and the empty-list error are unchanged.",
+      "tool_calls": []
+    }
+  ]
+}

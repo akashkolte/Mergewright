@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mergewright"
+version = "0.1.0"
+description = "Bounded coding agent that fixes a bug described in an issue and proves it with the repo's tests."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph==1.2.20",
+    "litellm==1.108.4",
+    "pydantic==2.14.3",
+]
+
+[project.scripts]
+mergewright = "mergewright.__main__:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.2.0",
+    "ruff==0.17.4",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+# Only the project's own tests. examples/ holds demo repos whose tests fail on purpose.
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["presentation"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

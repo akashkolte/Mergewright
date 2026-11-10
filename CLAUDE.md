@@ -4,7 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Mergewright is a CSE 510 (Agentic AI Engineering, Fall 2026) final project. The repo is at the proposal stage: it holds the proposal and the proposal deck, and **no application code, tests, CI or lint config exist yet**. `docs/proposal.md` is the source of truth for scope, targets and design; read it before proposing structure or implementation.
+Mergewright is a CSE 510 (Agentic AI Engineering, Fall 2026) final project. `docs/proposal.md` is the source of truth for the full system's scope, targets and design; read it before proposing structure or implementation.
+
+The code is at the Milestone 2 checkpoint (`docs/checkpoint.md`): a LangGraph Coder ⇄ Tester loop in `src/mergewright/` with four tools, a CLI, live (LiteLLM) and replay modes, and pytest tests. No Temporal, FastAPI, E2B, Postgres or CI yet. `run_tests` runs pytest as a local subprocess, not in a sandbox.
+
+Commands (from the repo root, venv active):
+
+- Setup: `python3 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"`
+- Tests: `pytest` (only `tests/`; `examples/buggy_calc` fails on purpose and is excluded)
+- Lint and format: `ruff check .` and `ruff format .`
+- Run: `mergewright run --llm replay` (no key) or `mergewright run --llm live` (needs `.env`, see `.env.example`); `mergewright graph` prints the workflow graph.
+
+Tests must stay deterministic: use `ScriptedLLM` or a fake `litellm.completion`, never a real model.
 
 ## Planned system (from `docs/proposal.md`)
 
