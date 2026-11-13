@@ -15,7 +15,7 @@ Commands (from the repo root, venv active):
 - Lint and format: `ruff check .` and `ruff format .`
 - Run: `mergewright run --llm replay` (no key) or `mergewright run --llm live` (needs `.env`, see `.env.example`); `mergewright graph` prints the workflow graph.
 
-Tests must stay deterministic: use `ScriptedLLM` or pass a fake SDK client to `OpenAIClient(client=...)`, never a real model. The full system keeps the `openai` package; LiteLLM is deferred (spec §14).
+Tests must stay deterministic: use `ScriptedLLM` or pass a fake SDK client to `OpenAIClient(client=...)`, never a real model. The full system keeps the `openai` package; LiteLLM is deferred (spec Section 14).
 
 ## Planned system (summary of `docs/mergewright-spec.md` v6)
 
@@ -27,7 +27,7 @@ Each layer has a single responsibility, and the boundaries matter:
 - **LangGraph** defines the agent graph (nodes, typed state, conditional edges). It runs on Temporal's LangGraph plugin (`temporalio-langgraph`, Public Preview): each I/O node is an activity, LLM nodes on the `llm` queue and sandbox nodes on the `sandbox` queue. No LangGraph checkpointer in the core; LangGraph + `PostgresSaver` exists only as a durability baseline. All plugin code lives in one runtime module; node functions have no Temporal imports. Versions are pinned. If the Phase 0 spike gate fails, the fallback is a hand-written Temporal-native loop with the same node functions.
 - **Message store** (Postgres, keyed by content hash) holds message bodies; graph state and activity payloads carry hashes only.
 - **Docker sandbox** (behind a `Sandbox` interface) runs all repo code and tests: no network, non-root, resource limits, no secrets except a planted canary.
-- **`post_comment`** (one status comment per run, with the diff) and **`open_pr`** are the only GitHub writers. Both are idempotent (run marker, look up before write). Repos opt in by installing the GitHub App; the `mergewright` label triggers a run (spec §7.1).
+- **`post_comment`** (one status comment per run, with the diff) and **`open_pr`** are the only GitHub writers. Both are idempotent (run marker, look up before write). Repos opt in by installing the GitHub App; the `mergewright` label triggers a run (spec Section 7.1).
 - **Rate limiter** (token-aware, RPM and TPM per provider:model, reservations, AIMD on 429) admits every LLM call. Separate task queues per resource and for service vs sweep work keep batch load from starving interactive runs.
 - **Model improvement** is measured, never assumed: scaffold and context changes, then best-of-N with a staged verifier. Fine-tuning is conditional and decided after Phase 4.
 - **No custom UI:** Temporal UI, Grafana, the CLI, generated Markdown reports, and CLI or GitHub-comment approval.
@@ -40,7 +40,7 @@ Constraints that shape any implementation:
 - Runs are bounded by per-run caps on tokens, dollars, steps and wall-clock, and the caps must hold across crashes.
 - Evaluation uses a hidden-test oracle (fail-to-pass and pass-to-pass), post-release tasks, k repeated runs with confidence intervals, generated tables, and recorded LLM fixtures in CI.
 
-Work is prioritized P0/P1/P2 in spec §10 and ordered in phases in §13; a phase starts only after the previous one has its numbers. Never cut the oracle, the durability table, the statistics or the held-out freeze. New dependencies need approval when first added. Workflow changes must pass the workflow-history replay tests.
+Work is prioritized P0/P1/P2 in spec Section 10 and ordered in phases in Section 13; a phase starts only after the previous one has its numbers. Never cut the oracle, the durability table, the statistics or the held-out freeze. New dependencies need approval when first added. Workflow changes must pass the workflow-history replay tests.
 
 ## Naming
 

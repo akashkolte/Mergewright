@@ -5,13 +5,13 @@
 
 ## 1. Thesis
 
-Mergewright turns a GitHub issue on a Python repo with a pytest suite into a PR on `mergewright/<run-id>`: minimal diff, passing tests, rationale, run record. A human approves the diff before any code reaches GitHub (branch or PR). How a repo connects and how an issue becomes a run: §7.1.
+Mergewright turns a GitHub issue on a Python repo with a pytest suite into a PR on `mergewright/<run-id>`: minimal diff, passing tests, rationale, run record. A human approves the diff before any code reaches GitHub (branch or PR). How a repo connects and how an issue becomes a run: Section 7.1.
 
 The same system runs in three modes: **service** (issue → PR), **eval** (task → hidden-test verdict) and **sweep** (thousands of runs that produce verified trajectories). Sweeps feed model improvement; model improvement needs throughput; throughput must not break durability or budgets.
 
 The agent is not the contribution. The contribution is the system around it, and each claim has a measurement:
 
-| Claim | Evidence that proves it (§9) |
+| Claim | Evidence that proves it (Section 9) |
 |---|---|
 | **Durable:** survives worker, sandbox, database and limiter failures; never re-runs completed work; never duplicates a GitHub side effect | One graph on three runtimes under fault injection, also under load |
 | **Bounded:** token, dollar, step and time budgets hold across crashes and retries | Budget-overrun count under crash loops, 429 storms and impossible tasks |
@@ -20,31 +20,31 @@ The agent is not the contribution. The contribution is the system around it, and
 | **Honest:** hidden-test oracle, post-release tasks, baselines, k runs, intervals, published failures | Generated tables that trace to result manifests |
 | **Safe:** least privilege in code, isolated execution, no secrets in the sandbox, reward-hacking guards | Adversarial suite; tamper attempts blocked and counted |
 
-Not a goal: beating frontier coding agents on resolve rate. Not built: a custom UI (§3).
+Not a goal: beating frontier coding agents on resolve rate. Not built: a custom UI (Section 3).
 
 ## 2. Scope rules
 
-- Work runs in **phases** (§13, step list in [agenda.md](agenda.md)). Each phase ends with generated tables and one resume-ready result. Do not start a phase until the previous one has its numbers.
+- Work runs in **phases** (Section 13, step list in [agenda.md](agenda.md)). Each phase ends with generated tables and one resume-ready result. Do not start a phase until the previous one has its numbers.
 - Phases 1–3 are the minimum credible project. Phase 4 makes it stand out. Phase 5 (training) runs only if the Phase 4 decision says go. Phase 6 adds outside validation.
 - If time runs short, cut P2, then P1. Never cut the oracle, the durability table, the statistics or the held-out freeze.
-- Every new dependency needs approval when it is first added. Every item in §14 needs its trigger.
-- Budget and training are decided after Phase 4 (§11).
+- Every new dependency needs approval when it is first added. Every item in Section 14 needs its trigger.
+- Budget and training are decided after Phase 4 (Section 11).
 
 ## 3. Key decisions
 
 | Decision | Choice | Why |
 |---|---|---|
-| Runtime | The LangGraph graph runs on **Temporal's LangGraph plugin** (`temporalio-langgraph`, Public Preview). Every node with I/O is an activity; conditional edges run in the workflow (§4.2) | One durability system; completed nodes never re-run; per-node timeouts and retries; LangGraph stays the way the agent is defined |
-| Gate on the runtime | Phase 0 spike with five pass criteria (§4.2) | The plugin is in preview; the design depends on behavior we must see, not read |
+| Runtime | The LangGraph graph runs on **Temporal's LangGraph plugin** (`temporalio-langgraph`, Public Preview). Every node with I/O is an activity; conditional edges run in the workflow (Section 4.2) | One durability system; completed nodes never re-run; per-node timeouts and retries; LangGraph stays the way the agent is defined |
+| Gate on the runtime | Phase 0 spike with five pass criteria (Section 4.2) | The plugin is in preview; the design depends on behavior we must see, not read |
 | Fallback | Hand-written Temporal-native loop: same node functions, called as plain activities from workflow code | Node functions carry over; only the runtime module changes |
 | Rejected | LangGraph inside one long activity with a Postgres checkpointer (v5) | Two state stores, up to one repeated LLM call per crash, and LLM and sandbox calls cannot be isolated on separate queues |
 | Plugin isolation | Exact versions of `temporalio` and `temporalio-langgraph` pinned; all plugin code in `mergewright/runtime/temporal_graph.py`; node functions have no Temporal imports | Preview APIs change; a switch to the fallback touches one module |
 | Messages | Message bodies in Postgres keyed by content hash; graph state and payloads carry hashes and counters only | Temporal payload and history limits; history stays small |
 | Orchestration | Deterministic workflow code: parent workflow per run, child workflow per candidate, verifier and diff gate in the parent | Every routing decision follows from a typed result; an LLM router adds cost, randomness and an injection surface |
-| Supervisor LLM | One bounded **triage** call at the stuck point only (§4.3); kept only if it beats the fixed router | Gives a tested answer to "is an LLM supervisor worth it?" |
+| Supervisor LLM | One bounded **triage** call at the stuck point only (Section 4.3); kept only if it beats the fixed router | Gives a tested answer to "is an LLM supervisor worth it?" |
 | Workflow change safety | CI replays recorded workflow histories against every change; `patched()` only when a live run must survive a deploy | Edge functions are workflow code; non-determinism must fail the build, not a live run |
 | Task queues | One queue per resource (`llm`, `sandbox`, `oracle`, `github`); workflow queues `service` and `sweep` | Pools scale and fail apart; a sweep cannot starve a user's run |
-| Rate limiter | Own token-aware limiter (RPM and TPM per `provider:model`) with reservations and AIMD; state in Postgres | Temporal's task-queue rate limit counts activities, not tokens. Redis only on its §14 trigger |
+| Rate limiter | Own token-aware limiter (RPM and TPM per `provider:model`) with reservations and AIMD; state in Postgres | Temporal's task-queue rate limit counts activities, not tokens. Redis only on its Section 14 trigger |
 | Temporal hosting | Tests: local dev server. Evals, load and multi-host tests: self-hosted Temporal + Postgres (docker compose) on x86 cloud VMs. Temporal Cloud ($150 credits): actions-per-run spike and one optional comparison | Self-hosting is free and gives operational evidence; Cloud credits are small |
 | Sandbox | `Sandbox` interface, Docker backend on an x86-64 Linux host, warm pool per image | Benchmark tasks ship as x86 images; warm reuse removes cold-start cost |
 | File tools vs execution | File tools work on a host workspace bind-mounted into the container; every command runs in the container | Keeps the existing tools and path guard. Reading and editing files is not execution |
@@ -52,8 +52,8 @@ Not a goal: beating frontier coding agents on resolve rate. Not built: a custom 
 | Headline benchmark | Post-release SWE-rebench Python tasks with their published images, plus our own mined dev set | SWE-bench Verified is contaminated and has flawed tests; OpenAI stopped reporting it on 2026-02-23 |
 | Benchmark tooling | Reuse SWE-rebench task format and images; write only the runner, oracle and report | Building environments per repo is the largest hidden cost in agent evals |
 | Model improvement | Scaffold, context and test-time compute first (Phases 2–4); training only after the Phase 4 decision | Shows improvement without GPU cost; training is the riskiest step |
-| LLM client | Keep the `openai` SDK against OpenAI-compatible servers; retries, fallback, limiter and budget ledger in our code | Works today; LiteLLM is in §14 with a trigger |
-| User interface | No custom UI. Temporal UI, one Grafana dashboard, the `mergewright` CLI, generated Markdown reports, and GitHub comments or the CLI for approval | UI work adds no evidence for any claim in §1 |
+| LLM client | Keep the `openai` SDK against OpenAI-compatible servers; retries, fallback, limiter and budget ledger in our code | Works today; LiteLLM is in Section 14 with a trigger |
+| User interface | No custom UI. Temporal UI, one Grafana dashboard, the `mergewright` CLI, generated Markdown reports, and GitHub comments or the CLI for approval | UI work adds no evidence for any claim in Section 1 |
 | CI gate | Replay, workflow-replay, durability and limiter suites gate merges; live evals are reported, not gating | Live evals are too noisy to block merges |
 | Build process | AI-assisted code is allowed; the core (runtime module, workflows, budget ledger, limiter, `post_comment`, `open_pr`, oracle, statistics) is test-first and reviewed line by line | Every core line must be explainable in an interview. AI use is disclosed in the README |
 
@@ -105,7 +105,7 @@ Every LLM call, sandbox command, limiter call, GitHub call, clock read and rando
   4. `interrupt()` in an activity node resumes from a Temporal signal (needed for in-graph pauses; the diff gate itself is a signal + timer in the parent).
   5. Per-node timeouts and retries come from Temporal's `RetryPolicy`.
 
-  If criterion 2 fails, decide between the fallback (§3) and a shared queue with the limiter as the only control. If any other criterion fails, use the fallback.
+  If criterion 2 fails, decide between the fallback (Section 3) and a shared queue with the limiter as the only control. If any other criterion fails, use the fallback.
 
 ### 4.3 Run flow
 
@@ -132,17 +132,17 @@ N = 1 is the default. Terminal states: `PR_OPENED`, `EVAL_DONE`, `REJECTED`, `EX
 | Tester gate | no | `run_tests` | `TestReport` | P0 (exists) |
 | Checks | no | diff, ruff, tamper detector | blocking findings | P0 |
 | Reproducer | loop | `read_file`, `write_new_test` (`tests/test_mergewright_repro_*.py` only) | test that fails on base, passes on patch | P1 |
-| Verifier | staged | candidates, visible tests, repro tests | ranked candidates (§6.2) | P1 |
-| Triage Supervisor | 1 call | see §4.3 | closed choice | P1 |
-| LLM Reviewer | 1 call | diff, findings | approve / issues | §14 |
+| Verifier | staged | candidates, visible tests, repro tests | ranked candidates (Section 6.2) | P1 |
+| Triage Supervisor | 1 call | see Section 4.3 | closed choice | P1 |
+| LLM Reviewer | 1 call | diff, findings | approve / issues | Section 14 |
 
-**Tamper detector:** blocks edits to protected paths, new `skip`/`xfail`, new `conftest.py`, non-test code that branches on `pytest`/`PYTEST_CURRENT_TEST`/`sys.modules`, deleted assertions. Each attempt is logged with the diff hunk and counted. If training happens, it is also a negative reward signal (§6.3).
+**Tamper detector:** blocks edits to protected paths, new `skip`/`xfail`, new `conftest.py`, non-test code that branches on `pytest`/`PYTEST_CURRENT_TEST`/`sys.modules`, deleted assertions. Each attempt is logged with the diff hunk and counted. If training happens, it is also a negative reward signal (Section 6.3).
 
 ### 4.5 Interfaces (contracts to build against)
 
 ```python
 class Sandbox(Protocol):
-    def reset(self, base_sha: str, patch: str) -> None: ...   # enforces the §4.2 invariant
+    def reset(self, base_sha: str, patch: str) -> None: ...   # enforces the Section 4.2 invariant
     def exec(self, argv: list[str], timeout_s: float) -> ExecResult: ...  # exit code, output tail, timed_out
     def diff(self) -> str: ...                                 # git diff base_sha
     def close(self) -> None: ...                               # idempotent
@@ -182,7 +182,7 @@ class Verifier(Protocol):
   - Optional per-tenant sub-buckets so one repo or sweep cannot take the whole provider limit.
 - **Adaptive concurrency (AIMD).** The effective limit grows additively while calls succeed and halves on a 429. `Retry-After` is honored. A 429 never counts against a run's budget.
 - **Admission control and backpressure.** A cap on in-flight workflows per queue. Past the cap, `POST /runs` returns 429 with queue position; sweeps wait in Temporal, not in memory.
-- **Sandbox pool.** Pre-pulled images, warm containers per image, reset by `git checkout` + `apply`, lease TTL and a reaper, health check on release. Pool size is bounded by host CPU and memory. A candidate keeps its sandbox lease across activities; a lost lease is rebuilt by the §4.2 invariant.
+- **Sandbox pool.** Pre-pulled images, warm containers per image, reset by `git checkout` + `apply`, lease TTL and a reaper, health check on release. Pool size is bounded by host CPU and memory. A candidate keeps its sandbox lease across activities; a lost lease is rebuilt by the Section 4.2 invariant.
 - **Model serving (Phase 4).** vLLM with continuous batching and prefix caching. N candidates share the system prompt, issue and repo map, so prefix caching cuts prompt cost. Measure the cache hit rate; do not assume it.
 - **Caches.** Repo map per `base_sha`; image layers; oracle results per (`task`, `patch_hash`). No LLM response cache outside replay mode.
 
@@ -201,24 +201,24 @@ class Verifier(Protocol):
 
 ## 6. Model improvement
 
-All changes are measured as paired deltas on dev (k = 3), and confirmed once on held-out after the plan freeze (§9.1).
+All changes are measured as paired deltas on dev (k = 3), and confirmed once on held-out after the plan freeze (Section 9.1).
 
 ### 6.1 Level A: scaffold and context (no training)
 
 - **Tool interface:** `edit_file` rejects edits that do not parse; windowed `read_file`; test output reduced to failing assertions and tracebacks; `run_tests(test_ids)` for focused runs; repo map in the Localizer.
 - **Context policy:** truncate long tool output (head + tail + pointer); drop superseded file reads between attempts; keep an "attempts so far" summary; stable prompt prefix for caching.
-- **Error-driven rounds:** label failures (§9.7), change one thing aimed at the top label, measure, repeat. Publish the curve over 3–4 rounds, including changes that did not help.
+- **Error-driven rounds:** label failures (Section 9.7), change one thing aimed at the top label, measure, repeat. Publish the curve over 3–4 rounds, including changes that did not help.
 
 ### 6.2 Level B: test-time compute
 
 - **Best-of-N:** N independent candidate workflows (N ∈ {1, 2, 4, 8}), each with its own sandbox.
-- **Staged verifier:** (1) drop candidates that fail visible tests or checks; (2) run every candidate against every generated repro test; (3) cluster by test behavior, not text, and prefer the largest cluster; (4) break ties with an LLM verifier or a trained verifier (§6.3).
+- **Staged verifier:** (1) drop candidates that fail visible tests or checks; (2) run every candidate against every generated repro test; (3) cluster by test behavior, not text, and prefer the largest cluster; (4) break ties with an LLM verifier or a trained verifier (Section 6.3).
 - **Report:** oracle pass@N (upper bound), selection accuracy (what the verifier achieves), and $ per resolved task per N. The gap between the two is the verifier's quality.
 - **Cascade:** cheap model first; escalate to a stronger model only when the verifier rejects all candidates. Report the cost/quality frontier.
 
 ### 6.3 Level C: training on verified trajectories (Phase 5, conditional)
 
-Decided after Phase 4 (§11). Training means: self-host an open-weight model, generate trajectories with sweeps, keep those the oracle accepts, and train on them.
+Decided after Phase 4 (Section 11). Training means: self-host an open-weight model, generate trajectories with sweeps, keep those the oracle accepts, and train on them.
 
 - **Data:** sweeps on the **train** split only (SWE-Gym, SWE-smith or SWE-rebench tasks created before the held-out cutoff). Train repos are disjoint from dev and held-out repos. Near-duplicate issues are removed. The dataset hash goes in every manifest.
 - **Trained verifier first:** a small model that scores (issue, patch, test results), trained on accepted vs rejected candidates; compare selection accuracy against the code-only verifier.
@@ -229,7 +229,7 @@ Decided after Phase 4 (§11). Training means: self-host an open-weight model, ge
 
 ## 7. Sandbox, GitHub, API, budgets
 
-- **Sandbox (Docker):** network only during image build, which also runs repo code (§13.1 moves builds to a separate builder); none during agent work and tests. Non-root, dropped capabilities, CPU/memory/PID limits (memory floor and ceiling set apart, per Anthropic's 2026 infrastructure-noise findings), only the workspace mounted, empty env except a planted canary, per-command timeout, `run_id` label plus orphan sweeper. gVisor runtime before running on repos we do not own (Phase 6). Stated limit: shared kernel without gVisor.
+- **Sandbox (Docker):** network only during image build, which also runs repo code (Section 13.1 moves builds to a separate builder); none during agent work and tests. Non-root, dropped capabilities, CPU/memory/PID limits (memory floor and ceiling set apart, per Anthropic's 2026 infrastructure-noise findings), only the workspace mounted, empty env except a planted canary, per-command timeout, `run_id` label plus orphan sweeper. gVisor runtime before running on repos we do not own (Phase 6). Stated limit: shared kernel without gVisor.
 - **`open_pr` (effectively-once):** branch `mergewright/<run-id>`; PR body marker `<!-- mergewright-run: <run-id> -->`; look up before every write and reuse if it matches; approval carries the diff hash and a mismatch fails `FAILED_POLICY`. Credential: fine-grained token or GitHub App installation token scoped to `mergewright/*`, never in code or sandbox.
 - **`post_comment` (effectively-once):** one status comment per run on the triggering issue, found by the same run marker and edited in place, never duplicated. Holds status, run link, rationale and the full diff. `@` mentions in generated text are escaped. A diff over GitHub's comment size limit fails the run as `FAILED_POLICY`.
 - **Approval:** `/approve` or `/reject <reason>` on the issue from an allow-listed user with write access, or `mergewright approve <run-id>`, sends the signal with the diff hash. No web UI.
@@ -311,7 +311,7 @@ The same graph, tools, sandbox, limiter and recorded LLM responses run on three 
 |---|---|
 | R0 naive | In-process run (current `runner.py`); a crash restarts the run from scratch |
 | R1 checkpointer | LangGraph + `PostgresSaver`; a supervisor process restarts it and resumes from the last checkpoint |
-| R2 Mergewright | LangGraph on Temporal's plugin (§4.2) |
+| R2 Mergewright | LangGraph on Temporal's plugin (Section 4.2) |
 
 Faults use the fake provider, a local fake GitHub server that can commit a write and drop the response, real `SIGKILL`, `docker kill` and Postgres restarts.
 
@@ -330,7 +330,7 @@ Faults use the fake provider, a local fake GitHub server that can commit a write
 | K11 | Worker killed while holding a limiter reservation | P1 |
 | K12 | K1–K7 at 16 concurrent runs | P1 |
 
-10 trials per fault per runtime. Measure the durability metrics in §9.3. Pass for R2: 100 % complete or clean failure, 0 repeated completed nodes, 0 duplicates, identical final patch, budget never exceeded, no capacity leaked after reservation TTL. R0 and R1 results are reported as they are; they are baselines, not targets.
+10 trials per fault per runtime. Measure the durability metrics in Section 9.3. Pass for R2: 100 % complete or clean failure, 0 repeated completed nodes, 0 duplicates, identical final patch, budget never exceeded, no capacity leaked after reservation TTL. R0 and R1 results are reported as they are; they are baselines, not targets.
 
 ### 9.6 Load experiments (on the fake provider, $0)
 
@@ -347,7 +347,7 @@ Faults use the fake provider, a local fake GitHub server that can commit a write
 ### 9.7 Error analysis and reporting
 
 - One label per failed run: localization miss, wrong fix, incomplete fix, P2P regression, environment, budget, loop, tool misuse, overclaim, blocked tamper, selection miss (oracle-best candidate not selected). Publish counts per system and 3 annotated traces per phase, including failures a change did not fix.
-- Each eval writes `results/<eval-id>/` (§4.5). `mergewright report` generates README tables and charts; no hand-edited numbers.
+- Each eval writes `results/<eval-id>/` (Section 4.5). `mergewright report` generates README tables and charts; no hand-edited numbers.
 - CI (every PR): ruff, pytest, replay smoke suite, workflow-history replay tests, durability K1–K7 on recorded responses, limiter tests against the fake provider, Temporal time-skipping tests. Live evals and load tests: manual or weekly.
 
 ## 10. Work items by priority
@@ -372,9 +372,9 @@ Faults use the fake provider, a local fake GitHub server that can commit a write
 
 | Risk | Mitigation |
 |---|---|
-| Plugin is in Public Preview: API changes, bugs, missing per-node task queues | Phase 0 spike gate (§4.2); pinned versions; plugin code in one module; fallback runtime (§3) |
+| Plugin is in Public Preview: API changes, bugs, missing per-node task queues | Phase 0 spike gate (Section 4.2); pinned versions; plugin code in one module; fallback runtime (Section 3) |
 | Edge-function changes break running workflows | Workflow-history replay tests in CI; `patched()` for live runs |
-| Breadth without depth | Phase rule in §2 |
+| Breadth without depth | Phase rule in Section 2 |
 | SWE-rebench images are x86 and slow under emulation on Apple Silicon | Evals and sweeps run on an x86 Linux VM; Phase 0 spike |
 | Temporal Cloud credits run out | Actions-per-run spike first; Cloud only for the spike and L7 |
 | Low absolute resolve rate | The claims are deltas, scaling curves, reliability and safety, with intervals |
@@ -387,13 +387,13 @@ Order is fixed. Dates are set when a phase starts. Each phase's exit is a genera
 
 | # | Scope | Exit criteria |
 |---|---|---|
-| 0 | **Spikes:** runtime gate (§4.2) on `buggy_calc`; one SWE-rebench image runs its F2P tests on an x86 VM; hosted endpoint limits and tool-call quality; Temporal Cloud actions per run | Results in `docs/spikes.md`; the runtime choice is confirmed or the fallback chosen; any other failed spike changes this spec first |
+| 0 | **Spikes:** runtime gate (Section 4.2) on `buggy_calc`; one SWE-rebench image runs its F2P tests on an x86 VM; hosted endpoint limits and tool-call quality; Temporal Cloud actions per run | Results in `docs/spikes.md`; the runtime choice is confirmed or the fallback chosen; any other failed spike changes this spec first |
 | 1 | **Foundation:** Docker `Sandbox` behind the existing tools; task format, validator, oracle, eval runner, report; smoke, dev ≥ 40, adversarial ≥ 20; S0, S1, S2 at k = 3 on the current in-process runner; CI | Sandbox guard tests pass; dev table with intervals from manifests |
 | 2 | **Durable core:** message store; parent and candidate workflows on the plugin; budget ledger; Localizer; checks with tamper detector; diff gate; `post_comment`; `open_pr`; workflow replay tests; R1 baseline; K1–K7 and K10 on R0/R1/R2; two S2+E rounds | Durability table generated in CI; S2 on Temporal matches the Phase 1 S2 resolve rate within its interval; one real PR on our repo |
-| 3 | **Throughput and distributed systems:** task queues; fake provider; rate limiter with AIMD; FastAPI admission control; sandbox pool; metrics dashboard; L1–L5; K8, K9, K11, K12 | Saturation curve with a named bottleneck; limiter comparison; two-host scaling factor; §5.3 targets met or the gap explained |
+| 3 | **Throughput and distributed systems:** task queues; fake provider; rate limiter with AIMD; FastAPI admission control; sandbox pool; metrics dashboard; L1–L5; K8, K9, K11, K12 | Saturation curve with a named bottleneck; limiter comparison; two-host scaling factor; Section 5.3 targets met or the gap explained |
 | 4 | **Test-time improvement:** parse-checked edits, context policy, Reproducer, Best-of-N with staged verifier, cascade; vLLM and L6; held-out frozen; held-out results for S2, BoN-*N*, Ref; budget and training decision | Best-of-N chart (pass@N vs selection accuracy vs $); held-out table with intervals and failures |
 | 5 | **Training (conditional):** train split; sweeps; trained verifier; RFT if justified; tamper-under-training | Base vs tuned on held-out, paired delta with interval |
-| 6 | **Validation:** GitHub App + webhooks (§7.1) with gVisor on our repos and opt-in repos; production-readiness checklist (§13.1); README rewrite with generated results; 2–3 blog posts; upstream issues or PRs for bugs found in dependencies; demo (label → run → kill worker → resume → approve → PR) | Smoke and durability suites reproducible from the README in < 15 minutes; online metrics from §13.1 reported for real repos |
+| 6 | **Validation:** GitHub App + webhooks (Section 7.1) with gVisor on our repos and opt-in repos; production-readiness checklist (Section 13.1); README rewrite with generated results; 2–3 blog posts; upstream issues or PRs for bugs found in dependencies; demo (label → run → kill worker → resume → approve → PR) | Smoke and durability suites reproducible from the README in < 15 minutes; online metrics from Section 13.1 reported for real repos |
 
 ### 13.1 Production readiness (Phase 6)
 
@@ -424,7 +424,7 @@ Phases 0–5 answer "can we trust, measure and afford it?" on benchmark tasks. P
 | Worker Versioning | Live runs regularly span deploys and `patched()` branches pile up |
 | Kubernetes | More than two worker hosts are needed |
 
-**Won't do:** SWE-bench Verified as the headline number (an optional, labelled comparability slice is fine); subagents that split one task; an LLM that routes every step; a custom UI before its §14 trigger; PRs to repos without maintainer opt-in; training on outputs whose terms forbid it.
+**Won't do:** SWE-bench Verified as the headline number (an optional, labelled comparability slice is fine); subagents that split one task; an LLM that routes every step; a custom UI before its Section 14 trigger; PRs to repos without maintainer opt-in; training on outputs whose terms forbid it.
 
 ## 15. Evidence, resume and interviews
 

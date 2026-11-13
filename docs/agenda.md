@@ -4,12 +4,12 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 
 **No custom UI.** Use the Temporal UI, one Grafana dashboard, the `mergewright` CLI, generated Markdown reports, and `mergewright approve` or an `/approve` GitHub comment.
 
-**Runtime:** the LangGraph graph runs on Temporal's LangGraph plugin, each node an activity (spec §4.2). Fallback if the Phase 0 gate fails: a hand-written Temporal-native loop with the same node functions.
+**Runtime:** the LangGraph graph runs on Temporal's LangGraph plugin, each node an activity (spec Section 4.2). Fallback if the Phase 0 gate fails: a hand-written Temporal-native loop with the same node functions.
 
-## Phase 0: setup and spikes (spec §4.2, §13)
+## Phase 0: setup and spikes (spec Section 4.2, Section 13)
 
 1. Tag the current code `v0-langgraph`.
-2. Runtime spike on `buggy_calc` with the local dev server. Pass all five gate criteria in spec §4.2:
+2. Runtime spike on `buggy_calc` with the local dev server. Pass all five gate criteria in spec Section 4.2:
    - kill the worker mid-run; no completed node re-runs;
    - LLM nodes and sandbox nodes on different task queues;
    - state holds hashes only; history bounded with continue-as-new + `cache()`;
@@ -20,7 +20,7 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 5. Spike: connect a worker to Temporal Cloud; measure actions per run; estimate how many runs $150 covers.
 6. Write results in `docs/spikes.md`. Confirm the runtime or choose the fallback. If another spike fails, fix the spec first.
 
-## Phase 1: foundation (spec §4.5, §7, §9)
+## Phase 1: foundation (spec Section 4.5, Section 7, Section 9)
 
 7. `Sandbox` protocol + Docker backend: no network, non-root, limits, canary. One test per guard.
 8. `run_tests` runs in the sandbox; file tools stay on the bind-mounted workspace.
@@ -34,7 +34,7 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 
 **Exit:** dev table with intervals, generated from manifests.
 
-## Phase 2: durable core (spec §4, §9.5)
+## Phase 2: durable core (spec Section 4, Section 9.5)
 
 16. Postgres schema: messages (by hash), runs, budget ledger, results. `MessageStore` + tests.
 17. Node functions read and write messages by hash; no Temporal imports in them.
@@ -53,7 +53,7 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 
 **Exit:** durability table; S2 on Temporal matches the Phase 1 S2 resolve rate within its interval; one real PR.
 
-## Phase 3: throughput and distributed systems (spec §5, §9.6)
+## Phase 3: throughput and distributed systems (spec Section 5, Section 9.6)
 
 30. Task queues `llm`, `sandbox`, `oracle`, `github`; workflow queues `service` and `sweep`.
 31. Fake provider: latency distribution, RPM/TPM limits, 429 + `Retry-After`.
@@ -66,7 +66,7 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 
 **Exit:** saturation curve with a named bottleneck; limiter comparison chart; two-host scaling factor.
 
-## Phase 4: test-time improvement (spec §6.1–6.2)
+## Phase 4: test-time improvement (spec Section 6.1–6.2)
 
 38. Parse-checked `edit_file`, focused `run_tests(test_ids)`, context policy (S2+C).
 39. Reproducer (S2+R).
@@ -78,7 +78,7 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 
 **Exit:** Best-of-N chart (pass@N vs selection accuracy vs $); held-out table with intervals.
 
-## Phase 5: training (only if step 44 says go; spec §6.3)
+## Phase 5: training (only if step 44 says go; spec Section 6.3)
 
 45. Train split (disjoint repos) + sweep mode → trajectories.
 46. Trained verifier first; then RFT LoRA if the verifier result justifies it.
@@ -86,10 +86,10 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 
 **Exit:** base vs tuned on held-out, paired delta with interval.
 
-## Phase 6: validation (spec §13)
+## Phase 6: validation (spec Section 13)
 
-48. GitHub App + webhook flow (spec §7.1: install, label trigger, HMAC, dedupe) + gVisor; run on your own and opt-in repos.
-49. Production-readiness checklist (spec §13.1): separate image builder, approver allow-list + audit log, backups, alerts, online metrics, cost per merged PR.
+48. GitHub App + webhook flow (spec Section 7.1: install, label trigger, HMAC, dedupe) + gVisor; run on your own and opt-in repos.
+49. Production-readiness checklist (spec Section 13.1): separate image builder, approver allow-list + audit log, backups, alerts, online metrics, cost per merged PR.
 50. README rewrite with generated tables; smoke and durability suites reproducible in < 15 minutes.
 51. 2–3 blog posts with data; demo video; upstream issues or PRs for bugs found in dependencies.
 52. Optional: L7 (self-hosted Temporal vs Temporal Cloud).
