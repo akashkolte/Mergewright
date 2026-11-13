@@ -89,6 +89,7 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 ## Phase 6: validation (spec §13)
 
 48. GitHub App + webhook (HMAC, dedupe) + gVisor; run on your own and opt-in repos.
-49. README rewrite with generated tables; smoke and durability suites reproducible in < 15 minutes.
-50. 2–3 blog posts with data; demo video; upstream issues or PRs for bugs found in dependencies.
-51. Optional: L7 (self-hosted Temporal vs Temporal Cloud).
+49. Production-readiness checklist (spec §13.1): separate image builder, approver allow-list + audit log, backups, alerts, online metrics, cost per merged PR.
+50. README rewrite with generated tables; smoke and durability suites reproducible in < 15 minutes.
+51. 2–3 blog posts with data; demo video; upstream issues or PRs for bugs found in dependencies.
+52. Optional: L7 (self-hosted Temporal vs Temporal Cloud).

@@ -229,7 +229,7 @@ Decided after Phase 4 (§11). Training means: self-host an open-weight model, ge
 
 ## 7. Sandbox, GitHub, API, budgets
 
-- **Sandbox (Docker):** network only during image build; none during agent work and tests. Non-root, dropped capabilities, CPU/memory/PID limits (memory floor and ceiling set apart, per Anthropic's 2026 infrastructure-noise findings), only the workspace mounted, empty env except a planted canary, per-command timeout, `run_id` label plus orphan sweeper. gVisor runtime before running on repos we do not own (Phase 6). Stated limit: shared kernel without gVisor.
+- **Sandbox (Docker):** network only during image build, which also runs repo code (§13.1 moves builds to a separate builder); none during agent work and tests. Non-root, dropped capabilities, CPU/memory/PID limits (memory floor and ceiling set apart, per Anthropic's 2026 infrastructure-noise findings), only the workspace mounted, empty env except a planted canary, per-command timeout, `run_id` label plus orphan sweeper. gVisor runtime before running on repos we do not own (Phase 6). Stated limit: shared kernel without gVisor.
 - **`open_pr` (effectively-once):** branch `mergewright/<run-id>`; PR body marker `<!-- mergewright-run: <run-id> -->`; look up before every write and reuse if it matches; approval carries the diff hash and a mismatch fails `FAILED_POLICY`. Credential: fine-grained token or GitHub App installation token scoped to `mergewright/*`, never in code or sandbox.
 - **Approval:** `mergewright approve <run-id>` or an `/approve` comment from an allowed GitHub user sends the signal. No web UI.
 - **API:** `POST /runs`, `GET /runs/{id}`, `POST /runs/{id}/decision`, `POST /webhooks/github`. Bearer token for the API; HMAC for webhooks; delivery ID dedupe; workflow ID `owner/repo#issue`; 202 after persisting; 429 with queue position past admission limits.
@@ -376,7 +376,17 @@ Order is fixed. Dates are set when a phase starts. Each phase's exit is a genera
 | 3 | **Throughput and distributed systems:** task queues; fake provider; rate limiter with AIMD; FastAPI admission control; sandbox pool; metrics dashboard; L1–L5; K8, K9, K11, K12 | Saturation curve with a named bottleneck; limiter comparison; two-host scaling factor; §5.3 targets met or the gap explained |
 | 4 | **Test-time improvement:** parse-checked edits, context policy, Reproducer, Best-of-N with staged verifier, cascade; vLLM and L6; held-out frozen; held-out results for S2, BoN-*N*, Ref; budget and training decision | Best-of-N chart (pass@N vs selection accuracy vs $); held-out table with intervals and failures |
 | 5 | **Training (conditional):** train split; sweeps; trained verifier; RFT if justified; tamper-under-training | Base vs tuned on held-out, paired delta with interval |
-| 6 | **Validation:** GitHub App + webhooks with gVisor on our repos and opt-in repos; README rewrite with generated results; 2–3 blog posts; upstream issues or PRs for bugs found in dependencies; demo (label → run → kill worker → resume → approve → PR) | Smoke and durability suites reproducible from the README in < 15 minutes; merged-PR rate on real repos reported |
+| 6 | **Validation:** GitHub App + webhooks with gVisor on our repos and opt-in repos; production-readiness checklist (§13.1); README rewrite with generated results; 2–3 blog posts; upstream issues or PRs for bugs found in dependencies; demo (label → run → kill worker → resume → approve → PR) | Smoke and durability suites reproducible from the README in < 15 minutes; online metrics from §13.1 reported for real repos |
+
+### 13.1 Production readiness (Phase 6)
+
+Phases 0–5 answer "can we trust, measure and afford it?" on benchmark tasks. Production adds real repos, real users and real bills. Before any run on a repo we do not own:
+
+| Question | Add |
+|---|---|
+| **Trust** | Image builds in a separate builder: no secrets, network limited to package indexes, images cached by digest. gVisor on every sandbox. An allow-list of approvers and an append-only audit log (who approved which diff hash). Secrets in a secrets manager. Retention and redaction rules for workflow history and trajectories. Postgres and Temporal backups with a tested restore. Alerts with a short runbook per alert |
+| **Measure** | Online metrics (real issues have no hidden tests): PR merge rate, reviewer edit size after approval, revert rate within 30 days, time to approve, rejection reasons. A fixed canary task set nightly to detect model or endpoint drift. Releases gated on those numbers |
+| **Afford** | Cost per **merged** PR, including infrastructure (sandbox VM-seconds, Temporal actions), not only tokens. Cost per tenant and repo. A capacity model: cost and throughput per worker host. Autoscaling plan beyond two hosts; Postgres HA so the limiter and message store are not single points of failure |
 
 ## 14. Later, each with its trigger
 
