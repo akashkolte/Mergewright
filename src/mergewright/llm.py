@@ -130,8 +130,35 @@ class ScriptedLLM:
 
     @classmethod
     def from_file(cls, path: Path) -> ScriptedLLM:
-        data = json.loads(path.read_text())
-        return cls([LLMResponse.from_dict(r) for r in data["responses"]], model=data["model"])
+        return cls(*_read_replay(path))
+
+
+class TurnReplayLLM:
+    """Returns response n for the n-th assistant turn in the messages.
+
+    The reply is a pure function of the input. A retried call, or the same call on a restarted
+    worker, gets the same reply. ScriptedLLM counts calls in memory, so it cannot do that.
+    """
+
+    def __init__(self, responses: list[LLMResponse], model: str = "scripted") -> None:
+        self.model = model
+        self._responses = list(responses)
+
+    def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> LLMResponse:
+        turn = sum(1 for message in messages if message.get("role") == "assistant")
+        if turn >= len(self._responses):
+            raise LLMError("scripted responses exhausted")
+        return self._responses[turn]
+
+    @classmethod
+    def from_file(cls, path: Path) -> TurnReplayLLM:
+        return cls(*_read_replay(path))
+
+
+def _read_replay(path: Path) -> tuple[list[LLMResponse], str]:
+    """Read a replay file written by RecordingLLM: the responses and the model name."""
+    data = json.loads(path.read_text())
+    return [LLMResponse.from_dict(r) for r in data["responses"]], data["model"]
 
 
 class RecordingLLM:

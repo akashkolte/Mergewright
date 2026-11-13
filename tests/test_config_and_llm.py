@@ -13,6 +13,7 @@ from mergewright.llm import (
     RecordingLLM,
     ScriptedLLM,
     ToolCall,
+    TurnReplayLLM,
 )
 
 
@@ -130,3 +131,52 @@ def test_scripted_llm_fails_when_responses_run_out():
 
     with pytest.raises(LLMError, match="exhausted"):
         llm.complete([], [])
+
+
+def _turns(n: int) -> list[dict]:
+    """A conversation with n earlier assistant turns, plus tool and user messages between them."""
+    messages: list[dict] = [{"role": "system", "content": "s"}, {"role": "user", "content": "u"}]
+    for i in range(n):
+        messages += [
+            {"role": "assistant", "content": f"a{i}"},
+            {"role": "tool", "tool_call_id": f"c{i}", "content": "t"},
+        ]
+    return messages
+
+
+def test_turn_replay_returns_the_response_for_the_current_assistant_turn():
+    responses = [LLMResponse(content="first"), LLMResponse(content="second")]
+    llm = TurnReplayLLM(responses)
+
+    assert llm.complete(_turns(0), []) == responses[0]
+    assert llm.complete(_turns(1), []) == responses[1]
+
+
+def test_turn_replay_gives_the_same_answer_when_a_call_is_retried():
+    # A retried activity or a restarted worker repeats the same call. It must get the same reply.
+    responses = [LLMResponse(content="first"), LLMResponse(content="second")]
+
+    first_try = TurnReplayLLM(responses).complete(_turns(1), [])
+    retry_on_a_new_worker = TurnReplayLLM(responses).complete(_turns(1), [])
+
+    assert first_try == retry_on_a_new_worker == responses[1]
+
+
+def test_turn_replay_fails_when_the_turn_has_no_response():
+    llm = TurnReplayLLM([LLMResponse(content="only one")])
+
+    with pytest.raises(LLMError, match="exhausted"):
+        llm.complete(_turns(1), [])
+
+
+def test_turn_replay_loads_the_same_replay_file_format(tmp_path: Path):
+    replay_file = tmp_path / "replay.json"
+    responses = [LLMResponse(content="a"), LLMResponse(content="b")]
+    recorder = RecordingLLM(ScriptedLLM(responses), replay_file)
+    for _ in responses:
+        recorder.complete([], [])
+
+    replayed = TurnReplayLLM.from_file(replay_file)
+
+    assert replayed.model.startswith("replay of")
+    assert replayed.complete(_turns(1), []) == responses[1]
