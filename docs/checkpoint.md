@@ -254,6 +254,13 @@ Re-validation after the switch to `openai`, 10 Nov:
 - Not yet run: live mode against the real UB endpoint.
 - Secret scan of all files to be committed: no matches.
 
+### Guard fixes after the submission (11 Nov)
+
+- `edit_file` now also protects pytest config (`pytest.ini`, `pyproject.toml`, `setup.cfg`, `tox.ini`). Before, the agent could add `addopts = -k "not even"` to `pytest.ini` and the suite passed with the bug still in place.
+- `runner.run_agent()` copies the repository with `symlinks=True`. Before, `shutil.copytree` copied the content of a symlink's target, so a symlink to a file outside the repository put that file's content in the workspace, where `read_file` could return it to the model.
+- Regression tests: 4 new `edit_file` protection cases in `tests/test_tools.py`, and `tests/test_runner.py`. `pytest`: 59 passed.
+- Live runs on 10 Nov (before the commit): 2 runs with `zai-org/GLM-5.2` reached `DONE` and called all four tools (4 model calls, about 4,000 tokens each).
+
 ### Next steps (before midnight)
 
 1. Team review of the change.

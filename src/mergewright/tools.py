@@ -25,6 +25,8 @@ MAX_READ_LINES = 400
 MAX_SEARCH_HITS = 50
 SKIP_DIRS = {".git", "__pycache__", ".pytest_cache", ".venv", "node_modules"}
 DENIED_EDIT_DIRS = {".git", ".github", "tests"}
+# conftest.py and the files pytest reads its config from: an edit could skip the failing tests.
+DENIED_EDIT_FILES = {"conftest.py", "pytest.ini", "pyproject.toml", "setup.cfg", "tox.ini"}
 
 
 class ToolError(Exception):
@@ -96,16 +98,18 @@ def search_code(ws: Workspace, pattern: str, glob: str = "*.py") -> list[dict[st
 
 
 def edit_file(ws: Workspace, path: str, old: str, new: str) -> str:
-    """Replace the one exact occurrence of old with new. Test files and CI config are denied."""
+    """Replace the one exact occurrence of old with new. Tests, test config and CI are denied."""
     target = ws.resolve(path)
     rel_parts = Path(ws.relative(target)).parts
     filename = rel_parts[-1]
     if (
         DENIED_EDIT_DIRS.intersection(rel_parts[:-1])
         or filename.startswith("test_")
-        or filename == "conftest.py"
+        or filename in DENIED_EDIT_FILES
     ):
-        raise ToolError(f"editing {path} is not allowed (tests, .git and .github are protected)")
+        raise ToolError(
+            f"editing {path} is not allowed (tests, pytest config, .git and .github are protected)"
+        )
     if not target.is_file():
         raise ToolError(f"file not found: {path}")
     if not old:

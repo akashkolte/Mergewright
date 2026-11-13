@@ -104,9 +104,20 @@ def test_edit_file_blocks_paths_outside_the_workspace(buggy_calc: Path):
 
 
 @pytest.mark.parametrize(
-    "path", ["tests/test_calc.py", ".github/workflows/ci.yml", ".git/config", "conftest.py"]
+    "path",
+    [
+        "tests/test_calc.py",
+        ".github/workflows/ci.yml",
+        ".git/config",
+        "conftest.py",
+        # pytest config: an edit here could skip or deselect the failing tests
+        "pytest.ini",
+        "pyproject.toml",
+        "setup.cfg",
+        "tox.ini",
+    ],
 )
-def test_edit_file_protects_tests_and_ci(buggy_calc: Path, path: str):
+def test_edit_file_protects_tests_test_config_and_ci(buggy_calc: Path, path: str):
     target = buggy_calc / path
     target.parent.mkdir(parents=True, exist_ok=True)
     target.touch()

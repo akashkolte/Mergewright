@@ -91,13 +91,14 @@ mergewright run --llm live --repo path/to/repo --issue path/to/issue.md
 pytest
 ```
 
-Expected: `54 passed`. The tests are deterministic and make no network or model calls: they use a scripted model and temporary copies of the demo repository. The demo repository's own test, which fails on purpose, is not part of this run.
+Expected: `59 passed`. The tests are deterministic and make no network or model calls: they use a scripted model and temporary copies of the demo repository. The demo repository's own test, which fails on purpose, is not part of this run.
 
 | File | What it tests |
 |---|---|
 | [tests/test_tools.py](tests/test_tools.py) | Each tool, its error cases, the path guard, the edit protections and the tool registry |
 | [tests/test_graph.py](tests/test_graph.py) | The graph: fix path, test-failure loop, step and wall-clock caps, bad tool calls, model failure |
 | [tests/test_cli.py](tests/test_cli.py) | The command line, end to end in replay mode |
+| [tests/test_runner.py](tests/test_runner.py) | The workspace copy: a symlink in the repository cannot bring outside files into the workspace |
 | [tests/test_config_and_llm.py](tests/test_config_and_llm.py) | Settings, the live model client (with a fake OpenAI client), error handling, record and replay |
 
 ## Workflow graph
@@ -132,7 +133,7 @@ flowchart LR
 |---|---|---|---|
 | `search_code` | Coder (model) | Regex search over the repository | 50 hits; invalid regex is an error result |
 | `read_file` | Coder (model) | Reads a line range with line numbers | 400 lines, 200 KB; path must stay inside the workspace |
-| `edit_file` | Coder (model) | Replaces one exact occurrence of a text | Test files, `conftest.py`, `.git` and `.github` are protected |
+| `edit_file` | Coder (model) | Replaces one exact occurrence of a text | Test files, `conftest.py`, pytest config (`pytest.ini`, `pyproject.toml`, `setup.cfg`, `tox.ini`), `.git` and `.github` are protected |
 | `run_tests` | Tester node | Runs `pytest` and returns a structured report | 60 s timeout; the subprocess gets no API keys or other secrets |
 
 The model is offered only the three Coder tools. A call to any other tool is refused by code, not by the prompt.
@@ -159,5 +160,6 @@ Each run writes `runs/<run_id>/run.jsonl`, one JSON object per line. Events: `ru
 ## Limitations
 
 - `run_tests` runs `pytest` as a local subprocess in the run's workspace, with a reduced environment and a timeout. That is not isolation. Run the agent only on repositories you trust. Later milestones move execution into E2B sandboxes.
+- The tests that decide `DONE` are the repository's own tests, which the agent can read. `edit_file` blocks edits to tests and pytest config, but a fix could still special-case the tested inputs. The full system grades with hidden tests.
 - The bundled replay file was written by hand to match the demo input. Record your own with `--record` from a live run.
 - This milestone has one agent (the Coder) and a test loop. The Planner and Reviewer agents, Temporal, the approval gates and GitHub integration come in later milestones.

@@ -40,7 +40,9 @@ def run_agent(
     run_id = run_id or uuid.uuid4().hex[:8]
     run_dir = runs_dir / run_id
     workspace_dir = run_dir / "workspace"
-    shutil.copytree(repo, workspace_dir, ignore=shutil.ignore_patterns(*SKIP_DIRS))
+    # symlinks=True copies links as links. The default copies the target's content, which would
+    # bring files from outside the repo into the workspace, past the tools' path guard.
+    shutil.copytree(repo, workspace_dir, symlinks=True, ignore=shutil.ignore_patterns(*SKIP_DIRS))
 
     log = RunLog(run_dir / "run.jsonl", echo=echo)
     log.event("run_started", run_id=run_id, repo=str(repo), model=llm.model, issue=issue)
