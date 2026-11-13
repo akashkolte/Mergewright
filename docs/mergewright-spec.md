@@ -5,7 +5,7 @@
 
 ## 1. Thesis
 
-Mergewright turns a GitHub issue on a Python repo with a pytest suite into a PR on `mergewright/<run-id>`: minimal diff, passing tests, rationale, run record. A human approves the diff before any GitHub write.
+Mergewright turns a GitHub issue on a Python repo with a pytest suite into a PR on `mergewright/<run-id>`: minimal diff, passing tests, rationale, run record. A human approves the diff before any code reaches GitHub (branch or PR). How a repo connects and how an issue becomes a run: §7.1.
 
 The same system runs in three modes: **service** (issue → PR), **eval** (task → hidden-test verdict) and **sweep** (thousands of runs that produce verified trajectories). Sweeps feed model improvement; model improvement needs throughput; throughput must not break durability or budgets.
 
@@ -55,7 +55,7 @@ Not a goal: beating frontier coding agents on resolve rate. Not built: a custom 
 | LLM client | Keep the `openai` SDK against OpenAI-compatible servers; retries, fallback, limiter and budget ledger in our code | Works today; LiteLLM is in §14 with a trigger |
 | User interface | No custom UI. Temporal UI, one Grafana dashboard, the `mergewright` CLI, generated Markdown reports, and GitHub comments or the CLI for approval | UI work adds no evidence for any claim in §1 |
 | CI gate | Replay, workflow-replay, durability and limiter suites gate merges; live evals are reported, not gating | Live evals are too noisy to block merges |
-| Build process | AI-assisted code is allowed; the core (runtime module, workflows, budget ledger, limiter, `open_pr`, oracle, statistics) is test-first and reviewed line by line | Every core line must be explainable in an interview. AI use is disclosed in the README |
+| Build process | AI-assisted code is allowed; the core (runtime module, workflows, budget ledger, limiter, `post_comment`, `open_pr`, oracle, statistics) is test-first and reviewed line by line | Every core line must be explainable in an interview. AI use is disclosed in the README |
 
 ## 4. Architecture
 
@@ -69,7 +69,7 @@ flowchart LR
     CW --> LQ[llm queue: localize, coder] --> RL[Rate limiter] --> M[Model: hosted or vLLM]
     CW --> SQ[sandbox queue: tools, tester, checks] --> POOL[Sandbox pool: Docker]
     CW --> MS[(Postgres: messages, ledger, limiter, results)]
-    PW --> V[verify and select] --> G{diff gate} --> P[open_pr on github queue]
+    PW --> V[verify and select] --> PC[post_comment: diff on issue] --> G{diff gate} --> P[open_pr on github queue]
     PW -.stuck.-> TR[triage LLM: closed choice]
     V --> OR[Oracle: hidden tests, fresh sandbox]
     OR --> TJ[(Trajectory store)]
@@ -86,7 +86,7 @@ flowchart LR
 | Running repo code and tests | Sandbox pool |
 | Model call admission (RPM, TPM, concurrency) | Rate limiter |
 | Choosing one patch among candidates | Verifier stage in the parent workflow |
-| GitHub writes | `open_pr` activity only |
+| GitHub writes | `post_comment` and `open_pr` activities only, both idempotent |
 | Truth about what exists on GitHub | GitHub, not our database |
 
 Every LLM call, sandbox command, limiter call, GitHub call, clock read and random value runs in an activity. Workflow code and edge functions stay deterministic.
@@ -112,7 +112,7 @@ Every LLM call, sandbox command, limiter call, GitHub call, clock read and rando
 ```
 parent: prepare → start N candidate workflows → verify and select → checks
 candidate: localize → coder ⇄ tools → tester → (fail, attempts left) → coder …
-  ├ service mode: diff gate (signal + 72 h timer) → open_pr → PR_OPENED
+  ├ service mode: post_comment (diff) → diff gate (signal + 72 h timer) → open_pr → PR_OPENED
   ├ eval mode:    export patch → oracle → EVAL_DONE
   └ sweep mode:   export all candidates → oracle → trajectory store → EVAL_DONE
 stuck (2 failed test attempts, or checks fail twice) → triage or stop
@@ -231,14 +231,31 @@ Decided after Phase 4 (§11). Training means: self-host an open-weight model, ge
 
 - **Sandbox (Docker):** network only during image build, which also runs repo code (§13.1 moves builds to a separate builder); none during agent work and tests. Non-root, dropped capabilities, CPU/memory/PID limits (memory floor and ceiling set apart, per Anthropic's 2026 infrastructure-noise findings), only the workspace mounted, empty env except a planted canary, per-command timeout, `run_id` label plus orphan sweeper. gVisor runtime before running on repos we do not own (Phase 6). Stated limit: shared kernel without gVisor.
 - **`open_pr` (effectively-once):** branch `mergewright/<run-id>`; PR body marker `<!-- mergewright-run: <run-id> -->`; look up before every write and reuse if it matches; approval carries the diff hash and a mismatch fails `FAILED_POLICY`. Credential: fine-grained token or GitHub App installation token scoped to `mergewright/*`, never in code or sandbox.
-- **Approval:** `mergewright approve <run-id>` or an `/approve` comment from an allowed GitHub user sends the signal. No web UI.
+- **`post_comment` (effectively-once):** one status comment per run on the triggering issue, found by the same run marker and edited in place, never duplicated. Holds status, run link, rationale and the full diff. `@` mentions in generated text are escaped. A diff over GitHub's comment size limit fails the run as `FAILED_POLICY`.
+- **Approval:** `/approve` or `/reject <reason>` on the issue from an allow-listed user with write access, or `mergewright approve <run-id>`, sends the signal with the diff hash. No web UI.
 - **API:** `POST /runs`, `GET /runs/{id}`, `POST /runs/{id}/decision`, `POST /webhooks/github`. Bearer token for the API; HMAC for webhooks; delivery ID dedupe; workflow ID `owner/repo#issue`; 202 after persisting; 429 with queue position past admission limits.
 - **Budgets (initial):** $2, 400k tokens, 40 LLM steps, 30 min active, 3 test attempts per candidate, per run (shared by N candidates); warning at 80 %; same tool + same args 3 times ends the candidate. A global daily spend cap per provider. Free endpoints report tokens and $0, never an invented price.
 - **Observability:** JSONL `run_events` (exists) feeds the harness. Temporal UI for run inspection. OTel traces; Prometheus metrics with one Grafana dashboard for schedule-to-start latency per queue, limiter wait and 429 rate, pool utilization, queue depth, tokens/s and spend.
 
+### 7.1 GitHub integration flow
+
+Mergewright never watches a repo on its own. A maintainer opts in by installing the Mergewright GitHub App; repos without the App send no events.
+
+1. **App (once):** webhook URL `POST /webhooks/github`, webhook secret, private key in a secrets manager. Permissions: Issues (read, write comments), Contents (write branches), Pull requests (write), Metadata (read). Events: `installation`, `issues`, `issue_comment`.
+2. **Opt-in (once per repo):** the maintainer installs the App; the `installation` event adds `installation_id` and the repo to the allow-list.
+3. **Trigger:** a user with triage rights adds the `mergewright` label → `issues.labeled` event. Unlabeled issues are ignored, so outsiders cannot spend the budget.
+4. **Intake:** verify HMAC; drop duplicate `X-GitHub-Delivery` IDs; check the allow-list and admission limits; start the workflow with ID `owner/repo#issue` (a second start is rejected); return 202 within GitHub's 10 s limit.
+5. **Run:** an activity exchanges the App's signed JWT for a short-lived installation token scoped to the repo; clones the default branch HEAD as `base_sha`. The token never enters the sandbox.
+6. **Review:** `post_comment` puts the status, rationale and diff on the issue.
+7. **Approval:** `/approve` or `/reject` arrives as `issue_comment.created`; the commenter is checked against the allow-list and repo permissions; the workflow gets the signal.
+8. **PR:** `open_pr` pushes `mergewright/<run-id>` and opens a PR with "Fixes #N" and the run marker; `post_comment` adds the PR link. The maintainer reviews and merges; Mergewright never merges.
+9. **Timeout:** no decision in 72 h → `EXPIRED`; the comment says so.
+
+Before Phase 6: our own test repo, a fine-grained token, approval by CLI; webhooks reach a local machine through smee.io or ngrok. Eval and sweep modes never touch GitHub; they use task snapshots.
+
 ## 8. Security
 
-Issue text, repo files, tool output and human feedback are untrusted data. Agents cannot change tools, budgets or permissions. Allow-lists, path guards and protected paths are enforced in code. No secrets in the sandbox; the canary must never appear in events, traces, workflow history, trajectories, training data, PRs or comments. Redact before export. The GitHub credential cannot merge and writes only `mergewright/*`. Human diff gate before every write. Real PRs go only to our own repos or to repos whose maintainers opted in. Temporal Cloud, GPU and model-host credentials stay out of workers that run sandboxes.
+Issue text, repo files, tool output and human feedback are untrusted data. Agents cannot change tools, budgets or permissions. Allow-lists, path guards and protected paths are enforced in code. No secrets in the sandbox; the canary must never appear in events, traces, workflow history, trajectories, training data, PRs or comments. Redact before export. The GitHub credential cannot merge and writes only `mergewright/*` branches, PRs and the run's own issue comment. Human diff gate before any branch or PR write. Real PRs go only to our own repos or to repos whose maintainers opted in. Temporal Cloud, GPU and model-host credentials stay out of workers that run sandboxes.
 
 ## 9. Evaluation
 
@@ -308,7 +325,7 @@ Faults use the fake provider, a local fake GitHub server that can commit a write
 | K6 | Kill sandbox mid-candidate | P0 |
 | K7 | Crash loop for the whole run | P0 |
 | K8 | Provider 429/500 at 20 %, slow responses | P1 |
-| K9 | Webhook ×5; approval sent twice and after expiry | P1 |
+| K9 | Webhook ×5; approval sent twice and after expiry; status comment written, response lost, retried | P1 |
 | K10 | Postgres restart mid-run | P0 |
 | K11 | Worker killed while holding a limiter reservation | P1 |
 | K12 | K1–K7 at 16 concurrent runs | P1 |
@@ -335,7 +352,7 @@ Faults use the fake provider, a local fake GitHub server that can commit a write
 
 ## 10. Work items by priority
 
-**P0 (credibility).** Runtime spike; Docker sandbox with canary and no network; task format, validator, runner, oracle, report; smoke, dev and adversarial splits; message store; parent and candidate workflows on the plugin with budget ledger; Localizer; checks with tamper detector; diff gate and `open_pr` (fake GitHub + one real repo); workflow replay tests; R0/R1/R2 on K1–K7 and K10; S0, S1, S2, two S2+E rounds at k = 3; task queues, admission control, rate limiter, fake provider, load generator; L1–L3 and L5; CI.
+**P0 (credibility).** Runtime spike; Docker sandbox with canary and no network; task format, validator, runner, oracle, report; smoke, dev and adversarial splits; message store; parent and candidate workflows on the plugin with budget ledger; Localizer; checks with tamper detector; diff gate, `post_comment` and `open_pr` (fake GitHub + one real repo); workflow replay tests; R0/R1/R2 on K1–K7 and K10; S0, S1, S2, two S2+E rounds at k = 3; task queues, admission control, rate limiter, fake provider, load generator; L1–L3 and L5; CI.
 
 **P1 (differentiators).** Sandbox pool and L4; K8, K9, K11, K12; metrics dashboard; parse-checked edits and context policy; Reproducer; Best-of-N with staged verifier; cascade; held-out split and freeze; self-hosted vLLM and L6; Ref; GitHub App; README rewrite and blog posts.
 
@@ -372,11 +389,11 @@ Order is fixed. Dates are set when a phase starts. Each phase's exit is a genera
 |---|---|---|
 | 0 | **Spikes:** runtime gate (§4.2) on `buggy_calc`; one SWE-rebench image runs its F2P tests on an x86 VM; hosted endpoint limits and tool-call quality; Temporal Cloud actions per run | Results in `docs/spikes.md`; the runtime choice is confirmed or the fallback chosen; any other failed spike changes this spec first |
 | 1 | **Foundation:** Docker `Sandbox` behind the existing tools; task format, validator, oracle, eval runner, report; smoke, dev ≥ 40, adversarial ≥ 20; S0, S1, S2 at k = 3 on the current in-process runner; CI | Sandbox guard tests pass; dev table with intervals from manifests |
-| 2 | **Durable core:** message store; parent and candidate workflows on the plugin; budget ledger; Localizer; checks with tamper detector; diff gate; `open_pr`; workflow replay tests; R1 baseline; K1–K7 and K10 on R0/R1/R2; two S2+E rounds | Durability table generated in CI; S2 on Temporal matches the Phase 1 S2 resolve rate within its interval; one real PR on our repo |
+| 2 | **Durable core:** message store; parent and candidate workflows on the plugin; budget ledger; Localizer; checks with tamper detector; diff gate; `post_comment`; `open_pr`; workflow replay tests; R1 baseline; K1–K7 and K10 on R0/R1/R2; two S2+E rounds | Durability table generated in CI; S2 on Temporal matches the Phase 1 S2 resolve rate within its interval; one real PR on our repo |
 | 3 | **Throughput and distributed systems:** task queues; fake provider; rate limiter with AIMD; FastAPI admission control; sandbox pool; metrics dashboard; L1–L5; K8, K9, K11, K12 | Saturation curve with a named bottleneck; limiter comparison; two-host scaling factor; §5.3 targets met or the gap explained |
 | 4 | **Test-time improvement:** parse-checked edits, context policy, Reproducer, Best-of-N with staged verifier, cascade; vLLM and L6; held-out frozen; held-out results for S2, BoN-*N*, Ref; budget and training decision | Best-of-N chart (pass@N vs selection accuracy vs $); held-out table with intervals and failures |
 | 5 | **Training (conditional):** train split; sweeps; trained verifier; RFT if justified; tamper-under-training | Base vs tuned on held-out, paired delta with interval |
-| 6 | **Validation:** GitHub App + webhooks with gVisor on our repos and opt-in repos; production-readiness checklist (§13.1); README rewrite with generated results; 2–3 blog posts; upstream issues or PRs for bugs found in dependencies; demo (label → run → kill worker → resume → approve → PR) | Smoke and durability suites reproducible from the README in < 15 minutes; online metrics from §13.1 reported for real repos |
+| 6 | **Validation:** GitHub App + webhooks (§7.1) with gVisor on our repos and opt-in repos; production-readiness checklist (§13.1); README rewrite with generated results; 2–3 blog posts; upstream issues or PRs for bugs found in dependencies; demo (label → run → kill worker → resume → approve → PR) | Smoke and durability suites reproducible from the README in < 15 minutes; online metrics from §13.1 reported for real repos |
 
 ### 13.1 Production readiness (Phase 6)
 

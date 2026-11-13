@@ -40,12 +40,12 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 17. Node functions read and write messages by hash; no Temporal imports in them.
 18. `mergewright/runtime/temporal_graph.py`: plugin setup, node metadata (`execute_in`, queues, timeouts, retries). Pin `temporalio` and `temporalio-langgraph`.
 19. Candidate workflow: runs the graph; continue-as-new after each test attempt.
-20. Parent workflow: starts candidates, runs checks, diff gate (signal + 72 h timer), `open_pr`.
+20. Parent workflow: starts candidates, runs checks, `post_comment` (diff), diff gate (signal + 72 h timer), `open_pr`.
 21. Budget ledger: reservation before each LLM call, settle after, unsettled counted as spent.
 22. Localizer node (schema-validated output).
 23. Checks: ruff, diff size, tamper detector.
-24. `mergewright approve <run>` and `/approve` GitHub comment → approval signal.
-25. `open_pr`: idempotent; fake GitHub server for tests; one real PR on your own repo.
+24. `mergewright approve <run>` and `/approve` or `/reject` GitHub comments → decision signal.
+25. `post_comment` and `open_pr`: idempotent via run marker; fake GitHub server for tests; one real PR on your own repo.
 26. Workflow-history replay tests in CI.
 27. R1 baseline: same graph + `PostgresSaver` + restart supervisor. R0 is the current `runner.py`.
 28. K1–K7 and K10: 10 trials × R0/R1/R2; durability table generated in CI.
@@ -88,7 +88,7 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 
 ## Phase 6: validation (spec §13)
 
-48. GitHub App + webhook (HMAC, dedupe) + gVisor; run on your own and opt-in repos.
+48. GitHub App + webhook flow (spec §7.1: install, label trigger, HMAC, dedupe) + gVisor; run on your own and opt-in repos.
 49. Production-readiness checklist (spec §13.1): separate image builder, approver allow-list + audit log, backups, alerts, online metrics, cost per merged PR.
 50. README rewrite with generated tables; smoke and durability suites reproducible in < 15 minutes.
 51. 2–3 blog posts with data; demo video; upstream issues or PRs for bugs found in dependencies.
