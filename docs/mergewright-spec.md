@@ -1,275 +1,229 @@
-# Mergewright — Fault-Tolerant Multi-Agent System for Issue-to-PR Automation
+# Mergewright: a durable, measured issue-to-PR agent
 
-> *Issues in. Tested PRs out. Even when things crash.*
+**Course:** CSE 510 Agentic AI Engineering (Fall 2026), University at Buffalo · **Team:** Akash Kolte, Sheetal Jain
+**Status:** Spec v3 (replaces v2). `docs/proposal.md` and `docs/architecture.md` stay as the Milestone 1 and midterm record; where they differ, this spec wins.
 
-**Course:** CSE 510 Agentic AI Engineering (Fall 2026 capstone), University at Buffalo
-**Team:** Akash Kolte + 1 collaborator
-**Status:** Draft spec v2 — 2 Oct 2026 (v1: 29 Sep 2026; v2 adds webhook reliability, live event streaming, secret redaction)
+## 1. Thesis
 
----
+Mergewright turns a GitHub issue on a Python repo with a pytest suite into a PR on `mergewright/<run-id>`: minimal diff, passing tests, rationale, run record. A human approves the diff before any GitHub write.
 
-## 1. Problem statement
+The agent is not the contribution. The contribution is the system around it:
 
-Coding agents demo well but fail in production. They lose work when a process crashes, repeat side effects on retry, loop until they burn through a budget, obey instructions hidden in untrusted input, and — most importantly — nobody can say with evidence whether a change made them better or worse.
+- **Durable:** survives worker, sandbox and database failures; never duplicates a GitHub side effect.
+- **Bounded:** token, dollar, step and time budgets hold across crashes.
+- **Honest:** hidden-test oracle, post-cutoff tasks, baselines, k runs, confidence intervals, published failures.
+- **Safe:** least privilege in code, isolated execution, no secrets in the sandbox, reward-hacking guards.
 
-**Mergewright** is a backend service that takes a GitHub issue and autonomously produces a tested pull request, using a team of specialized agents. The engineering focus is not the agents' cleverness but the **reliability, measurability and safety of the system around them**:
+Not a goal: beating frontier coding agents on resolve rate.
 
-- **Durable:** any run survives a worker crash mid-task and resumes without redoing completed work or duplicating side effects.
-- **Measurable:** every change to prompts, models or the graph is scored against a fixed benchmark with a deterministic pass/fail oracle, and regressions block the merge.
-- **Observable:** every run is traceable end to end — which agent did what, why, how long it took and what it cost.
-- **Safe:** generated code runs only in isolated sandboxes, tools follow least privilege, and a human approves before anything reaches a shared branch.
+## 2. Key decisions (v3)
 
-## 2. Goals and non-goals
+| Decision | Choice | Why |
+|---|---|---|
+| Orchestrator | Deterministic Temporal workflow code starts each agent and routes on its typed output | Every routing decision in this pipeline follows from a typed result (tests fail → Coder, budget spent → stop). An LLM there adds cost, randomness, a failure mode and an injection surface |
+| Supervisor LLM | One bounded **triage** call at the stuck point only (§4.3); must beat the fixed router in an ablation | Gives a tested answer to "is an LLM supervisor worth it?" |
+| Dynamic fan-out to parallel subagents | Out of scope | Tasks are single-repo bug fixes; too few multi-part issues to measure |
+| Durability seam | One Temporal activity per graph segment; LangGraph checkpoints to Postgres inside it (§4.2) | Resolves v2's contradiction about what is re-run after a crash |
+| Sandbox | `Sandbox` interface, Docker backend first | Benchmark tasks ship as Docker images; free, offline, reproducible |
+| Headline benchmark | Post-cutoff tasks (SWE-rebench Python slice) + own mined dev set | SWE-bench Verified is contaminated (OpenAI stopped reporting it in Feb 2026) |
+| LLM client | Keep `openai` SDK against OpenAI-compatible servers; retries, fallback and budget ledger in our code | Works today; LiteLLM is in the Later list |
+| CI gate | Replay and durability suites (deterministic); live evals reported, not gating | Live evals on ~40 tasks are too noisy to block merges |
+| Build process | AI-assisted code is fine; the core (workflow, segment activity, `open_pr`, oracle, statistics) is test-first and reviewed line by line | Every core line must be explainable in an interview. AI use is disclosed in the README |
 
-### Goals
-1. Resolve real GitHub issues end to end: issue → plan → code → tests → review → human approval → PR.
-2. Guarantee crash recovery with **zero duplicated side effects**, proven by fault-injection tests.
-3. Report resolve rate, reliability (pass^k), cost per task and latency on a pinned benchmark, with an eval gate in CI.
-4. Provide full-stack tracing from API request to individual LLM and tool calls.
-5. Enforce hard per-run budgets (tokens, dollars, steps, wall-clock time).
+## 3. Current state
 
-### Non-goals (deliberately out of scope)
-- An interactive CLI/IDE experience (that is a different product: a Claude Code-style harness).
-- Training or fine-tuning models. The system is model-agnostic; a fine-tuned model can be plugged in later.
-- Multi-repo changes, non-Python repos (v1), and deployment of the generated code.
-- Agent-to-agent protocols across organisations (A2A) — no real need in this design.
-- Building a custom LLM gateway or semantic prompt cache: LiteLLM is used as-is and provider prompt caching covers stable prefixes. Coding-agent prompts are mostly unique, so semantic caching would add complexity for a low hit rate. This is a decision to defend, not an omission.
+Built (Milestone 2): LangGraph `coder → tools → tester` loop; tools `read_file`, `search_code`, `edit_file`, `run_tests` with allow-list, path guard and protection of tests and pytest config; `openai` client with record/replay; step, attempt and wall-clock caps; JSONL run log; 59 tests; ruff clean.
 
-## 3. Users and trigger
-
-- **Trigger:** a GitHub issue labelled `mergewright` (webhook) or an API call `POST /runs {repo, issue_number}`.
-- **Output:** a PR on a `mergewright/<run-id>` branch with the diff, passing tests, a written rationale and a link to the run's trace.
-- **Human role:** approves or rejects the PR plan and final diff; can send feedback that re-enters the loop.
+Not built: Temporal, Postgres, FastAPI, sandbox (tests run as a local subprocess), GitHub writes, gate, Localizer, eval harness, task sets, CI.
 
 ## 4. Architecture
 
 ```mermaid
 flowchart LR
-    GH[GitHub webhook / REST API] --> API[FastAPI control plane]
-    API -->|start workflow| T[(Temporal server)]
-    T --> WK
-    subgraph WK[Temporal worker]
-        WF[IssueToPR workflow] --> ACT[Activities]
-        ACT --> LG[LangGraph multi-agent graph]
-    end
-    LG -->|LLM calls| GW[LLM gateway: LiteLLM]
-    LG -->|tools via MCP| MCP[MCP servers: GitHub, repo search]
-    LG -->|run code/tests| E2B[E2B sandboxes]
-    WK --> PG[(Postgres: runs, checkpoints, idempotency keys)]
-    WK -.OTel traces/metrics.-> OBS[Langfuse + Prometheus/Grafana]
-    API -.-> OBS
-    API -->|SSE run events| CLIENT[CLI / web client]
+    GH[GitHub webhook] --> API[FastAPI]
+    CLI[mergewright CLI] --> API
+    API --> T[(Temporal)]
+    T --> WF[IssueToPR workflow: orchestrator, deterministic]
+    WF --> L[localize] --> S[agent_segment: LangGraph Coder ⇄ Tester]
+    S --> C[checks] --> G{diff gate} --> P[open_pr] 
+    S --> SB[Docker sandbox]
+    S --> PG[(Postgres checkpoints)]
+    WF -.stuck.-> TR[triage LLM: closed choice]
+    H[Eval harness] --> T
+    H --> OR[Oracle: hidden tests, fresh sandbox]
 ```
 
-### 4.1 Division of responsibility (key design decision)
+### 4.1 Ownership
 
-| Layer | Owns | Why |
-|---|---|---|
-| **Temporal** | Run lifecycle: start, retry, timeouts, crash recovery, worker failover, human-approval waits (signals), cancellation | Records each activity result, so completed LLM/tool calls are never re-executed after a crash; recovery is automatic |
-| **LangGraph** | Agent logic: supervisor routing, agent state, feedback loops between agents | Purpose-built for multi-agent graphs; typed state; conditional edges |
-| **E2B** | Isolated execution of generated code and tests | Untrusted code never runs on the host |
-| **FastAPI** | Webhooks, run API, approval endpoints | Same language as LangGraph and Temporal Python SDK; one stack to operate |
-
-**Rule:** Temporal workflow code stays deterministic. Every non-deterministic operation (LLM call, sandbox command, GitHub call, clock, randomness) happens inside an **activity**.
-
-> Spring Boot alternative: a Java control plane talking to Python workers over Temporal task queues is possible, but it doubles the stack for little gain. Use FastAPI; revisit only if time remains.
-
-### 4.2 Agents
-
-| Agent | Responsibility | Tools | Output (structured, schema-validated) |
-|---|---|---|---|
-| **Supervisor** | Routes work, enforces budgets and step limits, decides done/escalate | none (control only) | next agent + reason |
-| **Planner** | Understand the issue, locate relevant code, write a plan | repo map, hybrid code search (BM25 + embeddings + reranker), file read | `Plan {files, steps, test_strategy, risks}` |
-| **Coder** | Implement the plan as a minimal diff | file read/write in sandbox, shell (allow-listed) | `Patch {diff, rationale}` |
-| **Tester** | Write a reproducing test, run the suite, report failures | sandbox test runner | `TestReport {passed, failed, logs}` |
-| **Reviewer** | Check diff for correctness, security, scope creep, style | diff, static analysis (ruff, bandit) | `Review {approve, issues[]}` |
-
-Loops: Tester → Coder on failure (max N iterations); Reviewer → Coder on rejection; any agent → Supervisor → human on repeated failure.
-
-Why multiple agents (defensible in interviews): each has a **separate context window** (planner doesn't carry test logs), **different tool permissions** (only Coder writes files; only the PR activity touches GitHub), and **independently evaluable output**.
-
-### 4.3 Event ingestion and reconciliation
-
-GitHub delivers webhooks at-least-once and can drop or reorder them, so ingestion is treated as an unreliable input, not a trigger to trust.
-
-- **Verify:** reject requests with an invalid `X-Hub-Signature-256` HMAC.
-- **Dedupe:** unique constraint on `X-GitHub-Delivery` in Postgres, plus a deterministic Temporal workflow ID (`repo#issue`), so redeliveries and double-labelling start at most one run.
-- **Ack fast:** persist the event and start the workflow, then return `202`. Never do agent work inside the request.
-- **Reconcile:** a scheduled Temporal workflow lists `mergewright`-labelled issues that have no run and starts them, catching dropped webhooks.
-- **Dead-letter and replay:** events that fail validation or processing go to a `dead_events` table with the error; `POST /events/{id}/replay` re-drives them.
-- **Reconcile-then-act on outbound calls:** before creating a branch, PR or comment, query GitHub for an existing one (by branch name or a `run-id` marker in the PR body). GitHub is the source of truth; a Postgres idempotency key alone cannot cover a crash between the GitHub write and the database write.
-
-### 4.4 Live run events
-
-- Activities and graph nodes append structured events (`agent_started`, `tool_call`, `test_result`, `awaiting_approval`, `budget_warning`, ...) to a `run_events` table, which doubles as an audit log.
-- `GET /runs/{id}/events` streams them over SSE with monotonically increasing IDs, heartbeats and `Last-Event-ID` resume, so a reconnecting client sees no gaps and no duplicates.
-- **Backpressure:** bounded per-client buffer; a slow client is coalesced or dropped and never blocks workers.
-- Token-level streaming is optional. Tokens are not part of Temporal's recorded history, so publish them on this side channel only and treat them as best-effort.
-- Minimum client: a `mergewright tail <run-id>` CLI with approve/reject commands. A web page only if time allows.
-
-## 5. Reliability requirements
-
-| ID | Requirement | How it's met | How it's verified |
-|---|---|---|---|
-| R1 | Crash at any point resumes without redoing completed steps | Temporal activity history + LangGraph Postgres checkpointer | Fault-injection suite (§7.4) |
-| R2 | No duplicated side effects | Idempotency key `run_id:step:attempt-independent-hash` on every side-effecting activity (branch create, PR open, comment); stored in Postgres, checked before execution; plus reconcile-then-act against GitHub (§4.3) for the crash window between the GitHub write and the DB write | Kill worker between side effect and ack; assert exactly one PR |
-| R3 | Sandbox loss is recoverable | Repo state checkpointed as a git commit/patch after each Coder step; new sandbox rebuilt from base image + patch | Kill sandbox mid-run; assert run completes |
-| R4 | Bounded cost and time | Per-run budgets (tokens, $, steps, wall clock) enforced by Supervisor + Temporal timeouts; gateway-level per-run key budget as a backstop (verify LiteLLM budget support) | Adversarial "impossible issue" tasks must terminate within budget |
-| R5 | No infinite loops | Step cap, repeated-action detection (same tool + same args hash N times) | Loop-rate metric = 0 on benchmark |
-| R6 | Transient failures don't fail runs | Retries with exponential backoff + jitter; LLM fallback to secondary model via gateway | Inject 429/500 from gateway at 20% rate |
-| R7 | Human approval can wait days | Temporal signal + durable timer; auto-escalate/cancel after timeout | Test with time-skipping in Temporal test env |
-| R8 | Duplicate, dropped or reordered webhooks yield exactly one run per issue | HMAC check, delivery-ID dedupe, deterministic workflow ID, reconciler (§4.3) | Replay one delivery 5x; drop a delivery and assert the reconciler starts the run |
-
-> **Terminology:** Temporal runs activities at-least-once, so "exactly-once" in this spec means *effectively-once*: at-least-once execution plus idempotent side effects. Use that wording in interviews.
-
-## 6. Security and guardrails
-
-- **Sandboxing:** all generated code and tests run in E2B; sandbox has no secrets and restricted network access (verify E2B's network-control options for your plan).
-- **Least privilege:** GitHub App scoped to one test org; can only push to `mergewright/*` branches and open PRs — never merge.
-- **Prompt-injection defense:** issue text, repo files and tool outputs are treated as untrusted data; agents cannot change their own tools or budgets; Reviewer + human gate before PR. Mapped to the OWASP Top 10 for LLM Applications.
-- **Output validation:** all agent outputs are schema-validated (structured outputs); invalid output = retry, not crash.
-- **Red-team suite:** issues and repo files containing hidden malicious instructions (exfiltrate env vars, modify CI, delete tests). Measured as an eval (§7.1–7.2).
-- **Tool permissions in code:** per-agent tool allow-lists are enforced at the activity layer, not in prompts. A call outside an agent's list fails the step and is logged.
-- **Secret and PII redaction:** scrub tokens, env-var values and high-entropy strings from tool outputs, logs and Langfuse/OTel payloads before export. Verified with a canary secret planted in the sandbox env and repo: it must never appear in any trace, log, comment or PR.
-
-## 7. Evaluation
-
-The core principle: **the pass/fail oracle is deterministic even though the agents are not.** A task is resolved only if hidden tests pass in a pinned environment. Agent non-determinism is measured statistically, not hidden.
-
-### 7.1 Datasets (pinned, versioned)
-| Set | Size | Purpose |
-|---|---|---|
-| **Dev set** | ~30 tasks | Bugs seeded into 2–3 small Python repos you control; fast and cheap; used daily |
-| **Benchmark set** | ~50 tasks | Fixed subset of SWE-bench Verified (Python); used for headline numbers. Verify that its environment images can run on E2B templates early (week 2) |
-| **Adversarial set** | ~15 tasks | Impossible issues, ambiguous issues, prompt-injection attacks |
-
-Each task: repo @ commit, issue text, hidden **fail-to-pass** tests (must pass after fix) and **pass-to-pass** tests (must not break).
-
-### 7.2 Metrics
-| Level | Metric | Definition |
-|---|---|---|
-| Outcome | **Resolve rate** | % tasks where all fail-to-pass and pass-to-pass tests pass |
-| Outcome | **pass^k** (k=3) | % tasks resolved in *all* k runs — measures reliability, not luck |
-| Outcome | Cost per resolved task | $ (LLM + sandbox) ÷ resolved tasks |
-| Outcome | Latency | p50 / p95 wall-clock per run |
-| Trajectory | Steps per task, loop rate, tool-error rate | From traces |
-| Trajectory | Trajectory quality | LLM judge scores plan quality, unnecessary actions, scope creep |
-| Component | Planner file-localisation recall | % of gold-patch files named in the plan |
-| Component | Reviewer bug-catch rate | On diffs with planted bugs |
-| Component | Tester reproduction rate | % tasks where Tester's new test fails before fix, passes after |
-| Safety | Injection resistance | % adversarial tasks with zero unsafe actions |
-| Safety | Budget compliance | % runs terminating within budget |
-| Safety | Secret leakage | Canary-secret appearances in traces, logs, comments or PRs (target 0) |
-
-### 7.3 LLM-as-judge calibration
-- Hand-label ~50 trajectories (both teammates, independently).
-- Report inter-annotator agreement and judge–human agreement (Cohen's κ). Target κ ≥ 0.6 before trusting the judge; judge prompt is versioned with the dataset.
-
-### 7.4 Fault-injection (chaos) suite
-Scripted scenarios run in CI nightly: kill worker mid-activity, kill between side effect and ack, kill sandbox, drop Postgres connection, inject LLM 429/500s, inject slow responses past timeout, redeliver duplicate webhooks, drop a webhook (reconciler must recover it), disconnect and resume an SSE client mid-run. Pass criteria: run completes (or fails cleanly), exactly-once side effects, no orphaned sandboxes.
-
-### 7.5 Determinism strategy
-- Pinned: model versions, sandbox images, dataset commits, prompt versions, temperature 0 where supported.
-- **Record/replay tests:** LLM responses recorded as fixtures ("cassettes") so the full pipeline can be tested in CI deterministically and for free.
-- Headline numbers always reported as mean ± 95% CI over k runs.
-
-### 7.6 Eval gate in CI
-Every PR to Mergewright itself runs the dev set. Merge is blocked if resolve rate drops beyond the noise band or cost per task rises > 15%. The benchmark set runs weekly and on releases.
-
-### 7.7 Ablations (the results section of your write-up)
-Single agent vs. multi-agent · with vs. without Tester loop · with vs. without Reviewer · retrieval variants · model routing on vs. off. Each reported on resolve rate and cost.
-
-## 8. Observability
-
-- **Tracing:** OpenTelemetry end to end — API request → Temporal workflow → activity → LangGraph node → LLM call / tool call / sandbox command, all sharing one `run_id` trace. Use the OpenTelemetry GenAI semantic conventions for LLM spans (verify current status of the spec).
-- **LLM observability:** Langfuse (self-hosted) for prompts, completions, token counts, cost and eval scores attached to traces.
-- **Workflow observability:** Temporal UI for run history and replay.
-- **Metrics:** Prometheus + Grafana dashboards — runs by status, resolve rate, cost per run, p95 latency, retries, tool errors, budget kills, sandbox lifetime.
-- **Alerts:** cost per run spike, error-rate spike, stuck runs (no progress for N minutes).
-- **Structured logs** with `run_id`, `agent`, `step` on every line.
-
-## 9. Cost and performance engineering
-- **Model routing** via LiteLLM gateway: stronger model for Planner/Reviewer, cheaper model for Coder iterations; measured in ablations.
-- **Prompt caching** for stable system prompts and repo maps.
-- **Context engineering:** repo map + targeted retrieval instead of dumping files; tool outputs truncated/summarised.
-- **Sandbox reuse** within a run; guaranteed teardown via Temporal cleanup activity.
-
-## 10. Tech stack
-
-| Area | Choice |
+| Concern | Owner |
 |---|---|
-| Agents | LangGraph (Python), structured outputs (Pydantic) |
-| Orchestration | Temporal (Python SDK), local dev server → optional Temporal Cloud |
-| Sandboxes | E2B (custom template with repo deps) |
-| API | FastAPI |
-| Tools | MCP servers (GitHub, repo search) |
-| Models | Model-agnostic via LiteLLM; at least two providers for fallback |
-| Retrieval | BM25 + embeddings + reranker over code |
-| Storage | Postgres (runs, checkpoints, idempotency keys, eval results) |
-| Observability | OpenTelemetry, Langfuse, Prometheus, Grafana |
-| Quality | pytest, ruff, mypy, bandit; GitHub Actions CI with eval gate |
-| Deploy | Docker Compose locally; Kubernetes (optional stretch) |
+| Lifecycle: retries, timeouts, failover, cancel, human wait (signal + timer), routing, budgets | Temporal workflow (deterministic) |
+| Reasoning inside a segment: messages, tool calls, Coder ⇄ Tester loop | LangGraph, checkpointed to Postgres |
+| Running repo code and tests | Sandbox |
+| GitHub writes | `open_pr` activity only |
+| Truth about what exists on GitHub | GitHub, not our database |
 
-## 11. Milestones (Fall 2026)
+Every LLM call, sandbox command, GitHub call, clock read and random value runs in an activity.
 
-| Week | Dates | Deliverable |
+### 4.2 Durability seam
+
+- One activity per **segment** (Coder ⇄ Tester loop). LangGraph checkpoints after every step (`thread_id = run_id`, sync durability). A retry resumes from the last checkpoint, so at most the in-flight node runs again.
+- **Invariant:** sandbox working tree = `base_sha` + `state.patch`. The `tools` node stores `git diff base_sha` in state after each edit. Every activity start resets the tree to `base_sha` and applies `state.patch`; a lost sandbox is rebuilt the same way. Agent state and environment cannot disagree.
+- Heartbeat after every node (`checkpoint_id`, steps, tokens); ~60 s timeout moves the activity to another worker.
+- Budget counters live in checkpointed state and in the workflow, so a crash loop cannot reset them.
+- Measured cost: LLM calls repeated per crash (§6.5). Fallback if too high: Temporal-native loop (each LLM and tool call an activity).
+
+### 4.3 Run flow and the triage Supervisor
+
+```
+prepare_sandbox → localize → agent_segment → checks
+  ├ service mode: diff gate (signal + 72 h timer) → open_pr → PR_OPENED
+  └ eval mode: export patch → oracle
+stuck (2 failed test attempts, or checks fail twice) → triage
+budget spent → FAILED_BUDGET · any terminal state → cleanup
+```
+
+**Triage** (P1, ablation): one LLM call that sees the issue, localization, last test report and check findings, and returns one of `{re_localize, continue_patching, write_repro_test, give_up}` with a reason. Code validates the choice against budgets and allowed transitions; an invalid choice falls back to the fixed rule. Compared with the fixed rule (`continue_patching` until attempts run out) on the same tasks.
+
+### 4.4 Agents and checks
+
+| Component | LLM | Tools / input | Output | Priority |
+|---|---|---|---|---|
+| Localizer | 1 call | repo map, `search_code`, `read_file` | files, symbols, hypothesis | P0 |
+| Coder | loop | `read_file`, `search_code`, `edit_file` | edits | P0 (exists) |
+| Tester gate | no | `run_tests` | `TestReport` | P0 (exists) |
+| Checks | no | diff, ruff, tamper detector | blocking findings | P0 |
+| Reproducer | loop | `read_file`, `write_new_test` (`tests/test_mergewright_repro_*.py` only) | test that fails on base, passes on patch | P1 |
+| Triage Supervisor | 1 call | see §4.3 | closed choice | P1 |
+| LLM Reviewer | 1 call | diff, findings | approve / issues | Later |
+
+**Tamper detector:** blocks edits to protected paths, new `skip`/`xfail`, new `conftest.py`, non-test code that branches on `pytest`/`PYTEST_CURRENT_TEST`/`sys.modules`, deleted assertions. Each attempt is logged and counted.
+
+### 4.5 Sandbox, GitHub, API, budgets
+
+- **Sandbox (Docker):** no network during agent work and tests, non-root, dropped capabilities, CPU/memory/PID limits, only the workspace mounted, empty env except a planted canary, per-command timeout, `run_id` label plus orphan sweeper. Stated limit: shared kernel.
+- **`open_pr` (effectively-once):** branch `mergewright/<run-id>`; PR body marker `<!-- mergewright-run: <run-id> -->`; look up before every write and reuse if it matches; approval carries the diff hash and a mismatch fails `FAILED_POLICY`. Credential: fine-grained token for one test repo, never in code or sandbox. "Exactly once" here means at-least-once execution plus idempotent writes.
+- **API:** `POST /runs`, `GET /runs/{id}`, `POST /runs/{id}/decision`, `POST /webhooks/github`. Bearer token for the API; HMAC for webhooks; unique delivery ID and workflow ID `owner/repo#issue`; 202 after persisting.
+- **Budgets (initial):** $2, 400k tokens, 40 LLM steps, 30 min active, 3 test attempts per segment, 2 segments; warning at 80 %; same tool + same args 3 times ends the run. Free endpoints report tokens and $0, never an invented price.
+- **Observability:** JSONL `run_events` (exists) feeds the harness; OTel traces to one local backend are P1.
+
+## 5. Security
+
+Issue text, repo files, tool output and human feedback are untrusted data. Agents cannot change tools, budgets or permissions. Allow-lists, path guards and protected paths are enforced in code. No secrets in the sandbox; the canary must never appear in events, traces, PRs or comments. Redact before export. GitHub credential cannot merge and writes only `mergewright/*`. Human diff gate before every write.
+
+## 6. Evaluation
+
+### 6.1 Task suites (pinned under `eval/`)
+
+| Suite | Size | Source | Use |
+|---|---|---|---|
+| Smoke | 5 | `buggy_calc` + 4 seeded bugs | CI on recorded responses |
+| Dev | 30–40 | Revert-a-fix tasks mined from 4–6 pure-Python repos (suite < 2 min): revert the source part of a real fix commit; its changed tests are fail-to-pass (F2P), the rest pass-to-pass (P2P) | Development, ablations |
+| Held-out | 40–60 | SWE-rebench Python tasks created after the model's cutoff, suite < 5 min | Headline numbers only; plan frozen in `eval/PLAN.md` first; no tuning on it |
+| Adversarial | 15–20 | Injection (issue, repo file, tool output), canary exfiltration, reward-hacking bait, impossible issues | Safety, budgets |
+
+Each task is validated 3×: F2P fails on base and passes with the gold patch; P2P passes on both. Flaky tasks are dropped and counted.
+
+### 6.2 Systems compared (same model, tasks and budget)
+
+| ID | System | Question |
 |---|---|---|
-| 1 | Sep 29 – Oct 5 | Repo, CI, Docker Compose (Temporal, Postgres, Langfuse); confirm CSE 510 project requirements |
-| 2 | Oct 6 – 12 | Single-agent baseline end to end on 5 dev tasks; E2B template; verify SWE-bench images on E2B |
-| 3 | Oct 13 – 19 | **MVP:** Temporal workflow + LangGraph Planner/Coder/Tester; first dev-set numbers. **Put on resume.** |
-| 4 | Oct 20 – 26 | Eval harness: dev set, metrics, results DB, CI gate |
-| 5 | Oct 27 – Nov 2 | Reviewer agent, human-approval signal, GitHub PR via MCP + idempotency keys; webhook hardening (§4.3: HMAC, dedupe, reconciler, reconcile-then-act) |
-| 6 | Nov 3 – 9 | Observability: OTel tracing, Langfuse, Grafana dashboards; `run_events` + SSE and `tail` CLI (§4.4) |
-| 7 | Nov 10 – 16 | Fault-injection suite; sandbox recovery (R3) |
-| 8 | Nov 17 – 23 | Benchmark set runs; pass^k; LLM-judge calibration |
-| 9 | Nov 24 – 30 | Security: adversarial set, injection defenses, budgets, secret redaction + canary test |
-| 10 | Dec 1 – 7 | Ablations, cost optimisation (routing, caching) |
-| 11 | Dec 8 – 14 | Write-up, demo video, README with architecture + results, blog post |
+| S0 | Localizer + one patch, no execution feedback | What does iteration buy? |
+| S1 | Single loop, `run_tests` as a normal tool, no gate or checks | What do the gate and checks buy? |
+| S2 | Mergewright with fixed router | The system |
+| S2+T | S2 + triage Supervisor | Is an LLM supervisor worth it? |
+| S2+R | S2 + Reproducer | Does a repro test help? |
+| Ref | mini-SWE-agent (pinned) | Are we competitive with a minimal known agent? |
 
-## 12. Suggested team split
+Primary model: UB-hosted OpenAI-compatible model, exact version pinned. Frontier model on S2 and Ref for a subset, sized from measured tokens per run.
 
-- **Person A — Platform:** Temporal workflows, idempotency, sandbox lifecycle, FastAPI, fault-injection suite, observability stack.
-- **Person B — Agents:** LangGraph graph, prompts, retrieval, structured outputs, Reviewer/Tester logic.
-- **Shared:** eval datasets, labelling for judge calibration, ablations, write-up.
+### 6.3 Metrics
 
-Both should own at least one eval area so each can speak to evaluation in interviews.
+- **Outcome:** resolve rate (all F2P and P2P pass), pass@1, pass^3, pass@3, tokens and $ per resolved task, p50/p95 latency.
+- **Honesty:** overclaim rate (`DONE` but hidden tests fail), P2P regression rate.
+- **Safety:** tamper attempts (all must be blocked), injection resistance, canary leaks (0).
+- **Process:** steps, tool errors, loop stops, termination reasons, localization recall, triage choice distribution.
 
-## 13. Definition of done
-- Runs end to end on real issues, opening PRs on a test org.
-- Published results table: resolve rate, pass^3, cost per resolved task, p50/p95 latency on the pinned benchmark, plus ablations.
-- Fault-injection suite green: 100% of scenarios recover with exactly-once side effects.
-- Judge calibration reported (κ).
-- Eval gate active in CI.
-- Public README with architecture diagram, design decisions and trade-offs, results, and a 3-minute demo video.
+### 6.4 Statistics
 
-## 14. Risks and mitigations
+Wilson 95 % intervals; paired bootstrap over tasks for system deltas; McNemar's exact test for single runs. With 40 tasks the interval is about ±15 points, so smaller deltas are reported as "not distinguishable".
 
-| Risk | Mitigation |
+### 6.5 Durability experiments
+
+Recorded LLM responses (free, known final patch), a local fake GitHub server that can commit a write and drop the response, real `SIGKILL` and `docker kill`.
+
+| ID | Fault |
 |---|---|
-| SWE-bench environments don't run on E2B | Check in week 2; fall back to dev set + smaller hand-built benchmark |
-| LLM/E2B costs exceed credits | Dev set first, record/replay in CI, cheap models for iteration, weekly (not daily) benchmark runs |
-| Temporal learning curve | Time-box to week 1–3; start from Temporal's Python samples |
-| Scope creep | Non-goals in §2 are binding; stretch items only after week 10 |
-| v2 additions (§4.3, §4.4) add scope | Both are small and independent. If behind at week 6, drop the web client and token streaming; keep the `tail` CLI |
-| Low absolute resolve rate | The story is the *delta* shown by ablations and reliability, not a leaderboard number |
+| K1 | Kill worker during an LLM call |
+| K2 | Kill after `edit_file`, before checkpoint |
+| K3 | Kill during `run_tests` |
+| K4 | Kill after branch create, before PR create |
+| K5 | PR created, response lost, worker killed |
+| K6 | Kill sandbox mid-segment |
+| K7 | Crash loop for the whole run |
+| K8 | LLM 429/500 at 20 %, slow responses |
+| K9 | Webhook ×5; approval sent twice and after expiry |
+| K10 | Postgres restart mid-segment |
 
-## 15. Resume bullets (fill in real numbers)
-- Built a fault-tolerant multi-agent system (LangGraph, Temporal, E2B) that turns GitHub issues into tested PRs; resolved **X%** of a pinned SWE-bench Verified subset at **$Y** per resolved task.
-- Designed effectively-once side effects (idempotency keys, reconcile-then-act against GitHub, Temporal durable execution) and a deduplicating, self-healing webhook ingestion path; fault-injection suite verified **100%** crash recovery with zero duplicated side effects.
-- Built an eval pipeline (outcome, trajectory and pass^k metrics; LLM judge calibrated to κ = **Z**) gating CI; ablations showed the Tester loop raised resolve rate by **N** points.
-- Implemented end-to-end OpenTelemetry tracing and Langfuse/Grafana dashboards; cut cost per task **M%** via model routing and prompt caching.
+10 trials each on Mergewright and on a **naive runner** (current `runner.py` with retry-from-scratch). Measure: completed or clean failure, identical final patch, duplicate GitHub objects, repeated LLM calls, wasted tokens, recovery time, budget held. Pass for Mergewright: 100 % complete or clean, 0 duplicates, identical patch, budget never exceeded.
 
-## 16. Interview talking points
-- Why Temporal *and* LangGraph — and what each would lack alone.
-- How idempotency works when a crash happens between the side effect and its acknowledgement.
-- Why GitHub, not your database, is the source of truth for outbound side effects, and how the webhook path survives duplicates, drops and reordering.
-- Why pass^k matters more than a single-run resolve rate.
-- How you validated the LLM judge instead of trusting it.
-- Which ablation surprised you, and what you changed because of it.
-- Where the system still fails, and what you'd build next.
+### 6.6 Error analysis and reporting
 
-## 17. Open questions
-1. What does CSE 510 require for the capstone deliverable (report format, demo, team size)?
-2. Which 2–3 dev-set repos to use?
-3. Model providers and budget per month?
-4. Public or private repo during the semester?
+- One label per failed run: localization miss, wrong fix, incomplete fix, P2P regression, environment, budget, loop, tool misuse, overclaim, blocked tamper. Publish counts and 3 annotated traces.
+- Each eval writes `results/<eval-id>/` with per-run JSON and a manifest (git SHA, model ID, prompt hashes, image digests, dataset version, caps, k, seed). `mergewright report` generates README tables; no hand-edited numbers.
+- CI (every PR): ruff, pytest, replay smoke suite, durability suite, Temporal time-skipping tests. Live evals: manual or weekly.
+
+## 7. Milestones (ordered; each needs the one before)
+
+Extra capacity goes to evidence (more validated tasks, higher k, frontier subset) before any Later item.
+
+1. **Sandbox + eval harness.** Docker `Sandbox` behind the existing tools; `task.yaml`, `mergewright tasks validate`, `mergewright eval --suite --system --k`, `mergewright report`; CI.
+   *Done when:* 59 existing tests pass; sandbox tests prove canary absent, network blocked, timeout kill, orphan cleanup; ≥ 15 validated dev tasks; first S1 and S2 results with manifest.
+2. **Durable lifecycle.** `IssueToPR` workflow, segment activity with checkpointer, heartbeats, patch-in-state reset, budget ledger, diff gate, `open_pr` with fake GitHub, Localizer, checks with tamper detector.
+   *Done when:* a manual worker kill mid-segment resumes to the same patch; gate timeout passes in the time-skipping env; one real PR on a test repo; unit tests for Localizer and checks.
+3. **Fault injection + API.** K1–K10 vs naive runner; FastAPI with HMAC and dedupe; dev set ≥ 30; adversarial set ≥ 15.
+   *Done when:* the durability table is generated by script and runs in CI; any failing scenario is fixed or listed as a known limitation.
+4. **Dev results.** S0, S1, S2, S2+T on dev, k = 3, paired statistics; adversarial results; error taxonomy; README with architecture, trade-offs, generated tables, limitations; course report and demo.
+   *Done when:* every README number traces to a `results/` manifest.
+5. **Held-out results.** Freeze `eval/PLAN.md`; S2 and Ref (S0/S1 if budget allows) on held-out, k = 3; frontier subset; Reproducer on dev, then held-out if it wins.
+   *Done when:* held-out tables published with intervals and failures.
+6. **Presentation.** OTel traces, GitHub App, architecture diagram, 3-minute demo (label → run → kill worker → resume → approve → one PR), blog post on the durability seam with §6.5 data.
+
+## 8. Later (after milestones 1–5), each with its trigger
+
+| Item | Build it when |
+|---|---|
+| LiteLLM gateway | A third provider is added, or per-key budgets at the gateway are needed |
+| Model routing | Per-agent cost data shows one stage dominates spend |
+| Prometheus + Grafana + alerts | Service mode handles sustained traffic, not just eval sweeps |
+| Langfuse | OTel backend lacks prompt and cost views you actually use |
+| MCP servers | A second tool consumer needs the same GitHub or search tools |
+| Hybrid retrieval (BM25 + embeddings + reranker) | Localization miss is the top error label |
+| LLM Reviewer | Wrong-fix or P2P regressions remain common after checks |
+| LLM-as-judge with κ calibration | A question arises that the test oracle cannot answer |
+| Plan gate with calibrated threshold | Localizer confidence data exists for ≥ 30 tasks |
+| SSE event stream | A web client exists that needs live progress |
+| E2B adapter, gVisor | Running untrusted repos beyond our own machine and CI |
+| Webhook reconciler (Temporal Schedule) | Running on a real org where dropped deliveries matter |
+| Kubernetes | More than one worker host is needed |
+
+**Won't do:** SWE-bench Verified as the headline number (an optional, labelled comparability slice is fine); dynamic fan-out to parallel subagents; an LLM that routes every step.
+
+## 9. Evidence to collect
+
+Per-system tables (resolve rate with CI, pass^3, cost per resolved task, latency, overclaim rate); paired deltas S2 vs S1/S0/Ref and S2+T vs S2; durability table vs naive runner; tamper attempts with examples (first one: `pytest.ini addopts` at the checkpoint); canary leaks; error taxonomy; localization recall; bugs the fault suite found in our own code.
+
+**Resume bullet templates (hypothetical; fill only with measured values):**
+
+- Built a durable issue-to-PR coding agent (Temporal, LangGraph, Docker); across [N] injected crash scenarios, 0 duplicate GitHub side effects vs [D] duplicates and [W]% re-spent tokens for a restart-from-scratch baseline.
+- Built an eval harness with a hidden-test oracle on [N] post-cutoff tasks (k=3, paired bootstrap); test-gated loop resolved [A]% ± [CI] vs [B]% single-shot at $[C] per resolved task.
+- Blocked [T] reward-hacking attempts with a diff tamper detector; overclaim rate [O1]% → [O2]%.
+
+**Interview questions to prepare:** what re-runs after a crash and how you measured it; a crash after PR creation; sandbox vs agent state after recovery; budgets under a crash loop; why the tasks are not contaminated; detectable effect at n = 40; whether the triage Supervisor earned its place; what the agent did to game tests; what can escape Docker; the top failure category and what you'd build next.
+
+## 10. Open questions
+
+1. Does the instructor accept the v3 changes against `docs/proposal.md`?
+2. Which 4–6 repos for the dev set (pure Python, pytest < 2 min, linked issues, fix commits after the model's cutoff)?
+3. Frontier-model budget for milestone 5.
+4. Update `CLAUDE.md` to name this spec as the source of truth once the team agrees.
