@@ -2,7 +2,7 @@
 
 Mergewright is a bounded coding agent. It reads a bug report for a Python repository, finds and edits the code with its tools, and proves the fix by running the repository's pytest suite. It is the CSE 510 (Fall 2026) final project.
 
-The long-term design (a durable issue-to-pull-request service) is in [docs/proposal.md](docs/proposal.md) and [docs/architecture.md](docs/architecture.md). This milestone's plan is in [docs/checkpoint.md](docs/checkpoint.md).
+The design of the full system (a durable issue-to-pull-request service), its evaluation plan and its milestones are in [docs/mergewright-spec.md](docs/mergewright-spec.md).
 
 ## Requirements
 
@@ -154,12 +154,12 @@ Each run writes `runs/<run_id>/run.jsonl`, one JSON object per line. Events: `ru
 | `tests/` | The project's tests |
 | `examples/buggy_calc/` | Demo repository with one bug and its pytest suite |
 | `examples/inputs/` | Demo issue text and the replay file |
-| `docs/` | Proposal, architecture, checkpoint plan |
+| `docs/` | System specification (`mergewright-spec.md`) and implementation agenda (`agenda.md`) |
 | `presentation/` | Proposal slide deck and the script that builds it |
 
 ## Limitations
 
-- `run_tests` runs `pytest` as a local subprocess in the run's workspace, with a reduced environment and a timeout. That is not isolation. Run the agent only on repositories you trust. Later milestones move execution into E2B sandboxes.
+- `run_tests` runs `pytest` as a local subprocess in the run's workspace, with a reduced environment and a timeout. That is not isolation. Run the agent only on repositories you trust. Later milestones move execution into Docker sandboxes.
 - The tests that decide `DONE` are the repository's own tests, which the agent can read. `edit_file` blocks edits to tests and pytest config, but a fix could still special-case the tested inputs. The full system grades with hidden tests.
 - The bundled replay file was written by hand to match the demo input. Record your own with `--record` from a live run.
-- This milestone has one agent (the Coder) and a test loop. The Planner and Reviewer agents, Temporal, the approval gates and GitHub integration come in later milestones.
+- This milestone has one agent (the Coder) and a test loop. The Localizer, the diff checks, Temporal, the approval gate and GitHub integration come in later milestones.
