@@ -93,12 +93,13 @@ Every LLM call, sandbox command, limiter call, GitHub call, clock read and rando
 
 ### 4.2 Execution model
 
-- **Nodes:** `localize` and `coder` are activity nodes on the `llm` queue; `tools`, `tester` and `checks` are activity nodes on the `sandbox` queue. Each sets `execute_in: activity` with its own timeout and Temporal `RetryPolicy`. Conditional edges (`after_coder`, `after_tester`) run in the workflow.
-- **State:** `{message_hashes, patch_hash, steps, test_attempts, tokens, status, reason}`. Nodes read and write message and patch bodies through the message store.
+- **Nodes:** `localize` and `coder` are activity nodes on the `llm` queue; `tools`, `tester` and `checks` are activity nodes on the `sandbox` queue. Each sets `execute_in: activity` with its own timeout and Temporal `RetryPolicy`. Conditional edges (`after_coder`, `after_tester`) run in the workflow, are `async`, and read state only. Nodes are module functions or methods of a class that holds their dependencies: the plugin rejects closures and wraps nodes in place, so each worker process uses one plugin instance.
+- **State:** `{message_hashes, patch_hash, steps, test_attempts, tokens, status, reason, wants_tools}`. Nodes read and write message and patch bodies through the message store. `wants_tools` is the coder's routing flag, since edges cannot read messages. Payloads grow by one hash per message; if load tests show this matters, carry one conversation hash instead.
 - **Sandbox invariant:** working tree = `base_sha` + patch. Every sandbox activity starts by checking the tree hash against the state; on mismatch or a lost sandbox, it resets to `base_sha` and applies the patch.
-- **History bound:** each candidate workflow continues-as-new after each test attempt; the plugin's `cache()` skips completed nodes.
-- **Budget ledger:** before each LLM call, the `coder` activity writes a reservation (`max_tokens`) to the Postgres ledger; after the call it settles the actual tokens. A retried attempt counts unsettled reservations of earlier attempts as spent. The ledger can over-count after a crash; it never under-counts. A run's budget covers all N candidates; each gets budget / N.
-- **Spike gate (Phase 0, on `buggy_calc`).** All five must pass:
+- **At-least-once nodes:** a timed-out attempt keeps running while its retry starts. Node side effects are idempotent or guarded: sandbox activities check the invariant above, heartbeat, and kill their container on timeout or cancellation.
+- **History bound:** each candidate workflow continues-as-new with the carried state after each test attempt, so no completed node re-runs. The plugin's `cache()` is not used.
+- **Budget ledger:** before each LLM call, the `coder` activity writes a reservation (`max_tokens`) to the Postgres ledger; after the call it settles the actual tokens. A retried attempt counts unsettled reservations of earlier attempts as spent, including a timed-out attempt that is still running. The ledger can over-count after a crash; it never under-counts. A run's budget covers all N candidates; each gets budget / N.
+- **Spike gate (Phase 0, on `buggy_calc`).** Passed 2026-11-13; results in `docs/spikes.md`. All five must pass:
   1. A worker killed mid-run resumes without re-running any completed node.
   2. LLM nodes and sandbox nodes run on different task queues.
   3. State holds hashes only, and history stays bounded with continue-as-new.
@@ -142,23 +143,35 @@ N = 1 is the default. Terminal states: `PR_OPENED`, `EVAL_DONE`, `REJECTED`, `EX
 
 ```python
 class Sandbox(Protocol):
-    def reset(self, base_sha: str, patch: str) -> None: ...   # enforces the Section 4.2 invariant
-    def exec(self, argv: list[str], timeout_s: float) -> ExecResult: ...  # exit code, output tail, timed_out
-    def diff(self) -> str: ...                                 # git diff base_sha
-    def close(self) -> None: ...                               # idempotent
+    def reset(self, base_sha: str, patch: str) -> None: ...  # enforces the Section 4.2 invariant
+    def exec(
+        self, argv: list[str], timeout_s: float
+    ) -> ExecResult: ...  # exit code, output tail, timed_out
+    def diff(self) -> str: ...  # git diff base_sha
+    def close(self) -> None: ...  # idempotent
+
 
 class SandboxPool(Protocol):
-    def acquire(self, image: str, lease_ttl_s: float) -> Sandbox: ...    # warm if available
-    def release(self, sandbox: Sandbox, healthy: bool) -> None: ...      # unhealthy → destroy
+    def acquire(self, image: str, lease_ttl_s: float) -> Sandbox: ...  # warm if available
+    def release(self, sandbox: Sandbox, healthy: bool) -> None: ...  # unhealthy → destroy
+
 
 class MessageStore(Protocol):
-    def put(self, body: dict) -> str: ...                      # returns content hash; idempotent
+    def put(self, body: dict) -> str: ...  # returns content hash; idempotent
     def get_many(self, hashes: list[str]) -> list[dict]: ...
 
+
 class RateLimiter(Protocol):
-    def reserve(self, key: str, tokens: int, timeout_s: float) -> Reservation: ...  # 1 request + tokens; raises LimitTimeout
-    def settle(self, reservation: Reservation, actual_tokens: int) -> None: ...   # refund unused tokens
-    def report_throttle(self, key: str, retry_after_s: float | None) -> None: ...  # 429 feedback for AIMD
+    def reserve(
+        self, key: str, tokens: int, timeout_s: float
+    ) -> Reservation: ...  # 1 request + tokens; raises LimitTimeout
+    def settle(
+        self, reservation: Reservation, actual_tokens: int
+    ) -> None: ...  # refund unused tokens
+    def report_throttle(
+        self, key: str, retry_after_s: float | None
+    ) -> None: ...  # 429 feedback for AIMD
+
 
 class Verifier(Protocol):
     def rank(self, task: TaskContext, candidates: list[Candidate]) -> list[RankedCandidate]: ...

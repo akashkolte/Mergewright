@@ -12,7 +12,7 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 2. Runtime spike on `buggy_calc` with the local dev server. Pass all five gate criteria in spec Section 4.2:
    - kill the worker mid-run; no completed node re-runs;
    - LLM nodes and sandbox nodes on different task queues;
-   - state holds hashes only; history bounded with continue-as-new + `cache()`;
+   - state holds hashes only; history bounded with continue-as-new;
    - `interrupt()` resumes from a signal;
    - per-node timeouts and retries from `RetryPolicy`.
 3. Spike: run one SWE-rebench image's F2P tests on an x86 cloud VM.
