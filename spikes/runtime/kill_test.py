@@ -58,10 +58,13 @@ async def main() -> None:
     logs = SPIKE_DIR / "logs" / run_id
     logs.mkdir(parents=True, exist_ok=True)
     workers = {role: spawn(role, logs) for role in ROLES}
+    handle = None
+    finished = False
     try:
         client = await Client.connect(TEMPORAL_ADDRESS)
         faults = {"tools": {"sleep_s": args.sleep, "sleep_times": 1}}
         handle = await start_agent(client, REPO, ISSUE_FILE.read_text(), SPIKE_DIR, run_id, faults)
+        print(f"started {handle.id}; waiting for the first tools call ...", flush=True)
         counter = run_dir / "faults" / "tools.count"
         await wait_for(counter.exists, 60, "the first tools call")
 
@@ -69,35 +72,58 @@ async def main() -> None:
         victim.send_signal(signal.SIGKILL)
         victim.wait()
         killed_at = time.monotonic()
-        print(f"killed {args.victim} worker pid={victim.pid} while tools was in flight")
+        print(f"kill -9 {args.victim} worker (pid {victim.pid}) while tools was in flight")
         workers[args.victim] = spawn(args.victim, logs)
+        expect = "about 30 s: the tools timeout" if args.victim == "sandbox" else "about 15 s"
+        print(f"restarted it; waiting for the run to finish ({expect}) ...", flush=True)
 
-        result = await asyncio.wait_for(handle.result(), timeout=300)
-        print(f"run finished {time.monotonic() - killed_at:.1f}s after the kill")
+        result = await _result_with_progress(handle, killed_at)
+        finished = True
+        print(f"run finished {time.monotonic() - killed_at:.1f}s after the kill\n")
         evidence = await collect(
             client, handle.id, "mean of the two middle values", run_dir / "run.jsonl"
         )
-        print(
-            json.dumps(
-                {
-                    "workflow_id": handle.id,
-                    "status": result["status"],
-                    "llm_steps": evidence.llm_steps,
-                    "duplicate_llm_steps": evidence.duplicate_llm_steps(),
-                    "tools_executions": int(counter.read_text()),
-                    "activities": [
-                        {k: getattr(a, k) for k in ("name", "attempt", "outcome", "last_failure")}
-                        for a in evidence.activities
-                    ],
-                },
-                indent=2,
-            )
-        )
+        report = {
+            "workflow_id": handle.id,
+            "status": result["status"],
+            "llm_steps": evidence.llm_steps,
+            "duplicate_llm_steps": evidence.duplicate_llm_steps(),
+            "activities": [
+                f"{a.name:13} attempt {a.attempt}  {a.outcome}  {a.last_failure}".rstrip()
+                for a in evidence.activities
+            ],
+        }
+        print(json.dumps(report, indent=2))
+        print(_verdict(result["status"], evidence))
     finally:
         for worker in workers.values():
             worker.terminate()
         for worker in workers.values():
             worker.wait(timeout=10)
+        if handle is not None and not finished:
+            await handle.terminate(reason="kill_test interrupted")
+            print(f"\ninterrupted: terminated {handle.id}")
+
+
+async def _result_with_progress(handle, since: float) -> dict:
+    task = asyncio.ensure_future(handle.result())
+    while True:
+        done, _ = await asyncio.wait({task}, timeout=5)
+        if done:
+            return task.result()
+        elapsed = time.monotonic() - since
+        if elapsed > 300:
+            task.cancel()
+            raise TimeoutError("run did not finish within 300 s of the kill")
+        print(f"  still running ({elapsed:.0f} s since the kill)", flush=True)
+
+
+def _verdict(status: str, evidence) -> str:
+    """PASS: run DONE, no LLM step twice, and only the in-flight tools call ran again."""
+    retried = [a for a in evidence.activities if a.attempt > 1]
+    in_flight_only = all(a.name == "agent.tools" for a in retried) and len(retried) <= 1
+    ok = status == "DONE" and not evidence.duplicate_llm_steps() and in_flight_only
+    return "PASS: no completed node ran again" if ok else "FAIL: see the report above"
 
 
 if __name__ == "__main__":
