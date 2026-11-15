@@ -165,4 +165,38 @@ are any.
 
 ## Spike 4: Temporal Cloud actions per run (agenda step 5)
 
-Not started.
+**Status: done (2026-11-15). 9 actions per `buggy_calc` run on Temporal Cloud, the same as
+locally.** Not yet cross-checked against the Cloud UI's Usage page, which updates with a delay.
+
+Tools: `spikes/runtime/connection.py` (every spike script connects through the Temporal CLI
+profile in `TEMPORAL_PROFILE`; the key stays in the CLI config, never in the repo or logs) and
+`spikes/runtime/actions.py` (billable actions per run, counted from history).
+
+Billing rules used (docs.temporal.io/cloud/actions and /cloud/pricing, read 2026-11-15): one
+action per workflow start (continue-as-new included), per activity attempt (retries
+included), per timer, per signal, per query; two per child workflow start. $50 per million
+actions on the Developer plan, plus 10 % of usage spend. Queries and heartbeats are not in the
+history, so the counter misses them; the agent workflow uses neither.
+
+| Run | Actions | Breakdown | Cost | Runs per $150 |
+|---|---|---|---|---|
+| `buggy_calc`, local server | 9 | 1 start + 8 activity attempts | $0.0005 | 303,030 |
+| `buggy_calc` with 2 injected `tools` failures, local | 11 | 1 start + 10 attempts (2 retries billed) | $0.0006 | 247,934 |
+| `buggy_calc` on Temporal Cloud, 3 runs | 9 each | 1 start + 8 activity attempts | $0.0005 | 303,030 |
+
+Run time for the same `buggy_calc` run (replay LLM, workers on a Mac): 0.6 s on a local
+server, 1.8–1.9 s on Temporal Cloud. The extra ~1.2 s is the network round trip for each
+workflow and activity task (the run has 8 activities, so about 17 task round trips). It is
+small next to real LLM and test time, but it is a fixed cost per step.
+
+Estimate for a full system run (not measured; the parent workflow does not exist yet): per
+candidate, about 1 start per test attempt + 1 per LLM step + 1 per tool step + 1 per test
+attempt; 25 steps and 3 attempts give about 53. With N = 4 candidates plus the parent (start,
+4 child starts × 2, checks, `post_comment`, `open_pr`, the diff-gate timer and the approval
+signal, about 15), that is about 230 actions, or about $0.013 per run and about 12,000 runs
+per $150. Even at 1,000 actions per run, $150 covers about 2,700 runs.
+
+What this means (so far): actions will not limit Cloud use; the $150 is enough for the
+spike and the optional L7 comparison. Retries and best-of-N multiply actions, so count them
+in the cost model. One gap: in this spike the sandbox worker holds the Cloud API key, which
+spec Section 8 forbids for the real system (Cloud credentials stay out of sandbox workers).

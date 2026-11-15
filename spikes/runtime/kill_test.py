@@ -21,11 +21,10 @@ import time
 import uuid
 from pathlib import Path
 
-from temporalio.client import Client
-
+from spikes.runtime.connection import connect
 from spikes.runtime.evidence import collect
 from spikes.runtime.start import ISSUE_FILE, REPO, start_agent
-from spikes.runtime.worker import SPIKE_DIR, TEMPORAL_ADDRESS
+from spikes.runtime.worker import SPIKE_DIR
 
 ROLES = {"service": "service,llm", "sandbox": "sandbox"}
 
@@ -61,7 +60,7 @@ async def main() -> None:
     handle = None
     finished = False
     try:
-        client = await Client.connect(TEMPORAL_ADDRESS)
+        client = await connect()
         faults = {"tools": {"sleep_s": args.sleep, "sleep_times": 1}}
         handle = await start_agent(client, REPO, ISSUE_FILE.read_text(), SPIKE_DIR, run_id, faults)
         print(f"started {handle.id}; waiting for the first tools call ...", flush=True)

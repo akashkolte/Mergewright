@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import time
 import uuid
 from pathlib import Path
 
@@ -19,9 +20,10 @@ from temporalio.client import Client
 
 from mergewright.config import Limits
 from mergewright.graph import recursion_limit
+from spikes.runtime.connection import connect, connect_config, describe
 from spikes.runtime.graph import new_run
 from spikes.runtime.store import MessageStore
-from spikes.runtime.worker import SPIKE_DIR, TEMPORAL_ADDRESS
+from spikes.runtime.worker import SPIKE_DIR
 from spikes.runtime.workflows import (
     SERVICE_QUEUE,
     AgentInput,
@@ -63,7 +65,9 @@ async def main() -> None:
     parser.add_argument("--no-wait", action="store_true")
     args = parser.parse_args()
     run_id = args.run_id or uuid.uuid4().hex[:8]
-    client = await Client.connect(TEMPORAL_ADDRESS)
+    print(f"server: {describe(connect_config())}")
+    client = await connect()
+    begin = time.monotonic()
     if args.kind == "agent":
         handle = await start_agent(
             client, REPO, ISSUE_FILE.read_text(), SPIKE_DIR, run_id, json.loads(args.faults)
@@ -79,6 +83,7 @@ async def main() -> None:
         print(f"workflow={handle.id}")
     if not args.no_wait:
         print(json.dumps(await handle.result(), indent=2))
+        print(f"finished in {time.monotonic() - begin:.1f} s")
 
 
 if __name__ == "__main__":

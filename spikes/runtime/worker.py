@@ -23,6 +23,7 @@ from temporalio.langgraph import LangGraphPlugin
 from temporalio.worker import Worker
 
 from mergewright.llm import LLMClient, TurnReplayLLM
+from spikes.runtime.connection import connect, connect_config, describe
 from spikes.runtime.graph import SpikeNodes, build_spike_graph
 from spikes.runtime.probe import build_probe_graph
 from spikes.runtime.store import MessageStore
@@ -36,7 +37,6 @@ from spikes.runtime.workflows import (
     InterruptProbeWorkflow,
 )
 
-TEMPORAL_ADDRESS = os.environ.get("TEMPORAL_ADDRESS", "localhost:7233")
 SPIKE_DIR = Path(os.environ.get("MERGEWRIGHT_SPIKE_DIR", "runs/spike"))
 REPLAY_FILE = Path("examples/inputs/buggy_calc_replay.json")
 
@@ -112,9 +112,13 @@ async def main(argv: Sequence[str] | None = None) -> None:
     plugin = make_plugin(
         TurnReplayLLM.from_file(REPLAY_FILE), MessageStore(SPIKE_DIR / "store"), timeouts
     )
-    client = await Client.connect(TEMPORAL_ADDRESS)
+    client = await connect()
     workers = make_workers(client, plugin, queues)
-    print(f"worker pid={os.getpid()} queues={queues} timeouts={timeouts or 'default'}", flush=True)
+    print(
+        f"worker pid={os.getpid()} queues={queues} timeouts={timeouts or 'default'} "
+        f"server={describe(connect_config())}",
+        flush=True,
+    )
     await asyncio.gather(*(worker.run() for worker in workers))
 
 

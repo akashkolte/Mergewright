@@ -20,7 +20,7 @@ from typing import Any
 from temporalio.api.enums.v1 import EventType
 from temporalio.client import Client
 
-from spikes.runtime.worker import TEMPORAL_ADDRESS
+from spikes.runtime.connection import connect
 
 
 @dataclass
@@ -72,8 +72,8 @@ class Evidence:
 async def collect(
     client: Client, workflow_id: str, grep: str = "", log_path: Path | None = None
 ) -> Evidence:
-    run_ids = await _run_ids(client, workflow_id)
-    segments = [await _segment(client, workflow_id, run_id, grep) for run_id in run_ids]
+    runs = await run_ids(client, workflow_id)
+    segments = [await _segment(client, workflow_id, run_id, grep) for run_id in runs]
     llm_steps: list[int] = []
     if log_path and log_path.is_file():
         for line in log_path.read_text().splitlines():
@@ -83,7 +83,7 @@ async def collect(
     return Evidence(workflow_id=workflow_id, segments=segments, llm_steps=llm_steps)
 
 
-async def _run_ids(client: Client, workflow_id: str) -> list[str]:
+async def run_ids(client: Client, workflow_id: str) -> list[str]:
     """Run ids of the continue-as-new chain, oldest first, by following the history."""
     handle = client.get_workflow_handle(workflow_id)
     first = (await handle.describe()).raw_description.workflow_execution_info
@@ -161,7 +161,7 @@ async def main() -> None:
     parser.add_argument("--grep", default="", help="text that must not appear in any payload")
     parser.add_argument("--log", type=Path, help="run.jsonl of the run, for LLM call counts")
     args = parser.parse_args()
-    client = await Client.connect(TEMPORAL_ADDRESS)
+    client = await connect()
     evidence = await collect(client, args.workflow_id, args.grep, args.log)
     print(json.dumps(evidence.to_dict(), indent=2))
 
