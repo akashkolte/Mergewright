@@ -96,7 +96,7 @@ Other observations:
 
 ## Spike 2: SWE-rebench image on an x86 VM (agenda step 3)
 
-**Status: tooling done; local smoke test passed under emulation; x86 VM run pending.**
+**Status: PASS on an x86 VM (2026-11-15). Published images run their F2P tests natively.**
 
 Tool: `spikes/rebench/check_task.py`. `fetch` saves one task row from the Hugging Face
 dataset viewer API; `run` pulls the image, starts it with `--network none`, checks `/testbed`
@@ -116,11 +116,39 @@ Facts found while building it:
 | Run | Host | Image | Pull | Start | Base tests | Gold tests | Verdict |
 |---|---|---|---|---|---|---|---|
 | Local smoke | Apple Silicon, Docker 29.8.1, emulated amd64 | `spectree-64`, 5.05 GB on disk (1.33 GB compressed) | not timed | 0.1 s | 7.1 s | 3.8 s | PASS: F2P 1/1 failing → passing, P2P 6/6 |
-| x86 VM | pending | | | | | | |
+| x86 VM | GCP `e2-standard-4` (4 vCPU, 16 GB), Ubuntu 24.04, `us-east1-b`, 100 GB disk | same; Docker reports 1.33 GB (the compressed size) | 89.1 s | 4.1 s (first start after pull) | 4.2 s | 1.5 s | PASS: F2P 1/1 failing → passing, P2P 6/6 |
+
+What this means:
+
+- One cold task costs about 100 s, and about 90 % of that is the image pull. Warm reuse of
+  pulled images (spec Section 3, "Sandbox": warm pool per image) is what makes k = 3 runs and
+  best-of-N affordable; plan the VM disk for the images of a whole split.
+- The VM's own service account could not delete the VM ("insufficient authentication
+  scopes"); delete it from Cloud Shell. That is also the right default: a worker host should
+  not hold cloud admin credentials (spec Section 8).
 
 ## Spike 3: UB endpoint limits (agenda step 4)
 
-**Status: tooling done; not run yet (needs the endpoint key in `.env`).**
+**Status: run on 2026-11-15 against `zai-org/GLM-5.2`. Endpoint usable; its limits were not
+reached, so they are still unknown.**
+
+| Measure | Result |
+|---|---|
+| Rate-limit headers | None sent (no `x-ratelimit-*`, no `Retry-After`). `/models` lists the model but no context length |
+| Throughput (ramp, 20-word prompts, 8 output tokens) | No 429 up to concurrency 8. Achieved: 313 RPM at 1, 593 at 2, 835 at 4, 945 at 8. p50 latency 0.17 s → 0.33 s, p95 0.34 s → 0.50 s. TPM 41.6k at 8 (small prompts, so not a TPM test) |
+| Context length | 131,088 prompt tokens accepted on the first probe; the upper limit was not found |
+| Tool calls (`buggy_calc`, 5 live runs) | 5/5 resolved; 0 malformed tool calls, 0 tool errors; 4.4 steps, 5.2k tokens, 2.3 s per run on average |
+
+What this means:
+
+- The limiter cannot be configured from headers. Start from conservative caps and let AIMD
+  on 429 (spec Section 5.1) find the real limit; the achieved 945 RPM is only a lower bound.
+- `temperature=0` did not make runs identical: 3 runs took 4 steps and 2 took 5. This
+  supports k repeated runs with intervals (spec Section 9.4); single runs are not evidence.
+- `buggy_calc` is too easy to judge tool-call quality. Re-measure on the smoke split
+  (Phase 1) before the S0–S2 runs.
+- Optional, within the provider's terms: `ramp --levels 16,32 --prompt-words 2000` to look
+  for the TPM limit, and `context --max-words 262144` to bound the context length.
 
 Tool: `spikes/endpoint/probe.py`, with SDK retries off so every 429 is seen.
 
