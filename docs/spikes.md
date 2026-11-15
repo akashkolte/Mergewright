@@ -96,11 +96,44 @@ Other observations:
 
 ## Spike 2: SWE-rebench image on an x86 VM (agenda step 3)
 
-Not started.
+**Status: tooling done; local smoke test passed under emulation; x86 VM run pending.**
+
+Tool: `spikes/rebench/check_task.py`. `fetch` saves one task row from the Hugging Face
+dataset viewer API; `run` pulls the image, starts it with `--network none`, checks `/testbed`
+is at `base_commit`, applies `test_patch`, runs `install_config.test_cmd` on the test patch's
+files, applies the gold `patch`, runs them again, and removes the container. PASS needs: every
+F2P test not passing before the fix and passing after; every P2P test passing both times.
+
+Facts found while building it:
+
+- Rows carry `docker_image`, `test_patch`, `patch`, `install_config.test_cmd`,
+  `FAIL_TO_PASS`, `PASS_TO_PASS`, `created_at`. Only 7,500 of the 21,336 tasks have published
+  images (dataset card), so the dev and held-out splits must pick from those.
+- Layout is SWE-bench's: repo in `/testbed`, conda env `testbed` (`/opt/conda`). Images are
+  `linux/amd64` only.
+- The dataset viewer API had outages (502/503) during the build; `fetch` retries 5xx.
+
+| Run | Host | Image | Pull | Start | Base tests | Gold tests | Verdict |
+|---|---|---|---|---|---|---|---|
+| Local smoke | Apple Silicon, Docker 29.8.1, emulated amd64 | `spectree-64`, 5.05 GB on disk (1.33 GB compressed) | not timed | 0.1 s | 7.1 s | 3.8 s | PASS: F2P 1/1 failing → passing, P2P 6/6 |
+| x86 VM | pending | | | | | | |
 
 ## Spike 3: UB endpoint limits (agenda step 4)
 
-Not started.
+**Status: tooling done; not run yet (needs the endpoint key in `.env`).**
+
+Tool: `spikes/endpoint/probe.py`, with SDK retries off so every 429 is seen.
+
+| Command | Measures |
+|---|---|
+| `info` | One tiny call: status, latency, usage, rate-limit headers, the `/models` entry (some servers list the context length) |
+| `ramp` | Concurrency 1, 2, 4, 8 × 8 requests; achieved RPM and TPM, p50/p95 latency; stops at the first 429 and records `Retry-After` |
+| `context` | Binary search (`max_tokens=1`) for the largest accepted prompt |
+| `tools --runs k` | k live `buggy_calc` runs: resolve rate, malformed tool-call rate, tool-error rate, steps, tokens |
+
+Achieved RPM and TPM are lower bounds on the limits, not the limits themselves. Use the
+headers or the first 429 for the real limit, and the provider's published limits when there
+are any.
 
 ## Spike 4: Temporal Cloud actions per run (agenda step 5)
 
