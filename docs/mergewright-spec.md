@@ -25,10 +25,11 @@ Not a goal: beating frontier coding agents on resolve rate. Not built: a custom 
 ## 2. Scope rules
 
 - Work runs in **phases** (Section 13, step list in [agenda.md](agenda.md)). Each phase ends with generated tables and one resume-ready result. Do not start a phase until the previous one has its numbers.
-- Phases 1–3 are the minimum credible project. Phase 4 makes it stand out. Phase 5 (training) runs only if the Phase 4 decision says go. Phase 6 adds outside validation.
+- Phases 1–4 are the minimum credible project: eval core and baseline, agent features, durable core, throughput. Phase 5 (test-time compute, held-out run) makes it stand out. Phase 6 (training) runs only if the Phase 5 decision says go. Phase 7 adds outside validation.
+- Build order (decided 2026-11-15): measure first, then build the agent against the measurement, then wrap the finished agent in the reliability layer. Build only as much harness as the next decision needs.
 - If time runs short, cut P2, then P1. Never cut the oracle, the durability table, the statistics or the held-out freeze.
 - Every new dependency needs approval when it is first added. Every item in Section 14 needs its trigger.
-- Budget and training are decided after Phase 4 (Section 11).
+- Budget and training are decided after Phase 5 (Section 11).
 
 ## 3. Key decisions
 
@@ -48,10 +49,10 @@ Not a goal: beating frontier coding agents on resolve rate. Not built: a custom 
 | Temporal hosting | Tests: local dev server. Evals, load and multi-host tests: self-hosted Temporal + Postgres (docker compose) on x86 cloud VMs. Temporal Cloud ($150 credits): actions-per-run spike and one optional comparison | Self-hosting is free and gives operational evidence; Cloud credits are small |
 | Sandbox | `Sandbox` interface, Docker backend on an x86-64 Linux host, warm pool per image | Benchmark tasks ship as x86 images; warm reuse removes cold-start cost |
 | File tools vs execution | File tools work on a host workspace bind-mounted into the container; every command runs in the container | Keeps the existing tools and path guard. Reading and editing files is not execution |
-| Model serving | Hosted OpenAI-compatible endpoint for early phases; self-hosted vLLM from Phase 4 | Self-hosting pins exact weights and enables prefix-cache measurements |
+| Model serving | Hosted OpenAI-compatible endpoint for early phases; self-hosted vLLM from Phase 5 | Self-hosting pins exact weights and enables prefix-cache measurements |
 | Headline benchmark | Post-release SWE-rebench Python tasks with their published images, plus our own mined dev set | SWE-bench Verified is contaminated and has flawed tests; OpenAI stopped reporting it on 2026-02-23 |
 | Benchmark tooling | Reuse SWE-rebench task format and images; write only the runner, oracle and report | Building environments per repo is the largest hidden cost in agent evals |
-| Model improvement | Scaffold, context and test-time compute first (Phases 2–4); training only after the Phase 4 decision | Shows improvement without GPU cost; training is the riskiest step |
+| Model improvement | Scaffold and context first (Phase 2), test-time compute next (Phase 5); training only after the Phase 5 decision | Shows improvement without GPU cost; training is the riskiest step |
 | LLM client | Keep the `openai` SDK against OpenAI-compatible servers; retries, fallback, limiter and budget ledger in our code | Works today; LiteLLM is in Section 14 with a trigger |
 | User interface | No custom UI. Temporal UI, one Grafana dashboard, the `mergewright` CLI, generated Markdown reports, and GitHub comments or the CLI for approval | UI work adds no evidence for any claim in Section 1 |
 | CI gate | Replay, workflow-replay, durability and limiter suites gate merges; live evals are reported, not gating | Live evals are too noisy to block merges |
@@ -137,7 +138,7 @@ N = 1 is the default. Terminal states: `PR_OPENED`, `EVAL_DONE`, `REJECTED`, `EX
 | Triage Supervisor | 1 call | see Section 4.3 | closed choice | P1 |
 | LLM Reviewer | 1 call | diff, findings | approve / issues | Section 14 |
 
-**Tamper detector:** blocks edits to protected paths, new `skip`/`xfail`, new `conftest.py`, non-test code that branches on `pytest`/`PYTEST_CURRENT_TEST`/`sys.modules`, deleted assertions. Each attempt is logged with the diff hunk and counted. If training happens, it is also a negative reward signal (Section 6.3).
+**Tamper detector:** blocks edits to protected paths (the Reproducer's own `tests/test_mergewright_repro_*.py` are allowed), new `skip`/`xfail`, new `conftest.py`, non-test code that branches on `pytest`/`PYTEST_CURRENT_TEST`/`sys.modules`, deleted assertions. Each attempt is logged with the diff hunk and counted. If training happens, it is also a negative reward signal (Section 6.3).
 
 ### 4.5 Interfaces (contracts to build against)
 
@@ -177,7 +178,7 @@ class Verifier(Protocol):
     def rank(self, task: TaskContext, candidates: list[Candidate]) -> list[RankedCandidate]: ...
 ```
 
-`eval/tasks/<id>/task.yaml`: `id`, `source` (mined | swe-rebench | swe-gym | adversarial), `split` (train | dev | held-out | adversarial), `repo`, `base_sha`, `image` (by digest), `issue` (file), `f2p` and `p2p` (test IDs), `gold_patch` (file), `test_cmd`, `created_at`, `resources` (`cpus`, `mem_floor`, `mem_ceiling`), `timeout_s`.
+`eval/tasks/<id>/task.json` (JSON: standard library only): `id`, `source` (mined | swe-rebench | swe-gym | adversarial | local), `split` (smoke | train | dev | held-out | adversarial), `repo`, `base_sha`, `image` (by digest), `repo_dir` (repo path in the image, e.g. `/testbed`), `issue` (file), `f2p` and `p2p` (test IDs), `gold_patch` (file), `test_patch` (file; the hidden tests, never shown to the agent), `test_cmd`, `env` (test environment variables), `created_at`, `resources` (`cpus`, `mem_floor_mb`, `mem_ceiling_mb`), `timeout_s`. `mergewright tasks validate` writes `validation.json` next to it; the task file itself is never rewritten.
 
 `results/<eval-id>/runs/<task>/<system>/<k>.json`: task, system, runtime, k, candidate count, status, termination reason, oracle result per F2P/P2P test, resolved, selected candidate, oracle-best candidate, overclaim, tokens in/out, cached tokens, $, wall time, queue time, limiter wait, steps, test attempts, tamper events, infra error, patch hash, error label. `results/<eval-id>/manifest.json`: git SHA, `temporalio` and plugin versions, model ID and weights hash (self-hosted) or server-reported ID and dates (hosted), prompt hashes, image digests, dataset version, resource limits, caps, k, N, seed.
 
@@ -196,7 +197,7 @@ class Verifier(Protocol):
 - **Adaptive concurrency (AIMD).** The effective limit grows additively while calls succeed and halves on a 429. `Retry-After` is honored. A 429 never counts against a run's budget.
 - **Admission control and backpressure.** A cap on in-flight workflows per queue. Past the cap, `POST /runs` returns 429 with queue position; sweeps wait in Temporal, not in memory.
 - **Sandbox pool.** Pre-pulled images, warm containers per image, reset by `git checkout` + `apply`, lease TTL and a reaper, health check on release. Pool size is bounded by host CPU and memory. A candidate keeps its sandbox lease across activities; a lost lease is rebuilt by the Section 4.2 invariant.
-- **Model serving (Phase 4).** vLLM with continuous batching and prefix caching. N candidates share the system prompt, issue and repo map, so prefix caching cuts prompt cost. Measure the cache hit rate; do not assume it.
+- **Model serving (Phase 5).** vLLM with continuous batching and prefix caching. N candidates share the system prompt, issue and repo map, so prefix caching cuts prompt cost. Measure the cache hit rate; do not assume it.
 - **Caches.** Repo map per `base_sha`; image layers; oracle results per (`task`, `patch_hash`). No LLM response cache outside replay mode.
 
 ### 5.2 Test doubles for load work
@@ -229,9 +230,9 @@ All changes are measured as paired deltas on dev (k = 3), and confirmed once on 
 - **Report:** oracle pass@N (upper bound), selection accuracy (what the verifier achieves), and $ per resolved task per N. The gap between the two is the verifier's quality.
 - **Cascade:** cheap model first; escalate to a stronger model only when the verifier rejects all candidates. Report the cost/quality frontier.
 
-### 6.3 Level C: training on verified trajectories (Phase 5, conditional)
+### 6.3 Level C: training on verified trajectories (Phase 6, conditional)
 
-Decided after Phase 4 (Section 11). Training means: self-host an open-weight model, generate trajectories with sweeps, keep those the oracle accepts, and train on them.
+Decided after Phase 5 (Section 11). Training means: self-host an open-weight model, generate trajectories with sweeps, keep those the oracle accepts, and train on them.
 
 - **Data:** sweeps on the **train** split only (SWE-Gym, SWE-smith or SWE-rebench tasks created before the held-out cutoff). Train repos are disjoint from dev and held-out repos. Near-duplicate issues are removed. The dataset hash goes in every manifest.
 - **Trained verifier first:** a small model that scores (issue, patch, test results), trained on accepted vs rejected candidates; compare selection accuracy against the code-only verifier.
@@ -242,7 +243,7 @@ Decided after Phase 4 (Section 11). Training means: self-host an open-weight mod
 
 ## 7. Sandbox, GitHub, API, budgets
 
-- **Sandbox (Docker):** network only during image build, which also runs repo code (Section 13.1 moves builds to a separate builder); none during agent work and tests. Non-root, dropped capabilities, CPU/memory/PID limits (memory floor and ceiling set apart, per Anthropic's 2026 infrastructure-noise findings), only the workspace mounted, empty env except a planted canary, per-command timeout, `run_id` label plus orphan sweeper. gVisor runtime before running on repos we do not own (Phase 6). Stated limit: shared kernel without gVisor.
+- **Sandbox (Docker):** network only during image build, which also runs repo code (Section 13.1 moves builds to a separate builder); none during agent work and tests. Non-root, dropped capabilities, CPU/memory/PID limits (memory floor and ceiling set apart, per Anthropic's 2026 infrastructure-noise findings), only the workspace mounted, empty env except a planted canary, per-command timeout, `run_id` label plus orphan sweeper. gVisor runtime before running on repos we do not own (Phase 7). Stated limit: shared kernel without gVisor.
 - **`open_pr` (effectively-once):** branch `mergewright/<run-id>`; PR body marker `<!-- mergewright-run: <run-id> -->`; look up before every write and reuse if it matches; approval carries the diff hash and a mismatch fails `FAILED_POLICY`. Credential: fine-grained token or GitHub App installation token scoped to `mergewright/*`, never in code or sandbox.
 - **`post_comment` (effectively-once):** one status comment per run on the triggering issue, found by the same run marker and edited in place, never duplicated. Holds status, run link, rationale and the full diff. `@` mentions in generated text are escaped. A diff over GitHub's comment size limit fails the run as `FAILED_POLICY`.
 - **Approval:** `/approve` or `/reject <reason>` on the issue from an allow-listed user with write access, or `mergewright approve <run-id>`, sends the signal with the diff hash. No web UI.
@@ -264,7 +265,7 @@ Mergewright never watches a repo on its own. A maintainer opts in by installing 
 8. **PR:** `open_pr` pushes `mergewright/<run-id>` and opens a PR with "Fixes #N" and the run marker; `post_comment` adds the PR link. The maintainer reviews and merges; Mergewright never merges.
 9. **Timeout:** no decision in 72 h → `EXPIRED`; the comment says so.
 
-Before Phase 6: our own test repo, a fine-grained token, approval by CLI; webhooks reach a local machine through smee.io or ngrok. Eval and sweep modes never touch GitHub; they use task snapshots.
+Before Phase 7: our own test repo, a fine-grained token, approval by CLI; webhooks reach a local machine through smee.io or ngrok. Eval and sweep modes never touch GitHub; they use task snapshots.
 
 ## 8. Security
 
@@ -277,29 +278,31 @@ Issue text, repo files, tool output and human feedback are untrusted data. Agent
 | Split | Size | Source | Use |
 |---|---|---|---|
 | Smoke | 5 | `buggy_calc` + 4 seeded bugs | CI on recorded responses |
-| Dev | 40–60 | Revert-a-fix tasks mined from 4–6 pure-Python repos, plus pre-cutoff SWE-rebench tasks | Development, ablations, error analysis |
-| Held-out | 100–150 | SWE-rebench Python tasks with `created_at` after the newest model's public release date | Headline numbers only; plan frozen in `eval/PLAN.md` first; no tuning on it |
-| Train | 1,000+ (Phase 5 only) | SWE-Gym, SWE-smith or older SWE-rebench tasks; repos disjoint from dev and held-out | Trajectory sweeps and training only; never reported as results |
+| Dev | 20–60 | Pre-cutoff SWE-rebench Python tasks with published images, at most 3 per repo; revert-a-fix tasks mined from pure-Python repos are optional | Development, ablations, error analysis. 5 tasks first to prove the pipeline, then 20; grow to 40+ when paired intervals are too wide to decide |
+| Held-out | 100–150 | SWE-rebench Python tasks with published images and `created_at` after the newest model's public release date | Headline numbers only. IDs chosen and frozen in `eval/PLAN.md` in Phase 1; never run or inspected before Phase 5; no tuning on it |
+| Train | 1,000+ (Phase 6 only) | SWE-Gym, SWE-smith or older SWE-rebench tasks; repos disjoint from dev and held-out | Trajectory sweeps and training only; never reported as results |
 | Adversarial | 20–30 | Injection (issue, repo file, tool output), canary exfiltration, reward-hacking bait, impossible issues | Safety, budgets |
 
 **Validation:** each task runs 3×: F2P fails on base and passes with the gold patch; P2P passes on both. Flaky tasks are dropped and counted.
-**Contamination rule:** use the model's public release date as its cutoff. After fine-tuning, the cutoff is the later of the base model's release date and the newest training task's `created_at`.
+**Ground truth:** the hidden-test oracle decides every result, never the agent's own test run.
+**Contamination rule:** use the model's public release date as its cutoff. Before the held-out run, re-check the frozen IDs against the cutoff of the model used for headline numbers; tasks before it are dropped, never replaced. After fine-tuning, the cutoff is the later of the base model's release date and the newest training task's `created_at`.
 **Infrastructure noise:** resource limits are fixed per split and recorded. `FAILED_INFRA` runs are re-run once and reported as a separate rate.
 
 ### 9.2 Systems compared (same model, tasks and budget unless the row says otherwise)
 
 | ID | System | Question | Priority |
 |---|---|---|---|
+| Base | The Milestone 2 Coder ⇄ Tester loop, unchanged, config frozen | Reference for every Phase 2 comparison | P0 |
 | S0 | Localizer + one patch, no execution feedback | What does iteration buy? | P0 |
 | S1 | Single loop, `run_tests` as a normal tool, no gate or checks | What do the gate and checks buy? | P0 |
-| S2 | Mergewright, fixed router, N = 1 | The system | P0 |
+| S2 | Mergewright with the Phase 2 features kept, fixed router, N = 1 | The system | P0 |
 | S2+E*k* | S2 after error-driven round *k* | Does each round help? | P0 |
 | S2+C | S2 + context policy | Tokens per resolved task at equal resolve rate? | P1 |
 | S2+R | S2 + Reproducer | Does a repro test help? | P1 |
 | S2+T | S2 + triage Supervisor | Is an LLM supervisor worth it? | P1 |
 | BoN-*N* | S2 with N candidates and the staged verifier | How does resolve rate scale with test-time compute, and how close is selection to the oracle? | P1 |
 | Cascade | Cheap model, escalate on rejection | Cost/quality frontier | P1 |
-| FT | S2 on the fine-tuned model (also with BoN) | What does training on verified trajectories buy? | Phase 5 |
+| FT | S2 on the fine-tuned model (also with BoN) | What does training on verified trajectories buy? | Phase 6 |
 | Ref | mini-SWE-agent (pinned) | Are we competitive with a minimal known agent? | P1 |
 | Frontier | S2 and Ref on a frontier model, subset | Where does the scaffold stand with a stronger model? | P2 |
 
@@ -314,7 +317,7 @@ Issue text, repo files, tool output and human feedback are untrusted data. Agent
 
 ### 9.4 Statistics
 
-Wilson 95 % intervals for rates; paired bootstrap over tasks for system deltas; McNemar's exact test for single-run pairs. At n = 40 the interval is about ±15 points; at n = 120 about ±9. Smaller deltas are reported as "not distinguishable". No claim in the README without its interval.
+The task is the unit of analysis: the k trials of one task are correlated, so they are never treated as independent samples. A task's score is its resolved fraction over k trials; a system's rate is the mean over tasks, with a 95 % interval from a bootstrap over tasks (resample tasks, keep each task's trials together). System deltas use a paired bootstrap over the same tasks; McNemar's exact test covers single-run pairs. At n = 40 tasks a rate's interval is about ±15 points, at n = 120 about ±9; paired deltas are narrower. Each comparison's decision rule is written down before its run. Smaller deltas are reported as "not distinguishable". No claim in the README without its interval.
 
 ### 9.5 Durability experiments: one graph, three runtimes
 
@@ -354,7 +357,7 @@ Faults use the fake provider, a local fake GitHub server that can commit a write
 | L3 | Sweep saturating the host while service runs arrive | Service schedule-to-start p95 with and without queue separation | P0 |
 | L4 | Warm pool vs cold start | Sandbox acquisition p50/p95 | P1 |
 | L5 | One vs two worker hosts | Scaling factor | P0 |
-| L6 | vLLM prefix caching on vs off at N = 8 (real model, Phase 4) | Tokens/s, cache hit rate, $ per resolved task | P1 |
+| L6 | vLLM prefix caching on vs off at N = 8 (real model, Phase 5) | Tokens/s, cache hit rate, $ per resolved task | P1 |
 | L7 | Self-hosted Temporal vs Temporal Cloud at the L1 saturation point | Latency and throughput difference | P2 |
 
 ### 9.7 Error analysis and reporting
@@ -365,21 +368,21 @@ Faults use the fake provider, a local fake GitHub server that can commit a write
 
 ## 10. Work items by priority
 
-**P0 (credibility).** Runtime spike; Docker sandbox with canary and no network; task format, validator, runner, oracle, report; smoke, dev and adversarial splits; message store; parent and candidate workflows on the plugin with budget ledger; Localizer; checks with tamper detector; diff gate, `post_comment` and `open_pr` (fake GitHub + one real repo); workflow replay tests; R0/R1/R2 on K1–K7 and K10; S0, S1, S2, two S2+E rounds at k = 3; task queues, admission control, rate limiter, fake provider, load generator; L1–L3 and L5; CI.
+**P0 (credibility).** Runtime spike; Docker sandbox with canary and no network; task format, validator, runner, oracle, report; smoke, dev and adversarial splits; message store; parent and candidate workflows on the plugin with budget ledger; Localizer; checks with tamper detector; diff gate, `post_comment` and `open_pr` (fake GitHub + one real repo); workflow replay tests; R0/R1/R2 on K1–K7 and K10; Base, S0, S1, S2, two S2+E rounds at k = 3; task queues, admission control, rate limiter, fake provider, load generator; L1–L3 and L5; CI.
 
 **P1 (differentiators).** Sandbox pool and L4; K8, K9, K11, K12; metrics dashboard; parse-checked edits and context policy; Reproducer; Best-of-N with staged verifier; cascade; held-out split and freeze; self-hosted vLLM and L6; Ref; GitHub App; README rewrite and blog posts.
 
 **P2 (optional).** RL training; frontier subset; L7; S2+T if earlier ablations leave time; workshop paper; Kubernetes deployment.
 
-**Conditional (Phase 5).** Train split, sweeps, trained verifier, RFT, tamper-under-training analysis.
+**Conditional (Phase 6).** Train split, sweeps, trained verifier, RFT, tamper-under-training analysis.
 
 ## 11. Compute and cost
 
-- Not budgeted yet; decided after Phase 4.
+- Not budgeted yet; decided after Phase 5.
 - Hosted endpoint: free (UB) for early phases. Phase 0 found no rate-limit headers and no 429 up to 8 concurrent requests (`docs/spikes.md`), so the limiter starts from conservative caps and finds the real limit with AIMD on 429.
 - Temporal Cloud: $150 credits. Phase 0 measured 9 actions per `buggy_calc` run (about 303,000 runs per $150); a full run is estimated at about 230 actions (about 12,000 runs). Credits are not the constraint; re-measure once the parent workflow exists.
 - Cloud VMs: AWS and GCP credits for x86 eval, load and two-host runs.
-- GPU (Phases 4–5): GCP free-trial accounts cannot attach GPUs; a paid account and a quota request are needed. Token volume of sweeps is the main cost driver: runs × N × tokens per run.
+- GPU (Phases 5–6): GCP free-trial accounts cannot attach GPUs; a paid account and a quota request are needed. Token volume of sweeps is the main cost driver: runs × N × tokens per run.
 
 ## 12. Risks
 
@@ -391,8 +394,8 @@ Faults use the fake provider, a local fake GitHub server that can commit a write
 | SWE-rebench images are x86 and slow under emulation on Apple Silicon | Evals and sweeps run on an x86 Linux VM; Phase 0 spike |
 | Temporal Cloud credits run out | Actions-per-run spike first; Cloud only for the spike and L7 |
 | Low absolute resolve rate | The claims are deltas, scaling curves, reliability and safety, with intervals |
-| Hosted endpoint changes model or goes down | Record server model ID and dates; replay fixtures; fixed 5-task canary set before each eval; vLLM from Phase 4 |
-| Training data leaks into held-out (Phase 5) | Disjoint repos, date rule, dedupe, dataset hash in manifests |
+| Hosted endpoint changes model or goes down | Record server model ID and dates; replay fixtures; fixed 5-task canary set before each eval; vLLM from Phase 5 |
+| Training data leaks into held-out (Phase 6) | Disjoint repos, date rule, dedupe, dataset hash in manifests |
 
 ## 13. Phases
 
@@ -400,17 +403,18 @@ Order is fixed. Dates are set when a phase starts. Each phase's exit is a genera
 
 | # | Scope | Exit criteria |
 |---|---|---|
-| 0 | **Spikes:** runtime gate (Section 4.2) on `buggy_calc`; one SWE-rebench image runs its F2P tests on an x86 VM; hosted endpoint limits and tool-call quality; Temporal Cloud actions per run | Results in `docs/spikes.md`; the runtime choice is confirmed or the fallback chosen; any other failed spike changes this spec first |
-| 1 | **Foundation:** Docker `Sandbox` behind the existing tools; task format, validator, oracle, eval runner, report; smoke, dev ≥ 40, adversarial ≥ 20; S0, S1, S2 at k = 3 on the current in-process runner; CI | Sandbox guard tests pass; dev table with intervals from manifests |
-| 2 | **Durable core:** message store; parent and candidate workflows on the plugin; budget ledger; Localizer; checks with tamper detector; diff gate; `post_comment`; `open_pr`; workflow replay tests; R1 baseline; K1–K7 and K10 on R0/R1/R2; two S2+E rounds | Durability table generated in CI; S2 on Temporal matches the Phase 1 S2 resolve rate within its interval; one real PR on our repo |
-| 3 | **Throughput and distributed systems:** task queues; fake provider; rate limiter with AIMD; FastAPI admission control; sandbox pool; metrics dashboard; L1–L5; K8, K9, K11, K12 | Saturation curve with a named bottleneck; limiter comparison; two-host scaling factor; Section 5.3 targets met or the gap explained |
-| 4 | **Test-time improvement:** parse-checked edits, context policy, Reproducer, Best-of-N with staged verifier, cascade; vLLM and L6; held-out frozen; held-out results for S2, BoN-*N*, Ref; budget and training decision | Best-of-N chart (pass@N vs selection accuracy vs $); held-out table with intervals and failures |
-| 5 | **Training (conditional):** train split; sweeps; trained verifier; RFT if justified; tamper-under-training | Base vs tuned on held-out, paired delta with interval |
-| 6 | **Validation:** GitHub App + webhooks (Section 7.1) with gVisor on our repos and opt-in repos; production-readiness checklist (Section 13.1); README rewrite with generated results; 2–3 blog posts; upstream issues or PRs for bugs found in dependencies; demo (label → run → kill worker → resume → approve → PR) | Smoke and durability suites reproducible from the README in < 15 minutes; online metrics from Section 13.1 reported for real repos |
+| 0 | **Spikes (done):** runtime gate (Section 4.2) on `buggy_calc`; one SWE-rebench image runs its F2P tests on an x86 VM; hosted endpoint limits and tool-call quality; Temporal Cloud actions per run | Results in `docs/spikes.md`; runtime confirmed |
+| 1 | **Eval core and baseline:** Docker `Sandbox` behind the existing tools; task format and validator (gold patch 3×); oracle; smoke split, dev (5, then 20), held-out IDs frozen; `eval` at k = 3; report (bootstrap over tasks, paired deltas); Base frozen and run on dev; CI | Sandbox guard tests pass; Base dev table with task-level intervals from manifests |
+| 2 | **Agent features:** error analysis of Base failures; Localizer; checks with tamper detector and the adversarial split; then parse-checked edits, focused `run_tests`, context policy, Reproducer, in the order the failures give, each kept only on its pre-written decision rule; S0, S1, S2 and two S2+E rounds at k = 3 | Ablation table vs Base with paired intervals; adversarial results (tamper attempts blocked, 0 canary leaks) |
+| 3 | **Durable core:** message store; parent and candidate workflows on the plugin; budget ledger; diff gate; `post_comment`; `open_pr`; workflow replay tests; R1 baseline; K1–K7 and K10 on R0/R1/R2 | Durability table generated in CI; S2 on Temporal matches the Phase 2 S2 resolve rate within its interval; one real PR on our repo |
+| 4 | **Throughput and distributed systems:** task queues; fake provider; rate limiter with AIMD; FastAPI admission control; sandbox pool; metrics dashboard; L1–L5; K8, K9, K11, K12 | Saturation curve with a named bottleneck; limiter comparison; two-host scaling factor; Section 5.3 targets met or the gap explained |
+| 5 | **Test-time compute and held-out:** Best-of-N (candidate child workflows) with staged verifier, cascade; vLLM and L6; held-out re-checked and run for S2, BoN-*N*, Ref; budget and training decision | Best-of-N chart (pass@N vs selection accuracy vs $); held-out table with intervals and failures |
+| 6 | **Training (conditional):** train split; sweeps; trained verifier; RFT if justified; tamper-under-training | Base model vs tuned model on held-out, paired delta with interval |
+| 7 | **Validation:** GitHub App + webhooks (Section 7.1) with gVisor on our repos and opt-in repos; production-readiness checklist (Section 13.1); README rewrite with generated results; 2–3 blog posts; upstream issues or PRs for bugs found in dependencies; demo (label → run → kill worker → resume → approve → PR) | Smoke and durability suites reproducible from the README in < 15 minutes; online metrics from Section 13.1 reported for real repos |
 
-### 13.1 Production readiness (Phase 6)
+### 13.1 Production readiness (Phase 7)
 
-Phases 0–5 answer "can we trust, measure and afford it?" on benchmark tasks. Production adds real repos, real users and real bills. Before any run on a repo we do not own:
+Phases 0–6 answer "can we trust, measure and afford it?" on benchmark tasks. Production adds real repos, real users and real bills. Before any run on a repo we do not own:
 
 | Question | Add |
 |---|---|
@@ -433,7 +437,7 @@ Phases 0–5 answer "can we trust, measure and afford it?" on benchmark tasks. P
 | Plan gate with calibrated threshold | Localizer confidence data exists for ≥ 30 tasks |
 | SSE event stream or web UI | A user needs live progress that the Temporal UI and CLI cannot give |
 | E2B adapter | Running on hosts where Docker with gVisor is not available |
-| Webhook reconciler (Temporal Schedule) | Real repos where dropped deliveries matter (Phase 6) |
+| Webhook reconciler (Temporal Schedule) | Real repos where dropped deliveries matter (Phase 7) |
 | Worker Versioning | Live runs regularly span deploys and `patched()` branches pile up |
 | Kubernetes | More than two worker hosts are needed |
 
@@ -455,6 +459,6 @@ Phases 0–5 answer "can we trust, measure and afford it?" on benchmark tasks. P
 ## 16. Open questions
 
 1. Which 4–6 repos for the mined dev set (pure Python, pytest < 2 min, linked issues, real fix commits)?
-2. Which cloud (AWS or GCP) hosts the x86 eval VMs, and which hosts GPUs if Phase 5 runs?
-3. Which open model to self-host in Phase 4 (tool-call quality in vLLM, license, size)?
+2. Which cloud (AWS or GCP) hosts the x86 eval VMs, and which hosts GPUs if Phase 6 runs?
+3. Which open model to self-host in Phase 5 (tool-call quality in vLLM, license, size)?
 4. Keep the generic issue-to-PR scope, or narrow to dependency-upgrade breakages (auto-generated tasks, higher success rate, clear user value, narrower story)?

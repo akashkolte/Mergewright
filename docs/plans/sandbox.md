@@ -26,9 +26,9 @@ ExecResult` (exit code, output tail, timed_out), `diff()` (against `base_sha`), 
 
 - `run_tests` and file tools wired to the sandbox (step 8), including redacting the canary in
   file-tool output (a command can copy it into the workspace).
-- Populating the workspace from a SWE-rebench image's `/testbed` (steps 8 and 11).
-- Warm pool and reaper (step 34), gVisor (Phase 6), the tree-hash check at the start of each
-  activity (Phase 2; `diff()` is its input).
+- Populating the workspace from a SWE-rebench image's `/testbed` (step 8).
+- Warm pool and reaper (step 37), gVisor (Phase 7), the tree-hash check at the start of each
+  activity (Phase 3; `diff()` is its input).
 
 ## Tests
 

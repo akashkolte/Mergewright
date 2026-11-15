@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Mergewright is a CSE 510 (Agentic AI Engineering, Fall 2026) final project. `docs/mergewright-spec.md` is the source of truth for the full system's scope, priorities, milestones and evaluation plan; read it before proposing structure or implementation. `docs/agenda.md` is the step-by-step build order. The earlier proposal, architecture review and checkpoint plan were removed in commit `b9f0ad9`; read them with `git show ff9bb5d:docs/<file>.md` only for history.
+Mergewright is a CSE 510 (Agentic AI Engineering, Fall 2026) final project. `docs/mergewright-spec.md` is the source of truth for the full system's scope, priorities, milestones and evaluation plan; read it before proposing structure or implementation. `docs/agenda.md` is the step-by-step build order: eval core and a frozen baseline (Phase 1), agent features measured against it (Phase 2), then the reliability layer on Temporal (Phase 3), throughput (Phase 4), test-time compute and the held-out run (Phase 5). The earlier proposal, architecture review and checkpoint plan were removed in commit `b9f0ad9`; read them with `git show ff9bb5d:docs/<file>.md` only for history.
 
 The code is at the Milestone 2 course checkpoint: a LangGraph Coder ⇄ Tester loop in `src/mergewright/` with four tools, a CLI, live (`openai` SDK, any OpenAI-compatible server) and replay modes, and pytest tests. Phase 0 is done (`docs/spikes.md`; spike code in `spikes/`). Phase 1 step 7 added `src/mergewright/sandbox/` (`Sandbox` protocol, Docker backend, canary), but nothing uses it yet: `run_tests` still runs pytest as a local subprocess (step 8 moves it). No Temporal in `src/`, no FastAPI, Postgres or CI yet.
 
@@ -29,7 +29,7 @@ Each layer has a single responsibility, and the boundaries matter:
 - **Docker sandbox** (behind a `Sandbox` interface) runs all repo code and tests: no network, non-root, resource limits, no secrets except a planted canary.
 - **`post_comment`** (one status comment per run, with the diff) and **`open_pr`** are the only GitHub writers. Both are idempotent (run marker, look up before write). Repos opt in by installing the GitHub App; the `mergewright` label triggers a run (spec Section 7.1).
 - **Rate limiter** (token-aware, RPM and TPM per provider:model, reservations, AIMD on 429) admits every LLM call. Separate task queues per resource and for service vs sweep work keep batch load from starving interactive runs.
-- **Model improvement** is measured, never assumed: scaffold and context changes, then best-of-N with a staged verifier. Fine-tuning is conditional and decided after Phase 4.
+- **Model improvement** is measured, never assumed: scaffold and context changes, then best-of-N with a staged verifier. Fine-tuning is conditional and decided after Phase 5.
 - **No custom UI:** Temporal UI, Grafana, the CLI, generated Markdown reports, and CLI or GitHub-comment approval.
 
 Constraints that shape any implementation:

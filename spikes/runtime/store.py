@@ -1,6 +1,6 @@
 """Content-addressed message store for the spike: one JSON file per message, named by its hash.
 
-A stand-in for the Phase 2 Postgres message store (spec Section 3, "Messages"). Graph state and
+A stand-in for the Phase 3 Postgres message store (spec Section 3, "Messages"). Graph state and
 Temporal payloads carry the hashes only. All workers on one host share the directory.
 """
 

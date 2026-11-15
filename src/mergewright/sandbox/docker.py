@@ -9,7 +9,7 @@ HOME and the planted canary; a run_id label for the orphan sweeper. Each command
 Git for reset() and diff() also runs inside the container (hooks off), so repo content
 never makes the host execute anything.
 
-Stated limit: containers share the host kernel; gVisor comes in Phase 6.
+Stated limit: containers share the host kernel; gVisor comes in Phase 7.
 """
 
 from __future__ import annotations

@@ -9,7 +9,7 @@ the fallback is not needed.**
 
 | Spike | Verdict | Key numbers | Decision for later phases |
 |---|---|---|---|
-| 1. Runtime gate | PASS, 5/5 criteria | 0 completed nodes re-run after `kill -9`; 29–53 events per segment, flat across attempts | Build R2 on the plugin (Phase 2). Spec Section 4.2 updated with findings F1–F4 |
+| 1. Runtime gate | PASS, 5/5 criteria | 0 completed nodes re-run after `kill -9`; 29–53 events per segment, flat across attempts | Build R2 on the plugin (Phase 3). Spec Section 4.2 updated with findings F1–F4 |
 | 2. SWE-rebench on x86 | PASS | `spectree-64`: 89 s pull, 4 s start, 4.2 s / 1.5 s tests | Use published images; only 7,500 of 21,336 tasks have one. Warm image reuse matters most (pull ≈ 90 % of a cold task) |
 | 3. Hosted endpoint | Usable; limits not found | No rate-limit headers; no 429 up to concurrency 8 (945 RPM achieved); context ≥ 131k tokens; 5/5 `buggy_calc`, 0 malformed tool calls | Limiter starts conservative, AIMD on 429 (spec Section 11 updated). Re-measure tool-call quality on the smoke split. Runs vary at `temperature=0`, so keep k ≥ 3 |
 | 4. Temporal Cloud | Done | 9 actions per run, same as local (about 303,000 runs per $150); +1.2 s per run over the network | Credits are not the constraint (spec Section 11 updated). Keep Cloud keys out of sandbox workers in the real system |
@@ -111,7 +111,7 @@ Other observations:
 ### Not covered by this spike
 
 - Real LLM calls and real Docker sandboxes (Phase 1); workflow-history replay tests in CI
-  (Phase 2); behavior under load; Temporal Cloud (spike 4).
+  (Phase 3); behavior under load; Temporal Cloud (spike 4).
 
 ## Spike 2: SWE-rebench image on an x86 VM (agenda step 3)
 
@@ -165,7 +165,7 @@ What this means:
 - `temperature=0` did not make runs identical: 3 runs took 4 steps and 2 took 5. This
   supports k repeated runs with intervals (spec Section 9.4); single runs are not evidence.
 - `buggy_calc` is too easy to judge tool-call quality. Re-measure on the smoke split
-  (Phase 1) before the S0–S2 runs.
+  (Phase 1) before the Base run.
 - Optional, within the provider's terms: `ramp --levels 16,32 --prompt-words 2000` to look
   for the TPM limit, and `context --max-words 262144` to bound the context length.
 
