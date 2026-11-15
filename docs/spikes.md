@@ -2,6 +2,25 @@
 
 Agenda steps 2–5. Each spike: setup, commands, results, verdict, effect on the spec.
 
+## Summary (agenda step 6, 2026-11-15)
+
+**Phase 0 is done. No spike failed. Runtime confirmed: LangGraph on `temporalio-langgraph`;
+the fallback is not needed.**
+
+| Spike | Verdict | Key numbers | Decision for later phases |
+|---|---|---|---|
+| 1. Runtime gate | PASS, 5/5 criteria | 0 completed nodes re-run after `kill -9`; 29–53 events per segment, flat across attempts | Build R2 on the plugin (Phase 2). Spec Section 4.2 updated with findings F1–F4 |
+| 2. SWE-rebench on x86 | PASS | `spectree-64`: 89 s pull, 4 s start, 4.2 s / 1.5 s tests | Use published images; only 7,500 of 21,336 tasks have one. Warm image reuse matters most (pull ≈ 90 % of a cold task) |
+| 3. Hosted endpoint | Usable; limits not found | No rate-limit headers; no 429 up to concurrency 8 (945 RPM achieved); context ≥ 131k tokens; 5/5 `buggy_calc`, 0 malformed tool calls | Limiter starts conservative, AIMD on 429 (spec Section 11 updated). Re-measure tool-call quality on the smoke split. Runs vary at `temperature=0`, so keep k ≥ 3 |
+| 4. Temporal Cloud | Done | 9 actions per run, same as local (about 303,000 runs per $150); +1.2 s per run over the network | Credits are not the constraint (spec Section 11 updated). Keep Cloud keys out of sandbox workers in the real system |
+
+Open items (none blocks Phase 1):
+
+- Cross-check the 27 Cloud actions against the Cloud UI's Usage page.
+- Optional, within the provider's terms: a larger ramp (concurrency 16–32, longer prompts)
+  for the TPM limit, and a context probe above 131k tokens.
+- Spec open question 2 (AWS or GCP for x86 VMs): GCP worked for spike 2.
+
 ## Spike 1: runtime gate (agenda step 2, spec Section 4.2)
 
 **Verdict: PASS, all five criteria. Runtime confirmed: LangGraph on `temporalio-langgraph`.**

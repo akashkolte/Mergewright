@@ -376,8 +376,8 @@ Faults use the fake provider, a local fake GitHub server that can commit a write
 ## 11. Compute and cost
 
 - Not budgeted yet; decided after Phase 4.
-- Hosted endpoint: free (UB) for early phases. Its rate limits are measured in Phase 0 and configured in the limiter.
-- Temporal Cloud: $150 credits. Every LLM and tool call is an activity, so measure actions per run (Phase 0) before any Cloud run.
+- Hosted endpoint: free (UB) for early phases. Phase 0 found no rate-limit headers and no 429 up to 8 concurrent requests (`docs/spikes.md`), so the limiter starts from conservative caps and finds the real limit with AIMD on 429.
+- Temporal Cloud: $150 credits. Phase 0 measured 9 actions per `buggy_calc` run (about 303,000 runs per $150); a full run is estimated at about 230 actions (about 12,000 runs). Credits are not the constraint; re-measure once the parent workflow exists.
 - Cloud VMs: AWS and GCP credits for x86 eval, load and two-host runs.
 - GPU (Phases 4–5): GCP free-trial accounts cannot attach GPUs; a paid account and a quota request are needed. Token volume of sweeps is the main cost driver: runs × N × tokens per run.
 
