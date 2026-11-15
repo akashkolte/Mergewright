@@ -34,6 +34,7 @@ where = ["src"]
 # Only the project's own tests. examples/ holds demo repos whose tests fail on purpose.
 testpaths = ["tests"]
 addopts = "-ra"
+markers = ["docker: needs a Docker daemon and the sandbox test image (tests/sandbox_image)"]
 
 [tool.ruff]
 line-length = 100

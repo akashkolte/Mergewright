@@ -6,12 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Mergewright is a CSE 510 (Agentic AI Engineering, Fall 2026) final project. `docs/mergewright-spec.md` is the source of truth for the full system's scope, priorities, milestones and evaluation plan; read it before proposing structure or implementation. `docs/agenda.md` is the step-by-step build order. The earlier proposal, architecture review and checkpoint plan were removed in commit `b9f0ad9`; read them with `git show ff9bb5d:docs/<file>.md` only for history.
 
-The code is at the Milestone 2 course checkpoint: a LangGraph Coder ⇄ Tester loop in `src/mergewright/` with four tools, a CLI, live (`openai` SDK, any OpenAI-compatible server) and replay modes, and pytest tests. No Temporal, FastAPI, Docker sandbox, Postgres or CI yet. `run_tests` runs pytest as a local subprocess, not in a sandbox.
+The code is at the Milestone 2 course checkpoint: a LangGraph Coder ⇄ Tester loop in `src/mergewright/` with four tools, a CLI, live (`openai` SDK, any OpenAI-compatible server) and replay modes, and pytest tests. Phase 0 is done (`docs/spikes.md`; spike code in `spikes/`). Phase 1 step 7 added `src/mergewright/sandbox/` (`Sandbox` protocol, Docker backend, canary), but nothing uses it yet: `run_tests` still runs pytest as a local subprocess (step 8 moves it). No Temporal in `src/`, no FastAPI, Postgres or CI yet.
 
 Commands (from the repo root, venv active):
 
 - Setup: `python3 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"`
-- Tests: `pytest` (only `tests/`; `examples/buggy_calc` fails on purpose and is excluded)
+- Tests: `pytest` (only `tests/`; `examples/buggy_calc` fails on purpose and is excluded). The `docker` tests need the test image (`docker build -t mergewright-sandbox-test:1 tests/sandbox_image`) and are skipped without it; `pytest -m "not docker"` skips them.
 - Lint and format: `ruff check .` and `ruff format .`
 - Run: `mergewright run --llm replay` (no key) or `mergewright run --llm live` (needs `.env`, see `.env.example`); `mergewright graph` prints the workflow graph.
 
