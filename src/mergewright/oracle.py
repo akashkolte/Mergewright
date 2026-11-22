@@ -31,6 +31,11 @@ VALIDATION_FILE = "validation.json"
 _SECTION = re.compile(r"^diff --git ", re.MULTILINE)
 _TOUCHED = re.compile(r"^(?:diff --git a/(\S+) b/(\S+)|--- a/(\S+)|\+\+\+ b/(\S+))", re.MULTILINE)
 _ADDED_OR_CHANGED = re.compile(r"^\+\+\+ b/(\S+)$", re.MULTILINE)
+# Copied from the SWE-rebench harness (NON_TEST_EXTS), whose runs made the F2P/P2P labels;
+# "csv" has no dot there too.
+_NON_TEST_ENDINGS = (
+    ".json", ".png", "csv", ".txt", ".md", ".jpg", ".jpeg", ".pkl", ".yml", ".yaml", ".toml",
+)  # fmt: skip
 
 
 def combine_patches(candidate: str, test_patch: str) -> str:
@@ -45,8 +50,27 @@ def combine_patches(candidate: str, test_patch: str) -> str:
 
 
 def hidden_test_files(test_patch: str) -> list[str]:
-    """The files the test patch adds or changes (not deletes), in order."""
-    return list(dict.fromkeys(_ADDED_OR_CHANGED.findall(test_patch)))
+    """The test files the test patch adds or changes (not deletes), in order: pytest's targets.
+
+    Data files are left out, as the harness does: pytest stops on a path it cannot collect.
+    """
+    files = dict.fromkeys(_ADDED_OR_CHANGED.findall(test_patch))
+    return [path for path in files if not path.endswith(_NON_TEST_ENDINGS)]
+
+
+def harness_ids(results: dict[str, str]) -> dict[str, str]:
+    """Outcomes keyed as the harness's log parser keys them: each id cut at its first space.
+
+    The dataset's F2P/P2P ids come from that parser, so 't[> ]' is listed as 't[>'. Several
+    tests can share a cut id; it is PASSED only if all of them passed, else the first other
+    outcome. Ids without a space keep their key.
+    """
+    grouped: dict[str, str] = {}
+    for test, outcome in results.items():
+        key = test.split(" ", 1)[0]
+        if grouped.get(key, "PASSED") == "PASSED":
+            grouped[key] = outcome
+    return grouped
 
 
 def _touched(patch: str) -> set[str]:
@@ -125,7 +149,8 @@ def _verdict(
     infra_error: str = "",
 ) -> OracleResult:
     results = results or {}
-    tests = {test: results.get(test, "missing") for test in [*task.f2p, *task.p2p]}
+    cut = harness_ids(results)  # fallback for ids the harness's parser cut at a space
+    tests = {test: results.get(test) or cut.get(test, "missing") for test in [*task.f2p, *task.p2p]}
     f2p_failing = [test for test in task.f2p if tests[test] != "PASSED"]
     p2p_failing = [test for test in task.p2p if tests[test] != "PASSED"]
     resolved = patch_applies and not (timed_out or infra_error or f2p_failing or p2p_failing)

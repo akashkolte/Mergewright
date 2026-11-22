@@ -191,7 +191,7 @@ def test_environment_is_the_pinned_image_with_the_task_limits():
     assert (env.image, env.base_sha, env.test_command, env.repo_dir) == (
         f"img@{DIGEST}",
         "a" * 40,
-        "pytest",
+        "export PYTHONPATH=/testbed:/testbed/src && pytest",
         "/testbed",
     )
     assert env.limits == SandboxLimits(cpus=1, mem_floor_mb=256, mem_ceiling_mb=512)
@@ -202,7 +202,16 @@ def test_environment_exports_the_task_env_before_the_test_command():
     task = Task(**valid_fields(env={"LANG": "C.UTF-8", "OPTS": "a b'c"}))
 
     assert task.environment().test_command == (
+        "export PYTHONPATH=/testbed:/testbed/src && "
         "export LANG=C.UTF-8 && export OPTS='a b'\"'\"'c' && pytest"
+    )
+
+
+def test_environment_imports_the_workspace_first_and_task_env_can_override_it():
+    task = Task(**valid_fields(repo_dir="/repo", env={"PYTHONPATH": "/custom"}))
+
+    assert task.environment().test_command == (
+        "export PYTHONPATH=/repo:/repo/src && export PYTHONPATH=/custom && pytest"
     )
 
 

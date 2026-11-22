@@ -1,0 +1,191 @@
+diff --git a/news/fix-pymode-ioredirect.rst b/news/fix-pymode-ioredirect.rst
+new file mode 100644
+index 00000000..71972769
+--- /dev/null
++++ b/news/fix-pymode-ioredirect.rst
+@@ -0,0 +1,23 @@
++**Added:**
++
++* <news item>
++
++**Changed:**
++
++* <news item>
++
++**Deprecated:**
++
++* <news item>
++
++**Removed:**
++
++* <news item>
++
++**Fixed:**
++
++* Expressions like ``2>1`` are now parsed correctly as Python code instead of being treated like special io-redirection operators.
++
++**Security:**
++
++* <news item>
+diff --git a/xonsh/lexer.py b/xonsh/lexer.py
+index a9c904ab..a0f55feb 100644
+--- a/xonsh/lexer.py
++++ b/xonsh/lexer.py
+@@ -253,9 +253,25 @@ def handle_redirect(state, token):
+     typ = token.type
+     st = token.string
+     key = (typ, st) if (typ, st) in token_map else typ
+-    yield _new_token(token_map[key], st, token.start)
++    new_tok = _new_token(token_map[key], st, token.start)
+     if state["pymode"][-1][0]:
++        if typ == IOREDIRECT:
++            # Fix Python mode code that was incorrectly recognized as an
++            # IOREDIRECT by the tokenizer (see issue #4994).
++            # The tokenizer does not know when the code should be tokenized in
++            # Python mode. By default, when it sees code like `2>`, it produces
++            # an IOREDIRECT token. This call to `get_tokens` makes the
++            # tokenizer run over the code again, knowing that it is *not* an
++            # IOREDIRECT token.
++            lineno, lexpos = token.start
++            for tok in get_tokens(
++                token.string, state["tolerant"], tokenize_ioredirects=False
++            ):
++                yield _new_token(tok.type, tok.value, (lineno, lexpos + tok.lexpos))
++        else:
++            yield new_tok
+         return
++    yield new_tok
+     # add a whitespace token after a redirection, if we need to
+     next_tok = next(state["stream"])
+     if next_tok.start == token.end:
+@@ -358,7 +374,7 @@ def handle_token(state, token):
+         yield _new_token("ERRORTOKEN", m, token.start)
+ 
+ 
+-def get_tokens(s, tolerant):
++def get_tokens(s, tolerant, pymode=True, tokenize_ioredirects=True):
+     """
+     Given a string containing xonsh code, generates a stream of relevant PLY
+     tokens using ``handle_token``.
+@@ -366,8 +382,10 @@ def get_tokens(s, tolerant):
+     state = {
+         "indents": [0],
+         "last": None,
+-        "pymode": [(True, "", "", (0, 0))],
+-        "stream": tokenize(io.BytesIO(s.encode("utf-8")).readline, tolerant),
++        "pymode": [(pymode, "", "", (0, 0))],
++        "stream": tokenize(
++            io.BytesIO(s.encode("utf-8")).readline, tolerant, tokenize_ioredirects
++        ),
+         "tolerant": tolerant,
+     }
+     while True:
+@@ -406,7 +424,7 @@ class Lexer:
+ 
+     _tokens: tp.Optional[tuple[str, ...]] = None
+ 
+-    def __init__(self, tolerant=False):
++    def __init__(self, tolerant=False, pymode=True):
+         """
+         Attributes
+         ----------
+@@ -419,12 +437,15 @@ class Lexer:
+         tolerant : bool
+             Tokenize without extra checks (e.g. paren matching).
+             When True, ERRORTOKEN contains the erroneous string instead of an error msg.
++        pymode : bool
++            Start the lexer in Python mode.
+ 
+         """
+         self.fname = ""
+         self.last = None
+         self.beforelast = None
+         self._tolerant = tolerant
++        self._pymode = pymode
+         self._token_stream = iter(())
+ 
+     @property
+@@ -442,7 +463,7 @@ class Lexer:
+ 
+     def input(self, s):
+         """Calls the lexer on the string s."""
+-        self._token_stream = get_tokens(s, self._tolerant)
++        self._token_stream = get_tokens(s, self._tolerant, self._pymode)
+ 
+     def token(self):
+         """Retrieves the next token."""
+diff --git a/xonsh/parsers/completion_context.py b/xonsh/parsers/completion_context.py
+index dd5a132c..04d34350 100644
+--- a/xonsh/parsers/completion_context.py
++++ b/xonsh/parsers/completion_context.py
+@@ -350,7 +350,7 @@ class CompletionContextParser:
+ 
+         self.error = None
+         self.debug = debug
+-        self.lexer = Lexer(tolerant=True)
++        self.lexer = Lexer(tolerant=True, pymode=False)
+         self.tokens = tuple(self.used_tokens | self.artificial_tokens)
+ 
+         yacc_kwargs = dict(
+diff --git a/xonsh/tokenize.py b/xonsh/tokenize.py
+index e03608dd..5127286c 100644
+--- a/xonsh/tokenize.py
++++ b/xonsh/tokenize.py
+@@ -374,6 +374,7 @@ ContStr = group(
+     StringPrefix + r'"[^\n"\\]*(?:\\.[^\n"\\]*)*' + group('"', r"\\\r?\n"),
+ )
+ PseudoExtras = group(r"\\\r?\n|\Z", Comment, Triple, SearchPath)
++PseudoTokenWithoutIO = Whitespace + group(PseudoExtras, Number, Funny, ContStr, Name_RE)
+ PseudoToken = Whitespace + group(
+     PseudoExtras, IORedirect, Number, Funny, ContStr, Name_RE
+ )
+@@ -859,7 +860,7 @@ def tokopen(filename):
+         raise
+ 
+ 
+-def _tokenize(readline, encoding, tolerant=False):
++def _tokenize(readline, encoding, tolerant=False, tokenize_ioredirects=True):
+     lnum = parenlev = continued = 0
+     numchars = "0123456789"
+     contstr, needcont = "", 0
+@@ -993,7 +994,9 @@ def _tokenize(readline, encoding, tolerant=False):
+             continued = 0
+ 
+         while pos < max:
+-            pseudomatch = _compile(PseudoToken).match(line, pos)
++            pseudomatch = _compile(
++                PseudoToken if tokenize_ioredirects else PseudoTokenWithoutIO
++            ).match(line, pos)
+             if pseudomatch:  # scan for tokens
+                 start, end = pseudomatch.span(1)
+                 spos, epos, pos = (lnum, start), (lnum, end), end
+@@ -1131,7 +1134,7 @@ def _tokenize(readline, encoding, tolerant=False):
+     yield TokenInfo(ENDMARKER, "", (lnum, 0), (lnum, 0), "")
+ 
+ 
+-def tokenize(readline, tolerant=False):
++def tokenize(readline, tolerant=False, tokenize_ioredirects=True):
+     """
+     The tokenize() generator requires one argument, readline, which
+     must be a callable object which provides the same interface as the
+@@ -1152,12 +1155,19 @@ def tokenize(readline, tolerant=False):
+ 
+     If ``tolerant`` is True, yield ERRORTOKEN with the erroneous string instead of
+     throwing an exception when encountering an error.
++
++    If ``tokenize_ioredirects`` is True, produce IOREDIRECT tokens for special
++    io-redirection operators like ``2>``. Otherwise, treat code like ``2>`` as
++    regular Python code.
+     """
+     encoding, consumed = detect_encoding(readline)
+     rl_gen = iter(readline, b"")
+     empty = itertools.repeat(b"")
+     return _tokenize(
+-        itertools.chain(consumed, rl_gen, empty).__next__, encoding, tolerant
++        itertools.chain(consumed, rl_gen, empty).__next__,
++        encoding,
++        tolerant,
++        tokenize_ioredirects,
+     )
+ 
+ 

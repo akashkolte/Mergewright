@@ -127,9 +127,16 @@ class Task(BaseModel):
     def environment(self, **overrides: Any) -> ImageRepo:
         """The task's image as an Environment, env exported before the test command.
 
-        Overrides (e.g. start_sandbox) pass through.
+        PYTHONPATH puts the workspace (and its src/) first, so tests import the code under test.
+        SWE-rebench images install the repo in editable mode from a build path that no longer
+        exists (e.g. /kymatio, not /testbed); the official harness re-installs before each run,
+        which needs root and, for some repos, network. The task's own env comes after, so it can
+        override PYTHONPATH. Overrides (e.g. start_sandbox) pass through.
         """
-        exports = "".join(f"export {k}={shlex.quote(v)} && " for k, v in self.env.items())
+        import_path = shlex.quote(f"{self.repo_dir}:{self.repo_dir}/src")
+        exports = f"export PYTHONPATH={import_path} && " + "".join(
+            f"export {k}={shlex.quote(v)} && " for k, v in self.env.items()
+        )
         return ImageRepo(
             image=self.image,
             base_sha=self.base_sha,

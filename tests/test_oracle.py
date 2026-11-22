@@ -11,6 +11,7 @@ from mergewright.oracle import (
     VALIDATION_FILE,
     combine_patches,
     evaluate,
+    harness_ids,
     hidden_test_files,
     validate_task,
 )
@@ -89,6 +90,44 @@ def test_combine_patches_drops_candidate_edits_to_hidden_test_files():
     assert combine_patches(HIDDEN, HIDDEN) == HIDDEN  # only the test patch's own version
     assert combine_patches("", HIDDEN) == HIDDEN
     assert hidden_test_files(HIDDEN) == ["tests/test_app.py"]
+
+
+def test_hidden_test_files_leave_out_data_files_pytest_cannot_collect():
+    data = "".join(
+        f"diff --git a/{p} b/{p}\n--- a/{p}\n+++ b/{p}\n@@ -1 +1 @@\n-x\n+y\n"
+        for p in ("publish/test-results.json", "tests/data.csv", "docs/a.md", "tests/conftest.py")
+    )
+
+    assert hidden_test_files(HIDDEN + data) == ["tests/test_app.py", "tests/conftest.py"]
+
+
+def test_harness_ids_cut_at_the_first_space_and_pass_only_if_every_member_passed():
+    results = {
+        "t.py::a[> ]": "PASSED",
+        "t.py::a[>  ]": "PASSED",
+        "t.py::b[x y]": "PASSED",
+        "t.py::b[x  z]": "FAILED",
+        "t.py::b[x w]": "PASSED",  # a later pass does not hide the failure
+        "t.py::c": "PASSED",
+    }
+
+    assert harness_ids(results) == {
+        "t.py::a[>": "PASSED",
+        "t.py::b[x": "FAILED",
+        "t.py::c": "PASSED",
+    }
+
+
+def test_evaluate_matches_exact_ids_first_and_cut_ids_as_a_fallback(task: Task, tmp_path: Path):
+    task = task.model_copy(update={"f2p": ["t.py::a[>"], "p2p": ["t.py::b[x y]"]})
+    log = "FAILED t.py::a[> ]\nPASSED t.py::b[x y]\ndone in 1s\n"
+
+    result = evaluate(
+        task, APP, tmp_path, env=FakeEnv([ScriptedSandbox([ExecResult(0, log, False)])])
+    )
+
+    assert result.tests == {"t.py::a[>": "FAILED", "t.py::b[x y]": "PASSED"}
+    assert result.f2p_failing == ["t.py::a[>"] and result.p2p_failing == []
 
 
 # --- evaluate -----------------------------------------------------------------------------

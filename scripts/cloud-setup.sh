@@ -30,6 +30,9 @@ log "Non-root user mw (member of the docker group)"
 getent group docker >/dev/null || groupadd docker
 id mw >/dev/null 2>&1 || useradd -m -G docker mw
 chgrp docker /var/run/docker.sock && chmod 660 /var/run/docker.sock
+# `su mw` keeps SSL_CERT_FILE etc., which point at the proxy's CA under /root. It is a public
+# certificate, not a secret: let mw read it (the OpenAI client loads it when it is built).
+chmod o+x /root /root/.ccr && chmod o+r /root/.ccr/ca-bundle.crt
 
 log "Python venv and package"
 # As root: pip needs the proxy CA under /root, which mw cannot read. The chown below fixes
