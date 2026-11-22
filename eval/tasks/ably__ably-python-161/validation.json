@@ -1,0 +1,258 @@
+{
+  "task": "ably__ably-python-161",
+  "valid": false,
+  "problems": [
+    "run 1, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback is ERROR, expected PASSED",
+    "run 1, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout is ERROR, expected PASSED",
+    "run 1, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts is ERROR, expected PASSED",
+    "run 1, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_host_fallback is ERROR, expected PASSED",
+    "run 1, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults is ERROR, expected PASSED",
+    "run 1, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host is ERROR, expected PASSED",
+    "run 1, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code is ERROR, expected PASSED",
+    "run 1, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_request_headers is ERROR, expected PASSED",
+    "run 1, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_500_errors is ERROR, expected PASSED",
+    "run 1, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback is ERROR, expected PASSED",
+    "run 1, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout is ERROR, expected PASSED",
+    "run 1, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts is ERROR, expected PASSED",
+    "run 1, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_host_fallback is ERROR, expected PASSED",
+    "run 1, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults is ERROR, expected PASSED",
+    "run 1, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host is ERROR, expected PASSED",
+    "run 1, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code is ERROR, expected PASSED",
+    "run 1, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_request_headers is ERROR, expected PASSED",
+    "run 2, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback is ERROR, expected PASSED",
+    "run 2, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout is ERROR, expected PASSED",
+    "run 2, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts is ERROR, expected PASSED",
+    "run 2, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_host_fallback is ERROR, expected PASSED",
+    "run 2, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults is ERROR, expected PASSED",
+    "run 2, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host is ERROR, expected PASSED",
+    "run 2, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code is ERROR, expected PASSED",
+    "run 2, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_request_headers is ERROR, expected PASSED",
+    "run 2, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_500_errors is ERROR, expected PASSED",
+    "run 2, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback is ERROR, expected PASSED",
+    "run 2, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout is ERROR, expected PASSED",
+    "run 2, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts is ERROR, expected PASSED",
+    "run 2, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_host_fallback is ERROR, expected PASSED",
+    "run 2, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults is ERROR, expected PASSED",
+    "run 2, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host is ERROR, expected PASSED",
+    "run 2, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code is ERROR, expected PASSED",
+    "run 2, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_request_headers is ERROR, expected PASSED",
+    "run 3, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback is ERROR, expected PASSED",
+    "run 3, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout is ERROR, expected PASSED",
+    "run 3, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts is ERROR, expected PASSED",
+    "run 3, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_host_fallback is ERROR, expected PASSED",
+    "run 3, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults is ERROR, expected PASSED",
+    "run 3, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host is ERROR, expected PASSED",
+    "run 3, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code is ERROR, expected PASSED",
+    "run 3, empty patch: P2P test/ably/resthttp_test.py::TestRestHttp::test_request_headers is ERROR, expected PASSED",
+    "run 3, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_500_errors is ERROR, expected PASSED",
+    "run 3, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback is ERROR, expected PASSED",
+    "run 3, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout is ERROR, expected PASSED",
+    "run 3, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts is ERROR, expected PASSED",
+    "run 3, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_host_fallback is ERROR, expected PASSED",
+    "run 3, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults is ERROR, expected PASSED",
+    "run 3, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host is ERROR, expected PASSED",
+    "run 3, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code is ERROR, expected PASSED",
+    "run 3, gold patch: test/ably/resthttp_test.py::TestRestHttp::test_request_headers is ERROR, expected PASSED"
+  ],
+  "flaky": [],
+  "image": "swerebench/sweb.eval.x86_64.ably_1776_ably-python-161@sha256:2853dbab40877bbd67063423710de3cd7746293015e3219296fec051142b39e0",
+  "validated_at": "2026-11-22T23:50:42Z",
+  "seconds": 15.21,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "test/ably/resthttp_test.py::TestRestHttp::test_500_errors": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_host_fallback": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_request_headers": "ERROR"
+        },
+        "f2p_failing": [
+          "test/ably/resthttp_test.py::TestRestHttp::test_500_errors"
+        ],
+        "p2p_failing": [
+          "test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout",
+          "test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts",
+          "test/ably/resthttp_test.py::TestRestHttp::test_host_fallback",
+          "test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code",
+          "test/ably/resthttp_test.py::TestRestHttp::test_request_headers"
+        ],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 3.0
+      },
+      "gold": {
+        "resolved": false,
+        "tests": {
+          "test/ably/resthttp_test.py::TestRestHttp::test_500_errors": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_host_fallback": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_request_headers": "ERROR"
+        },
+        "f2p_failing": [
+          "test/ably/resthttp_test.py::TestRestHttp::test_500_errors"
+        ],
+        "p2p_failing": [
+          "test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout",
+          "test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts",
+          "test/ably/resthttp_test.py::TestRestHttp::test_host_fallback",
+          "test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code",
+          "test/ably/resthttp_test.py::TestRestHttp::test_request_headers"
+        ],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.56
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "test/ably/resthttp_test.py::TestRestHttp::test_500_errors": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_host_fallback": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_request_headers": "ERROR"
+        },
+        "f2p_failing": [
+          "test/ably/resthttp_test.py::TestRestHttp::test_500_errors"
+        ],
+        "p2p_failing": [
+          "test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout",
+          "test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts",
+          "test/ably/resthttp_test.py::TestRestHttp::test_host_fallback",
+          "test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code",
+          "test/ably/resthttp_test.py::TestRestHttp::test_request_headers"
+        ],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.41
+      },
+      "gold": {
+        "resolved": false,
+        "tests": {
+          "test/ably/resthttp_test.py::TestRestHttp::test_500_errors": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_host_fallback": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_request_headers": "ERROR"
+        },
+        "f2p_failing": [
+          "test/ably/resthttp_test.py::TestRestHttp::test_500_errors"
+        ],
+        "p2p_failing": [
+          "test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout",
+          "test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts",
+          "test/ably/resthttp_test.py::TestRestHttp::test_host_fallback",
+          "test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code",
+          "test/ably/resthttp_test.py::TestRestHttp::test_request_headers"
+        ],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.48
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "test/ably/resthttp_test.py::TestRestHttp::test_500_errors": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_host_fallback": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_request_headers": "ERROR"
+        },
+        "f2p_failing": [
+          "test/ably/resthttp_test.py::TestRestHttp::test_500_errors"
+        ],
+        "p2p_failing": [
+          "test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout",
+          "test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts",
+          "test/ably/resthttp_test.py::TestRestHttp::test_host_fallback",
+          "test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code",
+          "test/ably/resthttp_test.py::TestRestHttp::test_request_headers"
+        ],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.36
+      },
+      "gold": {
+        "resolved": false,
+        "tests": {
+          "test/ably/resthttp_test.py::TestRestHttp::test_500_errors": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_host_fallback": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code": "ERROR",
+          "test/ably/resthttp_test.py::TestRestHttp::test_request_headers": "ERROR"
+        },
+        "f2p_failing": [
+          "test/ably/resthttp_test.py::TestRestHttp::test_500_errors"
+        ],
+        "p2p_failing": [
+          "test/ably/resthttp_test.py::TestRestHttp::test_cached_fallback",
+          "test/ably/resthttp_test.py::TestRestHttp::test_cumulative_timeout",
+          "test/ably/resthttp_test.py::TestRestHttp::test_custom_http_timeouts",
+          "test/ably/resthttp_test.py::TestRestHttp::test_host_fallback",
+          "test/ably/resthttp_test.py::TestRestHttp::test_max_retry_attempts_and_timeouts_defaults",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_host_fallback_nor_retries_if_custom_host",
+          "test/ably/resthttp_test.py::TestRestHttp::test_no_retry_if_not_500_to_599_http_code",
+          "test/ably/resthttp_test.py::TestRestHttp::test_request_headers"
+        ],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.4
+      }
+    }
+  ]
+}
