@@ -1,0 +1,134 @@
+{
+  "task": "0b01001001__spectree-64",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "swerebench/sweb.eval.x86_64.0b01001001_1776_spectree-64@sha256:918c24cdc06282801eca6134c44d0521eceb98e395d2916c660ec92a0df75efd",
+  "validated_at": "2026-11-22T20:08:01Z",
+  "seconds": 52.08,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_utils.py::test_parse_params": "FAILED",
+          "tests/test_utils.py::test_comments": "PASSED",
+          "tests/test_utils.py::test_parse_code": "PASSED",
+          "tests/test_utils.py::test_parse_name": "PASSED",
+          "tests/test_utils.py::test_has_model": "PASSED",
+          "tests/test_utils.py::test_parse_resp": "PASSED",
+          "tests/test_utils.py::test_parse_request": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_utils.py::test_parse_params"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 9.45
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_utils.py::test_parse_params": "PASSED",
+          "tests/test_utils.py::test_comments": "PASSED",
+          "tests/test_utils.py::test_parse_code": "PASSED",
+          "tests/test_utils.py::test_parse_name": "PASSED",
+          "tests/test_utils.py::test_has_model": "PASSED",
+          "tests/test_utils.py::test_parse_resp": "PASSED",
+          "tests/test_utils.py::test_parse_request": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 8.87
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_utils.py::test_parse_params": "FAILED",
+          "tests/test_utils.py::test_comments": "PASSED",
+          "tests/test_utils.py::test_parse_code": "PASSED",
+          "tests/test_utils.py::test_parse_name": "PASSED",
+          "tests/test_utils.py::test_has_model": "PASSED",
+          "tests/test_utils.py::test_parse_resp": "PASSED",
+          "tests/test_utils.py::test_parse_request": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_utils.py::test_parse_params"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 8.33
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_utils.py::test_parse_params": "PASSED",
+          "tests/test_utils.py::test_comments": "PASSED",
+          "tests/test_utils.py::test_parse_code": "PASSED",
+          "tests/test_utils.py::test_parse_name": "PASSED",
+          "tests/test_utils.py::test_has_model": "PASSED",
+          "tests/test_utils.py::test_parse_resp": "PASSED",
+          "tests/test_utils.py::test_parse_request": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 8.52
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_utils.py::test_parse_params": "FAILED",
+          "tests/test_utils.py::test_comments": "PASSED",
+          "tests/test_utils.py::test_parse_code": "PASSED",
+          "tests/test_utils.py::test_parse_name": "PASSED",
+          "tests/test_utils.py::test_has_model": "PASSED",
+          "tests/test_utils.py::test_parse_resp": "PASSED",
+          "tests/test_utils.py::test_parse_request": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_utils.py::test_parse_params"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 8.3
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_utils.py::test_parse_params": "PASSED",
+          "tests/test_utils.py::test_comments": "PASSED",
+          "tests/test_utils.py::test_parse_code": "PASSED",
+          "tests/test_utils.py::test_parse_name": "PASSED",
+          "tests/test_utils.py::test_has_model": "PASSED",
+          "tests/test_utils.py::test_parse_resp": "PASSED",
+          "tests/test_utils.py::test_parse_request": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 8.61
+      }
+    }
+  ]
+}

@@ -28,6 +28,7 @@ SKIP_DIRS = {".git", "__pycache__", ".pytest_cache", ".venv", "node_modules"}
 DENIED_EDIT_DIRS = {".git", ".github", "tests"}
 # conftest.py and the files pytest reads its config from: an edit could skip the failing tests.
 DENIED_EDIT_FILES = {"conftest.py", "pytest.ini", "pyproject.toml", "setup.cfg", "tox.ini"}
+RESULT_WORDS = ("PASSED", "FAILED", "ERROR", "XFAIL", "XPASS")  # pytest short summary outcomes
 
 
 class ToolError(Exception):
@@ -135,6 +136,7 @@ class TestReport:
     num_errors: int = 0
     failures: list[str] = field(default_factory=list)  # FAILED test ids
     errors: list[str] = field(default_factory=list)  # ERROR ids: setup or collection errors
+    results: dict[str, str] = field(default_factory=dict)  # test id -> outcome (see below)
     timed_out: bool = False
     exit_code: int = 0
     canary_leaked: bool = False
@@ -170,24 +172,44 @@ def run_tests(sandbox: Sandbox, command: str, timeout_s: float = 60.0) -> TestRe
         match = re.search(rf"(\d+) {word}", output)
         return int(match.group(1)) if match else 0
 
-    def ids(word: str) -> list[str]:
-        return [
-            line.split(" - ")[0].split(" ", 1)[1]
-            for line in output.splitlines()
-            if line.startswith(f"{word} ")
-        ]
-
+    results = parse_pytest_results(output)
     return TestReport(
         passed=result.exit_code == 0,
         num_passed=count("passed"),
         num_failed=count("failed"),
         num_errors=count("error"),
-        failures=ids("FAILED"),
-        errors=ids("ERROR"),
+        failures=[test for test, outcome in results.items() if outcome == "FAILED"],
+        errors=[test for test, outcome in results.items() if outcome == "ERROR"],
+        results=results,
         exit_code=result.exit_code,
         canary_leaked=result.canary_leaked,
         log_tail="\n".join(output.strip().splitlines()[-30:]),
     )
+
+
+def parse_pytest_results(output: str) -> dict[str, str]:
+    """Test id -> outcome (PASSED, FAILED, ERROR, XFAIL, XPASS) from pytest's short summary.
+
+    Only the outcomes pytest was asked to list appear: `-rA` lists all, `-rfE` only failures
+    and errors. A later line for the same id wins (an ERROR at teardown after PASSED).
+    """
+    results: dict[str, str] = {}
+    for line in output.splitlines():
+        word, _, rest = line.partition(" ")
+        if word in RESULT_WORDS and rest:
+            results[_strip_message(rest)] = word
+    return results
+
+
+def _strip_message(rest: str) -> str:
+    """'tests/x.py::t[a - b] - AssertionError' -> 'tests/x.py::t[a - b]' (brackets aware)."""
+    depth = 0
+    for i, char in enumerate(rest):
+        depth += char == "["
+        depth -= char == "]"
+        if depth == 0 and rest.startswith(" - ", i):
+            return rest[:i]
+    return rest.strip()
 
 
 def gate(report: TestReport, known_errors: frozenset[str] = frozenset()) -> list[str]:

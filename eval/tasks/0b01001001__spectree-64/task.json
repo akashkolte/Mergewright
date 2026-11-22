@@ -1,0 +1,32 @@
+{
+  "id": "0b01001001__spectree-64",
+  "source": "swe-rebench",
+  "split": "dev",
+  "repo": "0b01001001/spectree",
+  "base_sha": "a091fab020ac26548250c907bae0855273a98778",
+  "image": "swerebench/sweb.eval.x86_64.0b01001001_1776_spectree-64@sha256:918c24cdc06282801eca6134c44d0521eceb98e395d2916c660ec92a0df75efd",
+  "repo_dir": "/testbed",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "tests/test_utils.py::test_parse_params"
+  ],
+  "p2p": [
+    "tests/test_utils.py::test_comments",
+    "tests/test_utils.py::test_parse_code",
+    "tests/test_utils.py::test_parse_name",
+    "tests/test_utils.py::test_has_model",
+    "tests/test_utils.py::test_parse_resp",
+    "tests/test_utils.py::test_parse_request"
+  ],
+  "test_cmd": "source /opt/conda/etc/profile.d/conda.sh && conda activate testbed && pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2020-10-12T13:21:50Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 1800
+}

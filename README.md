@@ -87,6 +87,18 @@ To save the live responses so the same run can be replayed later, add `--record 
 mergewright run --llm live --repo path/to/repo --issue path/to/issue.md
 ```
 
+## Eval tasks
+
+Tasks live in `eval/tasks/<id>/` (`task.json`, the issue, the reference fix and the hidden tests). Import one from SWE-rebench, check it, and list what you have:
+
+```bash
+mergewright tasks import 0b01001001__spectree-64 --split dev
+mergewright tasks validate
+mergewright tasks list
+```
+
+`validate` runs the task 3 times without and with the reference fix, in fresh sandboxes from the task's image (pinned by digest), and writes `validation.json`. A task is usable only if its fail-to-pass tests fail without the fix, everything passes with it, and no result changes between runs. SWE-rebench images are x86; on Apple Silicon they run under emulation.
+
 ## Run the tests
 
 ```bash

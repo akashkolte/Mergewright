@@ -117,7 +117,8 @@ Other observations:
 
 **Status: PASS on an x86 VM (2026-11-15). Published images run their F2P tests natively.**
 
-Tool: `spikes/rebench/check_task.py`. `fetch` saves one task row from the Hugging Face
+Tool: `spikes/rebench/check_task.py` (deleted in Phase 1; replaced by `mergewright tasks import
+<id> --split <split>` and `mergewright tasks validate <id>`). `fetch` saved one task row from the Hugging Face
 dataset viewer API; `run` pulls the image, starts it with `--network none`, checks `/testbed`
 is at `base_commit`, applies `test_patch`, runs `install_config.test_cmd` on the test patch's
 files, applies the gold `patch`, runs them again, and removes the container. PASS needs: every

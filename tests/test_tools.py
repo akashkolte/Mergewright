@@ -12,6 +12,7 @@ from mergewright.tools import (
     edit_file,
     execute,
     gate,
+    parse_pytest_results,
     read_file,
     run_tests,
     search_code,
@@ -166,6 +167,26 @@ def test_run_tests_reports_the_failing_test():
     assert (report.num_passed, report.num_failed) == (5, 1)
     assert report.failures == ["tests/test_calc.py::test_median_even_length"]
     assert report.errors == []
+    assert report.results == {"tests/test_calc.py::test_median_even_length": "FAILED"}
+
+
+def test_parse_pytest_results_strips_messages_but_not_bracketed_ids():
+    log = """\
+PASSED tests/test_a.py::test_ok
+PASSED tests/test_a.py::test_param[x - y]
+FAILED tests/test_a.py::test_param[a - b] - AssertionError: 1 - 2
+ERROR tests/test_b.py - ModuleNotFoundError: No module named 'flask'
+XFAIL tests/test_a.py::test_known
+1 failed, 2 passed, 1 xfailed, 1 error in 0.10s
+"""
+
+    assert parse_pytest_results(log) == {
+        "tests/test_a.py::test_ok": "PASSED",
+        "tests/test_a.py::test_param[x - y]": "PASSED",
+        "tests/test_a.py::test_param[a - b]": "FAILED",
+        "tests/test_b.py": "ERROR",
+        "tests/test_a.py::test_known": "XFAIL",
+    }
 
 
 def test_run_tests_reports_a_pass():

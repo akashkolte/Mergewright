@@ -5,9 +5,11 @@ from pathlib import Path
 
 import pytest
 
+import mergewright.__main__ as cli
 from mergewright.__main__ import EXIT_CONFIG, EXIT_DONE, main
 from mergewright.environments import DEFAULT_IMAGE
 from tests.conftest import BUGGY_LINE, EXAMPLES_DIR, REPO_ROOT
+from tests.test_tasks import DIGEST, ROW_FILE, TASK_ID
 
 
 def _image_ready() -> bool:
@@ -85,3 +87,18 @@ def test_graph_command_prints_mermaid(capsys):
 
     out = capsys.readouterr().out
     assert "graph TD" in out and "coder" in out and "tester" in out
+
+
+def test_tasks_import_then_list(tmp_path: Path, monkeypatch, capsys):
+    row = json.loads(ROW_FILE.read_text())
+    fetched = []
+    monkeypatch.setattr(cli, "fetch_swe_rebench_row", lambda i: fetched.append(i) or row)
+    monkeypatch.setattr(cli, "resolve_image_digest", lambda image: DIGEST)
+    tasks_dir = tmp_path / "tasks"
+
+    imported = main(["tasks", "import", TASK_ID, "--split", "dev", "--tasks-dir", str(tasks_dir)])
+    listed = main(["tasks", "list", "--tasks-dir", str(tasks_dir)])
+
+    assert (imported, listed) == (EXIT_DONE, EXIT_DONE) and fetched == [TASK_ID]
+    assert (tasks_dir / TASK_ID / "task.json").is_file()
+    assert capsys.readouterr().out.splitlines()[-1] == f"{TASK_ID}  dev  not validated"
