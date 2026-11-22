@@ -1,0 +1,26 @@
+diff --git a/tests/test_cart.py b/tests/test_cart.py
+index 89b291c..a38bdfc 100644
+--- a/tests/test_cart.py
++++ b/tests/test_cart.py
+@@ -24,3 +24,9 @@ def test_total_with_a_discount():
+     cart = Cart(percent_off=10)
+     cart.add("book", 1000)
+     assert cart.total() == 900
++
++
++def test_total_rounds_the_discounted_price_to_the_nearest_cent():
++    cart = Cart(percent_off=15)
++    cart.add("book", 1999)
++    assert cart.total() == 1699
+diff --git a/tests/test_pricing.py b/tests/test_pricing.py
+index b5d764d..123b56a 100644
+--- a/tests/test_pricing.py
++++ b/tests/test_pricing.py
+@@ -5,3 +5,7 @@ from shop.pricing import apply_percent_off
+ def test_percent_off_rejects_more_than_100():
+     with pytest.raises(ValueError):
+         apply_percent_off(1000, 101)
++
++
++def test_percent_off_rounds_to_the_nearest_cent():
++    assert apply_percent_off(1999, 15) == 1699

@@ -1,0 +1,50 @@
+{
+  "id": "yukinarit__pyserde-441",
+  "source": "swe-rebench",
+  "split": "dev",
+  "repo": "yukinarit/pyserde",
+  "base_sha": "76e919cc5e2692eb2ba7d194af0655af898191ae",
+  "image": "swerebench/sweb.eval.x86_64.yukinarit_1776_pyserde-441@sha256:6daf12ddd697e0909cddb1e6c83fc48c0e6af677347d6be033cf85d7b7676d64",
+  "repo_dir": "/testbed",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "tests/test_union.py::test_union_with_any"
+  ],
+  "p2p": [
+    "tests/test_union.py::test_union",
+    "tests/test_union.py::test_union_optional",
+    "tests/test_union.py::test_union_containers",
+    "tests/test_union.py::test_union_with_literal",
+    "tests/test_union.py::test_union_with_complex_types",
+    "tests/test_union.py::test_union_with_complex_types_and_reuse_instances",
+    "tests/test_union.py::test_optional_union_with_complex_types",
+    "tests/test_union.py::test_optional_complex_type_with_default",
+    "tests/test_union.py::test_union_with_complex_types_in_containers",
+    "tests/test_union.py::test_union_exception_if_nothing_matches",
+    "tests/test_union.py::test_union_in_union",
+    "tests/test_union.py::test_union_in_other_type",
+    "tests/test_union.py::test_union_rename_all",
+    "tests/test_union.py::test_union_with_list_of_other_class",
+    "tests/test_union.py::test_union_with_union_in_nested_types",
+    "tests/test_union.py::test_union_with_union_in_nested_tuple",
+    "tests/test_union.py::test_generic_union",
+    "tests/test_union.py::test_external_tagging",
+    "tests/test_union.py::test_internal_tagging",
+    "tests/test_union.py::test_adjacent_tagging",
+    "tests/test_union.py::test_untagged",
+    "tests/test_union.py::test_newtype_and_untagged_union",
+    "tests/test_union.py::test_union_directly",
+    "tests/test_union.py::test_union_frozenset_with_prim"
+  ],
+  "test_cmd": "source /opt/conda/etc/profile.d/conda.sh && conda activate testbed && pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2023-11-11T06:48:07Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 1800
+}

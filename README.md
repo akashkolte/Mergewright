@@ -89,10 +89,11 @@ mergewright run --llm live --repo path/to/repo --issue path/to/issue.md
 
 ## Eval tasks
 
-Tasks live in `eval/tasks/<id>/` (`task.json`, the issue, the reference fix and the hidden tests). Import one from SWE-rebench, check it, and list what you have:
+Tasks live in `eval/tasks/<id>/` (`task.json`, the issue, the reference fix and the hidden tests). The splits and their frozen selection rules are in `eval/PLAN.md`: 5 local smoke tasks with recorded model responses, and 20 dev tasks from SWE-rebench. List the dev candidates in rule order, import one, check it, and list what you have:
 
 ```bash
-mergewright tasks import 0b01001001__spectree-64 --split dev
+mergewright tasks select --count 25
+mergewright tasks import <instance-id> --split dev
 mergewright tasks validate
 mergewright tasks list
 ```
@@ -105,7 +106,7 @@ mergewright tasks list
 pytest
 ```
 
-Expected: `125 passed` with Docker and the `mergewright-python:1` image. The 17 Docker tests (sandbox guards and end-to-end runs) are skipped without them; `pytest -m "not docker"` runs only the 108 others, with a fake sandbox. The tests are deterministic and make no network or model calls. The demo repository's own test, which fails on purpose, is not part of this run.
+Expected: `186 passed` with Docker, the `mergewright-python:1` image and the spectree-64 fixture image. The 25 Docker tests (sandbox guards, the smoke split and end-to-end runs) are skipped without them; `pytest -m "not docker"` runs only the 161 others, with a fake sandbox. The tests are deterministic and make no network or model calls. The demo repository's own test, which fails on purpose, is not part of this run.
 
 | File | What it tests |
 |---|---|

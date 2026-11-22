@@ -1,0 +1,122 @@
+{
+  "task": "local__config-parse-bool",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "mergewright-python:1",
+  "validated_at": "2026-11-22T22:13:16Z",
+  "seconds": 6.4,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_settings.py::test_parse_bool_false_words": "FAILED",
+          "tests/test_settings.py::test_parse_bool_true_words": "PASSED",
+          "tests/test_settings.py::test_parse_bool_rejects_other_words": "PASSED",
+          "tests/test_settings.py::test_parse_int": "PASSED",
+          "tests/test_settings.py::test_parse_int_empty_gives_the_default": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_settings.py::test_parse_bool_false_words"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.05
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_settings.py::test_parse_bool_false_words": "PASSED",
+          "tests/test_settings.py::test_parse_bool_true_words": "PASSED",
+          "tests/test_settings.py::test_parse_bool_rejects_other_words": "PASSED",
+          "tests/test_settings.py::test_parse_int": "PASSED",
+          "tests/test_settings.py::test_parse_int_empty_gives_the_default": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.06
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_settings.py::test_parse_bool_false_words": "FAILED",
+          "tests/test_settings.py::test_parse_bool_true_words": "PASSED",
+          "tests/test_settings.py::test_parse_bool_rejects_other_words": "PASSED",
+          "tests/test_settings.py::test_parse_int": "PASSED",
+          "tests/test_settings.py::test_parse_int_empty_gives_the_default": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_settings.py::test_parse_bool_false_words"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.0
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_settings.py::test_parse_bool_false_words": "PASSED",
+          "tests/test_settings.py::test_parse_bool_true_words": "PASSED",
+          "tests/test_settings.py::test_parse_bool_rejects_other_words": "PASSED",
+          "tests/test_settings.py::test_parse_int": "PASSED",
+          "tests/test_settings.py::test_parse_int_empty_gives_the_default": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.02
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_settings.py::test_parse_bool_false_words": "FAILED",
+          "tests/test_settings.py::test_parse_bool_true_words": "PASSED",
+          "tests/test_settings.py::test_parse_bool_rejects_other_words": "PASSED",
+          "tests/test_settings.py::test_parse_int": "PASSED",
+          "tests/test_settings.py::test_parse_int_empty_gives_the_default": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_settings.py::test_parse_bool_false_words"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 0.92
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_settings.py::test_parse_bool_false_words": "PASSED",
+          "tests/test_settings.py::test_parse_bool_true_words": "PASSED",
+          "tests/test_settings.py::test_parse_bool_rejects_other_words": "PASSED",
+          "tests/test_settings.py::test_parse_int": "PASSED",
+          "tests/test_settings.py::test_parse_int_empty_gives_the_default": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.35
+      }
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "task": "local__cart-discount",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "mergewright-python:1",
+  "validated_at": "2026-11-22T22:13:10Z",
+  "seconds": 6.26,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "FAILED",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "FAILED",
+          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
+          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
+          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
+          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.05
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "PASSED",
+          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
+          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
+          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
+          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.04
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "FAILED",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "FAILED",
+          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
+          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
+          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
+          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.01
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "PASSED",
+          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
+          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
+          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
+          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.07
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "FAILED",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "FAILED",
+          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
+          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
+          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
+          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.07
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "PASSED",
+          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
+          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
+          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
+          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.02
+      }
+    }
+  ]
+}

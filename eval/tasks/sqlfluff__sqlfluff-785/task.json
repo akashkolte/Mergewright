@@ -1,0 +1,51 @@
+{
+  "id": "sqlfluff__sqlfluff-785",
+  "source": "swe-rebench",
+  "split": "dev",
+  "repo": "sqlfluff/sqlfluff",
+  "base_sha": "ca1b5d93fffa92ac3ac6dcc93fbe8594cf545861",
+  "image": "swerebench/sweb.eval.x86_64.sqlfluff_1776_sqlfluff-785@sha256:9dfb8bf38587c2b147eb9c5d34bdcf5f653ce1568cb7310573b3034e11e0ba8e",
+  "repo_dir": "/testbed",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "test/core/linter_test.py::test__linter__path_from_paths__exts"
+  ],
+  "p2p": [
+    "test/core/linter_test.py::test__linter__path_from_paths__dir",
+    "test/core/linter_test.py::test__linter__path_from_paths__default",
+    "test/core/linter_test.py::test__linter__path_from_paths__file",
+    "test/core/linter_test.py::test__linter__path_from_paths__not_exist",
+    "test/core/linter_test.py::test__linter__path_from_paths__not_exist_ignore",
+    "test/core/linter_test.py::test__linter__path_from_paths__explicit_ignore",
+    "test/core/linter_test.py::test__linter__path_from_paths__dot",
+    "test/core/linter_test.py::test__linter__path_from_paths__ignore[test/fixtures/linter/sqlfluffignore]",
+    "test/core/linter_test.py::test__linter__path_from_paths__ignore[test/fixtures/linter/sqlfluffignore/]",
+    "test/core/linter_test.py::test__linter__path_from_paths__ignore[test/fixtures/linter/sqlfluffignore/.]",
+    "test/core/linter_test.py::test__linter__lint_string_vs_file[test/fixtures/linter/indentation_errors.sql]",
+    "test/core/linter_test.py::test__linter__lint_string_vs_file[test/fixtures/linter/whitespace_errors.sql]",
+    "test/core/linter_test.py::test__linter__get_violations_filter_rules[None-7]",
+    "test/core/linter_test.py::test__linter__get_violations_filter_rules[L010-2]",
+    "test/core/linter_test.py::test__linter__get_violations_filter_rules[rules2-2]",
+    "test/core/linter_test.py::test__linter__linting_result__sum_dicts",
+    "test/core/linter_test.py::test__linter__linting_result__combine_dicts",
+    "test/core/linter_test.py::test__linter__linting_result_check_tuples_by_path[False-list]",
+    "test/core/linter_test.py::test__linter__linting_result_check_tuples_by_path[True-dict]",
+    "test/core/linter_test.py::test__linter__linting_result_get_violations",
+    "test/core/linter_test.py::test__linter__linting_unexpected_error_handled_gracefully",
+    "test/core/linter_test.py::test__linter__raises_malformed_noqa",
+    "test/core/linter_test.py::test__linter__empty_file",
+    "test/core/linter_test.py::test__linter__mask_templated_violations[True-check_tuples0]",
+    "test/core/linter_test.py::test__linter__mask_templated_violations[False-check_tuples1]"
+  ],
+  "test_cmd": "source /opt/conda/etc/profile.d/conda.sh && conda activate testbed && pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2021-02-19T21:51:14Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 1800
+}

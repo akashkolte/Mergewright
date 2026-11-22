@@ -1,0 +1,44 @@
+{
+  "id": "scikit-image__scikit-image-5271",
+  "source": "swe-rebench",
+  "split": "dev",
+  "repo": "scikit-image/scikit-image",
+  "base_sha": "bc57d2cb1f9e1ac108f649227d996e574875bfdf",
+  "image": "swerebench/sweb.eval.x86_64.scikit-image_1776_scikit-image-5271@sha256:bedfeba5ec28bd52bde105fda06222bbedc1f4cf7df0ce89432a41cf855d2ccb",
+  "repo_dir": "/testbed",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "skimage/segmentation/tests/test_watershed.py::test_connectivity"
+  ],
+  "p2p": [
+    "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed01",
+    "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed02",
+    "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed03",
+    "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed04",
+    "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed05",
+    "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed06",
+    "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed07",
+    "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed08",
+    "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed09",
+    "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed10",
+    "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed11",
+    "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed12",
+    "skimage/segmentation/tests/test_watershed.py::test_compact_watershed",
+    "skimage/segmentation/tests/test_watershed.py::test_numeric_seed_watershed",
+    "skimage/segmentation/tests/test_watershed.py::test_incorrect_markers_shape",
+    "skimage/segmentation/tests/test_watershed.py::test_incorrect_mask_shape",
+    "skimage/segmentation/tests/test_watershed.py::test_markers_in_mask",
+    "skimage/segmentation/tests/test_watershed.py::test_no_markers"
+  ],
+  "test_cmd": "source /opt/conda/etc/profile.d/conda.sh && conda activate testbed && pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2021-03-14T09:56:48Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 1800
+}

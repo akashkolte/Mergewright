@@ -23,7 +23,7 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 8. ✅ `run_tests` runs in the sandbox; file tools stay on the bind-mounted workspace and redact the canary; the workspace is filled from the task image's `/testbed`.
 9. ✅ `task.json` format + `mergewright tasks validate`: gold-patch check 3× (F2P fails on base and passes with the gold patch; P2P passes on both); flaky tasks dropped and counted.
 10. ✅ Oracle: fresh sandbox per trial, hidden tests the agent never sees, result per test. The oracle is ground truth, never the agent's own test run.
-11. Splits: smoke (5, local, recorded responses, for CI); dev: 5 SWE-rebench tasks to prove the pipeline, then 20 (at most 3 per repo); held-out IDs chosen now (post-release, with images) and frozen in `eval/PLAN.md`, never run or inspected before Phase 5.
+11. Splits: smoke (5, local, recorded responses, for CI); dev: 5 SWE-rebench tasks to prove the pipeline, then 20 (at most 3 per repo); held-out selection rule frozen in `eval/PLAN.md` (ids drawn by it at Phase 5, after the headline model is chosen), never run or inspected before Phase 5.
 12. `mergewright eval --split --system --k` → `results/` per trial (resolved, tokens, $, latency, steps, tool calls, failure category, trace) + manifest (server-reported model ID and dates).
 13. `mergewright report`: bootstrap over tasks; paired bootstrap and McNemar for system pairs → Markdown tables.
 14. Baseline (Base): the current agent unchanged, config frozen, dev at k = 3 → the reference results.
@@ -76,7 +76,7 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 41. Best-of-N: N candidate workflows + staged verifier; N = 1, 2, 4, 8.
 42. Cascade: cheap model first, escalate on rejection.
 43. Self-host vLLM; L6 (prefix caching on vs off).
-44. Re-check the frozen held-out set against the cutoff of the model used for headline numbers (drop, never replace); run S2, BoN-N, Ref (mini-SWE-agent).
+44. Draw the held-out ids by the frozen rule with the headline model's release date as the cutoff, record them in `eval/PLAN.md`, validate; run S2, BoN-N, Ref (mini-SWE-agent).
 45. Decide budget and training go/no-go.
 
 **Exit:** Best-of-N chart (pass@N vs selection accuracy vs $); held-out table with intervals.

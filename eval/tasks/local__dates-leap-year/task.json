@@ -1,0 +1,32 @@
+{
+  "id": "local__dates-leap-year",
+  "source": "local",
+  "split": "smoke",
+  "repo": "local/dates",
+  "base_sha": "8c6c7ea86fe32809f4782af6aec451c354dc6928",
+  "image": "mergewright-python:1",
+  "repo_dir": "/workspace",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "tests/test_dates.py::test_century_divisible_by_400_is_leap",
+    "tests/test_dates.py::test_february_2000_has_29_days"
+  ],
+  "p2p": [
+    "tests/test_dates.py::test_year_divisible_by_4_is_leap",
+    "tests/test_dates.py::test_other_years_are_not_leap",
+    "tests/test_dates.py::test_century_is_not_leap",
+    "tests/test_dates.py::test_february_has_29_days_in_a_leap_year",
+    "tests/test_dates.py::test_days_in_month_rejects_a_bad_month"
+  ],
+  "test_cmd": "python -m pytest -q -rA -p no:cacheprovider --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2026-11-22T00:00:00Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 120
+}

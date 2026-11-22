@@ -12,7 +12,7 @@ from mergewright.environments import (
     LocalRepo,
     conda_test_command,
 )
-from mergewright.sandbox import SandboxError, SandboxLimits
+from mergewright.sandbox import ExecResult, SandboxError, SandboxLimits
 from mergewright.sandbox.process import CommandResult
 from tests.fakes import ScriptedSandbox
 
@@ -81,6 +81,51 @@ def test_local_repo_diff_compares_with_the_original_folder(buggy_calc: Path, tmp
     diff = env.diff(workspace, ScriptedSandbox([]))
 
     assert "+changed" in diff and "a/calc.py" in diff
+
+
+def git_ok(*outputs: str) -> list[ExecResult]:
+    """Results for commit_workspace's four git steps: init, add, commit, rev-parse."""
+    return [ExecResult(0, out, False) for out in ("", "", "", *outputs)]
+
+
+def test_local_repo_with_a_base_sha_commits_the_copy_and_resets_to_it(tmp_path: Path):
+    sandbox = ScriptedSandbox(git_ok("c" * 40 + "\n"), diff="+fixed\n")
+    env = LocalRepo(tmp_path, base_sha="c" * 40, start_sandbox=RecordingStarter(sandbox))
+
+    env.start(tmp_path / "ws", run_id="r1")
+
+    init, add, commit, rev_parse = sandbox.commands
+    assert (init[-2:], add[-2:], rev_parse[-2:]) == (
+        ["init", "-q"],
+        ["add", "-A"],
+        ["rev-parse", "HEAD"],
+    )
+    assert commit[:3] == [  # a fixed date and author: same files, same SHA
+        "env",
+        "GIT_AUTHOR_DATE=2026-01-01T00:00:00Z",
+        "GIT_COMMITTER_DATE=2026-01-01T00:00:00Z",
+    ]
+    assert {"core.hooksPath=/dev/null", "commit.gpgsign=false", "--no-verify"} <= set(commit)
+    assert sandbox.resets == [("c" * 40, "")]
+    assert env.diff(tmp_path / "ws", sandbox) == "+fixed\n"  # git, not the folder comparison
+
+
+def test_local_repo_refuses_a_base_sha_the_copy_does_not_commit_as(tmp_path: Path):
+    sandbox = ScriptedSandbox(git_ok("d" * 40))
+    env = LocalRepo(tmp_path, base_sha="c" * 40, start_sandbox=RecordingStarter(sandbox))
+
+    with pytest.raises(SandboxError, match=f"commits as {'d' * 40}.*base_sha is {'c' * 40}"):
+        env.start(tmp_path / "ws", run_id="r1")
+    assert sandbox.closed and sandbox.resets == []
+
+
+def test_local_repo_closes_the_sandbox_when_git_fails(tmp_path: Path):
+    sandbox = ScriptedSandbox([ExecResult(128, "fatal: not a git repository", False)])
+    env = LocalRepo(tmp_path, base_sha="c" * 40, start_sandbox=RecordingStarter(sandbox))
+
+    with pytest.raises(SandboxError, match="git init failed: fatal"):
+        env.start(tmp_path / "ws", run_id="r1")
+    assert sandbox.closed
 
 
 # --- ImageRepo ----------------------------------------------------------------------------

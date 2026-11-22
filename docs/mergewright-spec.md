@@ -279,13 +279,13 @@ Issue text, repo files, tool output and human feedback are untrusted data. Agent
 |---|---|---|---|
 | Smoke | 5 | `buggy_calc` + 4 seeded bugs | CI on recorded responses |
 | Dev | 20–60 | Pre-cutoff SWE-rebench Python tasks with published images, at most 3 per repo; revert-a-fix tasks mined from pure-Python repos are optional | Development, ablations, error analysis. 5 tasks first to prove the pipeline, then 20; grow to 40+ when paired intervals are too wide to decide |
-| Held-out | 100–150 | SWE-rebench Python tasks with published images and `created_at` after the newest model's public release date | Headline numbers only. IDs chosen and frozen in `eval/PLAN.md` in Phase 1; never run or inspected before Phase 5; no tuning on it |
+| Held-out | 100–150 | `nebius/SWE-rebench-leaderboard` Python tasks with published images and `created_at` after the headline model's public release date | Headline numbers only. The selection rule is frozen in `eval/PLAN.md` in Phase 1; the ids are drawn by that rule once, at the start of Phase 5 (no public source has tasks late enough to freeze ids now); never run or inspected before Phase 5; no tuning on it |
 | Train | 1,000+ (Phase 6 only) | SWE-Gym, SWE-smith or older SWE-rebench tasks; repos disjoint from dev and held-out | Trajectory sweeps and training only; never reported as results |
 | Adversarial | 20–30 | Injection (issue, repo file, tool output), canary exfiltration, reward-hacking bait, impossible issues | Safety, budgets |
 
 **Validation:** each task runs 3×: F2P fails on base and passes with the gold patch; P2P passes on both. Flaky tasks are dropped and counted.
 **Ground truth:** the hidden-test oracle decides every result, never the agent's own test run.
-**Contamination rule:** use the model's public release date as its cutoff. Before the held-out run, re-check the frozen IDs against the cutoff of the model used for headline numbers; tasks before it are dropped, never replaced. After fine-tuning, the cutoff is the later of the base model's release date and the newest training task's `created_at`.
+**Contamination rule:** use the model's public release date as its cutoff. The held-out ids are drawn with the headline model's cutoff, once, before the held-out run; if the model changes afterwards, tasks before its cutoff are dropped, never replaced. After fine-tuning, the cutoff is the later of the base model's release date and the newest training task's `created_at`.
 **Infrastructure noise:** resource limits are fixed per split and recorded. `FAILED_INFRA` runs are re-run once and reported as a separate rate.
 
 ### 9.2 Systems compared (same model, tasks and budget unless the row says otherwise)
@@ -404,7 +404,7 @@ Order is fixed. Dates are set when a phase starts. Each phase's exit is a genera
 | # | Scope | Exit criteria |
 |---|---|---|
 | 0 | **Spikes (done):** runtime gate (Section 4.2) on `buggy_calc`; one SWE-rebench image runs its F2P tests on an x86 VM; hosted endpoint limits and tool-call quality; Temporal Cloud actions per run | Results in `docs/spikes.md`; runtime confirmed |
-| 1 | **Eval core and baseline:** Docker `Sandbox` behind the existing tools; task format and validator (gold patch 3×); oracle; smoke split, dev (5, then 20), held-out IDs frozen; `eval` at k = 3; report (bootstrap over tasks, paired deltas); Base frozen and run on dev; CI | Sandbox guard tests pass; Base dev table with task-level intervals from manifests |
+| 1 | **Eval core and baseline:** Docker `Sandbox` behind the existing tools; task format and validator (gold patch 3×); oracle; smoke split, dev (5, then 20), held-out rule frozen; `eval` at k = 3; report (bootstrap over tasks, paired deltas); Base frozen and run on dev; CI | Sandbox guard tests pass; Base dev table with task-level intervals from manifests |
 | 2 | **Agent features:** error analysis of Base failures; Localizer; checks with tamper detector and the adversarial split; then parse-checked edits, focused `run_tests`, context policy, Reproducer, in the order the failures give, each kept only on its pre-written decision rule; S0, S1, S2 and two S2+E rounds at k = 3 | Ablation table vs Base with paired intervals; adversarial results (tamper attempts blocked, 0 canary leaks) |
 | 3 | **Durable core:** message store; parent and candidate workflows on the plugin; budget ledger; diff gate; `post_comment`; `open_pr`; workflow replay tests; R1 baseline; K1–K7 and K10 on R0/R1/R2 | Durability table generated in CI; S2 on Temporal matches the Phase 2 S2 resolve rate within its interval; one real PR on our repo |
 | 4 | **Throughput and distributed systems:** task queues; fake provider; rate limiter with AIMD; FastAPI admission control; sandbox pool; metrics dashboard; L1–L5; K8, K9, K11, K12 | Saturation curve with a named bottleneck; limiter comparison; two-host scaling factor; Section 5.3 targets met or the gap explained |

@@ -1,0 +1,15 @@
+diff --git a/tests/test_settings.py b/tests/test_settings.py
+index a31efdf..e3c8c8a 100644
+--- a/tests/test_settings.py
++++ b/tests/test_settings.py
+@@ -6,6 +6,10 @@ def test_parse_bool_true_words():
+     assert all(parse_bool(word) is True for word in ["1", "true", "Yes", " on "])
+ 
+ 
++def test_parse_bool_false_words():
++    assert all(parse_bool(word) is False for word in ["0", "false", "No", " off "])
++
++
+ def test_parse_bool_rejects_other_words():
+     with pytest.raises(ValueError):
+         parse_bool("maybe")

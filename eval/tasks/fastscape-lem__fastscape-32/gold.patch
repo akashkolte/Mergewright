@@ -1,0 +1,14 @@
+diff --git a/fastscape/processes/grid.py b/fastscape/processes/grid.py
+index d5510d5..01d4567 100644
+--- a/fastscape/processes/grid.py
++++ b/fastscape/processes/grid.py
+@@ -67,8 +67,8 @@ class UniformRectilinearGrid2D:
+     def initialize(self):
+         self._set_length_or_spacing()
+         self.size = np.prod(self.shape)
+-        self.area = np.prod(self.length)
+         self.cell_area = np.prod(self.spacing)
++        self.area = self.cell_area * self.size
+ 
+         self.dx = self.spacing[1]
+         self.dy = self.spacing[0]

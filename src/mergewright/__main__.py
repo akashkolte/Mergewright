@@ -1,5 +1,5 @@
-"""Command line: `mergewright run ...` runs the agent; `mergewright tasks ...` imports, validates
-and lists eval tasks; `mergewright graph` prints the graph."""
+"""Command line: `mergewright run ...` runs the agent; `mergewright tasks ...` selects, imports,
+validates and lists eval tasks; `mergewright graph` prints the graph."""
 
 from __future__ import annotations
 
@@ -17,10 +17,12 @@ from mergewright.llm import LLMClient, OpenAIClient, RecordingLLM, ScriptedLLM
 from mergewright.oracle import VALIDATION_FILE, validate_task
 from mergewright.runner import run_agent
 from mergewright.sandbox import SandboxError
+from mergewright.selection import DEV_WHERE, dev_candidates
 from mergewright.tasks import (
     Split,
     Task,
     fetch_swe_rebench_row,
+    fetch_swe_rebench_rows,
     import_swe_rebench,
     load_tasks,
     resolve_image_digest,
@@ -65,6 +67,9 @@ def _parser() -> argparse.ArgumentParser:
     val.add_argument("--runs", type=int, default=3)
     val.add_argument("--work-dir", type=Path, default=Path("runs/oracle"))
     tasks_sub.add_parser("list", parents=[common], help="list tasks and their validation status")
+    sel = tasks_sub.add_parser("select", help="dev candidates from SWE-rebench, in rule order")
+    sel.add_argument("--count", type=int, default=30)
+    sel.add_argument("--per-repo", type=int, default=1)
 
     sub.add_parser("graph", help="print the workflow graph as Mermaid")
     return parser
@@ -114,6 +119,12 @@ def _tasks(args: argparse.Namespace) -> int:
                 row, args.tasks_dir, args.split, resolve_digest=resolve_image_digest
             )
             print(f"imported {task_dir}")
+            return EXIT_DONE
+        if args.tasks_command == "select":
+            rows = fetch_swe_rebench_rows(DEV_WHERE)
+            candidates = dev_candidates(rows, per_repo=args.per_repo)
+            print(f"{len(rows)} rows in the window; {len(candidates)} candidates", file=sys.stderr)
+            print("\n".join(candidates[: args.count]))
             return EXIT_DONE
         ids = getattr(args, "ids", None)
         tasks = [Task.load(args.tasks_dir / i) for i in ids] if ids else load_tasks(args.tasks_dir)

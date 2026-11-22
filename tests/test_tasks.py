@@ -8,12 +8,13 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from mergewright.environments import ImageRepo, conda_test_command
+from mergewright.environments import ImageRepo, LocalRepo, conda_test_command
 from mergewright.sandbox import SandboxError, SandboxLimits
 from mergewright.sandbox.process import CommandResult
 from mergewright.tasks import (
     Task,
     fetch_swe_rebench_row,
+    fetch_swe_rebench_rows,
     import_swe_rebench,
     resolve_image_digest,
     task_from_swe_rebench,
@@ -215,6 +216,27 @@ def test_environment_imports_the_workspace_first_and_task_env_can_override_it():
     )
 
 
+def test_a_local_task_runs_its_repo_folder_committed_as_base_sha(tmp_path: Path):
+    task_dir = tmp_path / "local__x-1"
+    task_dir.mkdir()
+    fields = valid_fields(
+        id="local__x-1", source="local", split="smoke", image="mergewright-python:1",
+        repo_dir="/workspace",
+    )  # fmt: skip
+    (task_dir / "task.json").write_text(json.dumps(fields))
+
+    env = Task.load(task_dir).environment()
+
+    assert isinstance(env, LocalRepo)
+    assert (env.path, env.image, env.base_sha) == (
+        task_dir / "repo",
+        "mergewright-python:1",
+        "a" * 40,
+    )
+    assert env.test_command == "export PYTHONPATH=/workspace:/workspace/src && pytest"
+    assert env.limits == SandboxLimits()
+
+
 # --- Digest and fetch -----------------------------------------------------------------------
 
 
@@ -254,6 +276,23 @@ def test_fetch_retries_server_errors_then_returns_the_row():
     assert len(attempts) == 3 and sleeps == [2, 4]
     assert "where=%22instance_id%22%3D%27a__b-1%27" in attempts[0].full_url
     assert attempts[0].get_header("User-agent") == "mergewright"
+
+
+def test_fetch_rows_pages_until_the_total_is_reached():
+    pages = [
+        {"rows": [{"row": {"n": 1}}, {"row": {"n": 2}}], "num_rows_total": 3},
+        {"rows": [{"row": {"n": 3}}], "num_rows_total": 3},
+    ]
+    urls = []
+
+    def opener(request, timeout):
+        urls.append(request.full_url)
+        return io.BytesIO(json.dumps(pages[len(urls) - 1]).encode())
+
+    rows = fetch_swe_rebench_rows('"x"=1', opener=opener, sleep=None, page_size=2)
+
+    assert rows == [{"n": 1}, {"n": 2}, {"n": 3}]
+    assert "offset=0&length=2" in urls[0] and "offset=2&length=2" in urls[1]
 
 
 def test_fetch_refuses_an_id_with_a_quote():

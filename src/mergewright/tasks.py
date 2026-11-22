@@ -2,7 +2,9 @@
 
 A task is a folder `eval/tasks/<id>/` with task.json, the issue text, the gold patch and the
 hidden test patch (never shown to the agent). The importer pins each image by digest, so a
-re-pushed tag cannot change what a task runs.
+re-pushed tag cannot change what a task runs. A local task (source "local", the smoke split)
+also has repo/, the code at base without the hidden tests, and replay.json, hand-written
+model responses that fix it, so the whole agent + oracle path runs without a model.
 """
 
 from __future__ import annotations
@@ -23,12 +25,14 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator, model_validator
 
-from mergewright.environments import ImageRepo, conda_test_command
+from mergewright.environments import Environment, ImageRepo, LocalRepo, conda_test_command
 from mergewright.sandbox import SandboxError, SandboxLimits
 from mergewright.sandbox.docker import Docker
 from mergewright.sandbox.process import docker_cli
 
 TASK_FILE = "task.json"
+LOCAL_REPO_DIR = "repo"  # a local task's code at base_sha
+REPLAY_FILE = "replay.json"  # a local task's recorded (hand-written) model responses
 DATASET = "nebius/SWE-rebench"
 DATASET_API = "https://datasets-server.huggingface.co"
 _ID = re.compile(r"^[A-Za-z0-9_.-]+$")
@@ -124,8 +128,11 @@ class Task(BaseModel):
     def test_patch_text(self) -> str:
         return self._read(self.test_patch)
 
-    def environment(self, **overrides: Any) -> ImageRepo:
-        """The task's image as an Environment, env exported before the test command.
+    def environment(self, **overrides: Any) -> Environment:
+        """The task's Environment, env exported before the test command.
+
+        A local task's repo/ runs in its image as a LocalRepo, committed as base_sha; any other
+        task runs its own image as an ImageRepo.
 
         PYTHONPATH puts the workspace (and its src/) first, so tests import the code under test.
         SWE-rebench images install the repo in editable mode from a build path that no longer
@@ -137,6 +144,15 @@ class Task(BaseModel):
         exports = f"export PYTHONPATH={import_path} && " + "".join(
             f"export {k}={shlex.quote(v)} && " for k, v in self.env.items()
         )
+        if self.source == "local":
+            return LocalRepo(
+                path=self.path / LOCAL_REPO_DIR,
+                image=self.image,
+                test_command=exports + self.test_cmd,
+                limits=self.resources.limits(),
+                base_sha=self.base_sha,
+                **overrides,
+            )
         return ImageRepo(
             image=self.image,
             base_sha=self.base_sha,
@@ -174,8 +190,8 @@ def task_from_swe_rebench(
         repo=row["repo"],
         base_sha=row["base_commit"],
         image=f"{_untagged(_published_image(row))}@{digest}",
-        f2p=_test_ids(row["FAIL_TO_PASS"]),
-        p2p=_test_ids(row["PASS_TO_PASS"]),
+        f2p=row_test_ids(row["FAIL_TO_PASS"]),
+        p2p=row_test_ids(row["PASS_TO_PASS"]),
         test_cmd=conda_test_command(config["test_cmd"]),
         env={key: str(value) for key, value in (config.get("env_vars") or {}).items()},
         created_at=_utc(row["created_at"]),
@@ -235,27 +251,53 @@ def fetch_swe_rebench_row(
     sleep: Callable[[float], None] = time.sleep,
     attempts: int = 4,
 ) -> dict[str, Any]:
-    """One row from the Hugging Face dataset viewer API (public; no token needed).
-
-    Retries 5xx and connection errors with backoff (2 s, 4 s, ...): the API has outages.
-    """
+    """One row from the Hugging Face dataset viewer API (public; no token needed)."""
     if not _ID.match(instance_id):  # no quotes: the id goes into the filter expression
         raise ValueError(f"bad instance id {instance_id!r}")
+    page = _filter_page(f"\"instance_id\"='{instance_id}'", 0, 1, opener, sleep, attempts)
+    if not page["rows"]:
+        raise LookupError(f"no SWE-rebench task {instance_id!r}")
+    return page["rows"][0]["row"]
+
+
+def fetch_swe_rebench_rows(
+    where: str,
+    opener: Callable[..., Any] = urllib.request.urlopen,
+    sleep: Callable[[float], None] = time.sleep,
+    page_size: int = 100,  # the API's maximum
+) -> list[dict[str, Any]]:
+    """Every row that matches a dataset-viewer `where` expression, in dataset order."""
+    rows: list[dict[str, Any]] = []
+    while True:
+        page = _filter_page(where, len(rows), page_size, opener, sleep)
+        rows += [item["row"] for item in page["rows"]]
+        if not page["rows"] or len(rows) >= page["num_rows_total"]:
+            return rows
+
+
+def _filter_page(
+    where: str,
+    offset: int,
+    length: int,
+    opener: Callable[..., Any],
+    sleep: Callable[[float], None],
+    attempts: int = 4,
+) -> dict[str, Any]:
+    """One /filter page. Retries 5xx and connection errors with backoff (2 s, 4 s, ...)."""
     query = {
         "dataset": DATASET,
         "config": "default",
         "split": "test",
-        "where": f"\"instance_id\"='{instance_id}'",
-        "offset": 0,
-        "length": 1,
+        "where": where,
+        "offset": offset,
+        "length": length,
     }
     url = f"{DATASET_API}/filter?{urllib.parse.urlencode(query)}"
     request = urllib.request.Request(url, headers={"User-Agent": "mergewright"})
     for attempt in range(1, attempts + 1):
         try:
             with opener(request, timeout=60) as response:
-                rows = json.load(response)["rows"]
-            break
+                return json.load(response)
         except urllib.error.HTTPError as exc:  # before URLError: it is a subclass
             if exc.code < 500 or attempt == attempts:
                 raise
@@ -263,9 +305,7 @@ def fetch_swe_rebench_row(
             if attempt == attempts:
                 raise
         sleep(2**attempt)
-    if not rows:
-        raise LookupError(f"no SWE-rebench task {instance_id!r}")
-    return rows[0]["row"]
+    raise AssertionError("unreachable")
 
 
 def _published_image(row: dict[str, Any]) -> str:
@@ -282,7 +322,7 @@ def _untagged(image: str) -> str:
     return image[:colon] if colon > image.rfind("/") else image
 
 
-def _test_ids(value: list[str] | str) -> list[str]:
+def row_test_ids(value: list[str] | str) -> list[str]:
     """SWE-rebench test lists come as lists or as JSON-encoded strings."""
     return list(json.loads(value) if isinstance(value, str) else value)
 

@@ -1,0 +1,32 @@
+{
+  "id": "local__cart-discount",
+  "source": "local",
+  "split": "smoke",
+  "repo": "local/shop",
+  "base_sha": "6faf1c0332dc2687c555a2668e34539aac2fea5d",
+  "image": "mergewright-python:1",
+  "repo_dir": "/workspace",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent",
+    "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent"
+  ],
+  "p2p": [
+    "tests/test_cart.py::test_subtotal_sums_the_quantities",
+    "tests/test_cart.py::test_add_rejects_a_zero_quantity",
+    "tests/test_cart.py::test_total_without_a_discount",
+    "tests/test_cart.py::test_total_with_a_discount",
+    "tests/test_pricing.py::test_percent_off_rejects_more_than_100"
+  ],
+  "test_cmd": "python -m pytest -q -rA -p no:cacheprovider --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2026-11-22T00:00:00Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 120
+}

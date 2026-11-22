@@ -1,0 +1,2 @@
+grid__area computed value is wrong
+It is currently computed as the product of total lengths along this x and y axes, which doesn't account of the "outer" area delineated by nodes (cell centers) and cell edges. It should be cell area times the total number of grid nodes.  

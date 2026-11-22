@@ -87,3 +87,32 @@ candidate is `fastscape-lem__fastscape-32`. Open: the Tester's `run_tests` still
 whole suite; for `pymarkdown` that is 10 MB of output, beyond the 64 KB tail, so the agent's
 own gate sees only the last tests (matters for the Base run, step 14). On this host the
 cgroup-file test fails (cgroup v1); the limit behavior tests pass.
+
+Part 2 (local, 2026-11-22):
+
+- Smoke split: 5 local tasks (`buggy_calc` + 4 seeded bugs, one in a helper module, so the
+  replay must search first). A local task keeps its base code in `repo/`; `LocalRepo` with a
+  `base_sha` commits the copy in the sandbox with a fixed author and date and checks the SHA,
+  so the oracle resets and diffs it as it does a task image. `replay.json` holds hand-written
+  responses; `tests/test_smoke_docker.py` runs agent + oracle on each. All 5 valid, 7 s each.
+- Dev selection as code: `src/mergewright/selection.py` and `mergewright tasks select`. It
+  reproduces the cloud session's order exactly (2,471 rows, 691 pass; candidates 1–5 are the
+  four picked there and `fastscape-32`). `spectree-64` is swapped out: it fails the rule on
+  date and issue-text score. Candidates 5–21 imported (digests only, no pulls): 20 dev tasks,
+  17 not yet validated. Frozen list and replacements: `eval/PLAN.md`.
+- Held-out source (metadata only, no task content read): `nebius/SWE-rebench` ends
+  2025-04-30; `nebius/SWE-rebench-V2` has nothing after 2026-01-01; SWE-bench-Live's monthly
+  files end 2025-06. `nebius/SWE-rebench-leaderboard` (same row format, images published) has
+  monthly splits to 2026-03: 2026-01 to 2026-03 hold 48 + 57 + 110 = 215 tasks. So no public
+  source has tasks after about April 2026: the held-out cutoff limits the headline model to
+  one released before the first held-out month.
+
+- Held-out decision: freeze the rule now, draw the ids at Phase 5 with the headline model's
+  release date as the cutoff (spec 9.1 changed). `held_out_rule_failures` and
+  `held_out_candidates` in `selection.py`: the dev checks the leaderboard's columns support
+  (it has no LLM scores and no F2F/P2F lists), no dev repos, ≤ 3 per repo, first 150 valid in
+  hash order, never relaxed. Risk: with the dev rule's pass rate (28 %), 100 tasks need about
+  350 rows after the cutoff. Rule text: `eval/PLAN.md`.
+
+Left: validate the 17 new dev tasks in a cloud session (x86; about 17 × 1.3 GB of pulls and
+5 GB of disk each, so the session may need to validate in batches).

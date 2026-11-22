@@ -1,0 +1,49 @@
+{
+  "id": "mirumee__ariadne-719",
+  "source": "swe-rebench",
+  "split": "dev",
+  "repo": "mirumee/ariadne",
+  "base_sha": "daeb597937498b17c520423546bb33a28856b7c0",
+  "image": "swerebench/sweb.eval.x86_64.mirumee_1776_ariadne-719@sha256:59a3e95ff50dd6249a6d5a3f1f9ac404f5eb513f43445a889224b9e882ecbd5f",
+  "repo_dir": "/testbed",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "tests/test_query_cost_validation.py::test_complex_field_cost_multiplication_by_values_from_variables_handles_nulls",
+    "tests/test_query_cost_validation.py::test_complex_field_cost_multiplication_by_values_from_literals_handles_nulls",
+    "tests/test_query_cost_validation.py::test_complex_field_cost_multiplication_by_values_from_variables_handles_optional",
+    "tests/test_query_cost_validation.py::test_complex_field_cost_multiplication_by_values_from_literals_handles_optional"
+  ],
+  "p2p": [
+    "tests/test_query_cost_validation.py::test_cost_map_is_used_to_calculate_query_cost",
+    "tests/test_query_cost_validation.py::test_query_validation_fails_if_cost_map_contains_undefined_type",
+    "tests/test_query_cost_validation.py::test_query_validation_fails_if_cost_map_contains_undefined_type_field",
+    "tests/test_query_cost_validation.py::test_query_validation_fails_if_cost_map_contains_non_object_type",
+    "tests/test_query_cost_validation.py::test_cost_directive_is_used_to_calculate_query_cost",
+    "tests/test_query_cost_validation.py::test_field_cost_defined_in_map_is_multiplied_by_value_from_variables",
+    "tests/test_query_cost_validation.py::test_field_cost_defined_in_map_is_multiplied_by_nested_value_from_variables",
+    "tests/test_query_cost_validation.py::test_field_cost_defined_in_map_is_multiplied_by_value_from_literal",
+    "tests/test_query_cost_validation.py::test_field_cost_defined_in_directive_is_multiplied_by_value_from_variables",
+    "tests/test_query_cost_validation.py::test_default_values_are_used_to_calculate_query_cost_without_directive_args",
+    "tests/test_query_cost_validation.py::test_field_cost_defined_in_directive_is_multiplied_by_nested_value_from_variables",
+    "tests/test_query_cost_validation.py::test_field_cost_defined_in_directive_is_multiplied_by_value_from_literal",
+    "tests/test_query_cost_validation.py::test_complex_field_cost_defined_in_map_is_multiplied_by_values_from_variables",
+    "tests/test_query_cost_validation.py::test_complex_field_cost_defined_in_map_is_multiplied_by_values_from_literal",
+    "tests/test_query_cost_validation.py::test_complex_field_cost_defined_in_directive_is_multiplied_by_values_from_variables",
+    "tests/test_query_cost_validation.py::test_complex_field_cost_defined_in_directive_is_multiplied_by_values_from_literal",
+    "tests/test_query_cost_validation.py::test_child_field_cost_defined_in_map_is_multiplied_by_values_from_variables",
+    "tests/test_query_cost_validation.py::test_child_field_cost_defined_in_map_is_multiplied_by_values_from_literal",
+    "tests/test_query_cost_validation.py::test_child_field_cost_defined_in_directive_is_multiplied_by_values_from_variables",
+    "tests/test_query_cost_validation.py::test_child_field_cost_defined_in_directive_is_multiplied_by_values_from_literal"
+  ],
+  "test_cmd": "source /opt/conda/etc/profile.d/conda.sh && conda activate testbed && pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2021-11-08T16:04:04Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 1800
+}

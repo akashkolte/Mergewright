@@ -1,0 +1,43 @@
+diff --git a/src/sqlfluff/core/default_config.cfg b/src/sqlfluff/core/default_config.cfg
+index 04d3bef42..669a11ad6 100644
+--- a/src/sqlfluff/core/default_config.cfg
++++ b/src/sqlfluff/core/default_config.cfg
+@@ -9,6 +9,10 @@ recurse = 0
+ output_line_length = 80
+ runaway_limit = 10
+ ignore_templated_areas = True
++# Comma separated list of file extensions to lint.
++
++# NB: This config will only apply in the root folder.
++sql_file_exts = .sql,.sql.j2,.dml,.ddl
+ 
+ [sqlfluff:indentation]
+ indented_joins = False
+diff --git a/src/sqlfluff/core/linter.py b/src/sqlfluff/core/linter.py
+index 0dacdd0da..6f86356af 100644
+--- a/src/sqlfluff/core/linter.py
++++ b/src/sqlfluff/core/linter.py
+@@ -710,14 +710,12 @@ class Linter:
+ 
+     def __init__(
+         self,
+-        sql_exts: Tuple[str, ...] = (".sql",),
+         config: Optional[FluffConfig] = None,
+         formatter: Any = None,
+         dialect: Optional[str] = None,
+         rules: Optional[Union[str, List[str]]] = None,
+         user_rules: Optional[Union[str, List[str]]] = None,
+     ) -> None:
+-        self.sql_exts = sql_exts
+         # Store the config object
+         self.config = FluffConfig.from_kwargs(
+             config=config, dialect=dialect, rules=rules
+@@ -1193,7 +1191,7 @@ class Linter:
+                 # that the ignore file is processed after the sql file.
+ 
+                 # Scan for remaining files
+-                for ext in self.sql_exts:
++                for ext in self.config.get("sql_file_exts", default=".sql").split(","):
+                     # is it a sql file?
+                     if fname.endswith(ext):
+                         buffer.append(fpath)

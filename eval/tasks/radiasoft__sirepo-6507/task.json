@@ -1,0 +1,32 @@
+{
+  "id": "radiasoft__sirepo-6507",
+  "source": "swe-rebench",
+  "split": "dev",
+  "repo": "radiasoft/sirepo",
+  "base_sha": "745226a743f9086d9cabec8c323fec9b466019ea",
+  "image": "swerebench/sweb.eval.x86_64.radiasoft_1776_sirepo-6507@sha256:2f0c3e4a0be052c6bb05b57165b903c831eabdbc8fb8771363a3f6c0d6153b31",
+  "repo_dir": "/testbed",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "tests/template/code_variable_test.py::test_arrays"
+  ],
+  "p2p": [
+    "tests/template/code_variable_test.py::test_cache",
+    "tests/template/code_variable_test.py::test_case_insensitive",
+    "tests/template/code_variable_test.py::test_eval",
+    "tests/template/code_variable_test.py::test_eval2",
+    "tests/template/code_variable_test.py::test_infix_to_postfix",
+    "tests/template/code_variable_test.py::test_postfix_to_infix"
+  ],
+  "test_cmd": "source /opt/conda/etc/profile.d/conda.sh && conda activate testbed && pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2023-11-09T17:27:20Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 1800
+}

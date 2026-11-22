@@ -1,0 +1,25 @@
+{
+  "id": "tobymao__sqlglot-555",
+  "source": "swe-rebench",
+  "split": "dev",
+  "repo": "tobymao/sqlglot",
+  "base_sha": "d486eab830a13572f3c13d7b508279df0a3802cb",
+  "image": "swerebench/sweb.eval.x86_64.tobymao_1776_sqlglot-555@sha256:86cdcca3fc27fb5e82bfd4f8e7791e2bebec4bf9f217681d80713abd21fbe4fb",
+  "repo_dir": "/testbed",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "tests/dialects/test_clickhouse.py::TestClickhouse::test_clickhouse"
+  ],
+  "p2p": [],
+  "test_cmd": "source /opt/conda/etc/profile.d/conda.sh && conda activate testbed && pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2022-10-06T23:44:42Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 1800
+}

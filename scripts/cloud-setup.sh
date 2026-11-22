@@ -74,8 +74,11 @@ echo "ready: mergewright-python:1"
 
 if [[ $PULL_IMAGES == 1 ]]; then
   log "Task images (pinned by digest, tagged :latest because the tests look them up by name)"
-  for task in "$REPO"/eval/tasks/*/task.json; do
-    image=$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["image"])' "$task")
+  # The Docker tests' spectree-64 fixture (tests/data), then every task image. Local (smoke)
+  # tasks run in mergewright-python:1, which is not pinned by digest: skip them.
+  fixture=swerebench/sweb.eval.x86_64.0b01001001_1776_spectree-64@sha256:918c24cdc06282801eca6134c44d0521eceb98e395d2916c660ec92a0df75efd
+  for image in "$fixture" $(python3 -I -c 'import json, sys; print(*(json.load(open(p))["image"] for p in sys.argv[1:]))' "$REPO"/eval/tasks/*/task.json); do
+    [[ $image == *@sha256:* ]] || continue
     if ! docker image inspect "$image" >/dev/null 2>&1; then
       echo "pull $image"
       docker pull -q "$image" >/dev/null

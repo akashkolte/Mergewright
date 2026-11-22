@@ -1,0 +1,31 @@
+{
+  "id": "local__text-slugify",
+  "source": "local",
+  "split": "smoke",
+  "repo": "local/textutil",
+  "base_sha": "1875605d0ed88a9c15bb248d900e366e9185a544",
+  "image": "mergewright-python:1",
+  "repo_dir": "/workspace",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "tests/test_textutil.py::test_slugify_collapses_runs_of_separators"
+  ],
+  "p2p": [
+    "tests/test_textutil.py::test_slugify_lowercases_and_joins_words",
+    "tests/test_textutil.py::test_slugify_custom_separator",
+    "tests/test_textutil.py::test_slugify_strips_leading_and_trailing_punctuation",
+    "tests/test_textutil.py::test_truncate_keeps_short_text",
+    "tests/test_textutil.py::test_truncate_cuts_long_text"
+  ],
+  "test_cmd": "python -m pytest -q -rA -p no:cacheprovider --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2026-11-22T00:00:00Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 120
+}

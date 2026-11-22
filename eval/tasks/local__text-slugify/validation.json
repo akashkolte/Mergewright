@@ -1,0 +1,128 @@
+{
+  "task": "local__text-slugify",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "mergewright-python:1",
+  "validated_at": "2026-11-22T22:13:31Z",
+  "seconds": 6.73,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_textutil.py::test_slugify_collapses_runs_of_separators": "FAILED",
+          "tests/test_textutil.py::test_slugify_lowercases_and_joins_words": "PASSED",
+          "tests/test_textutil.py::test_slugify_custom_separator": "PASSED",
+          "tests/test_textutil.py::test_slugify_strips_leading_and_trailing_punctuation": "PASSED",
+          "tests/test_textutil.py::test_truncate_keeps_short_text": "PASSED",
+          "tests/test_textutil.py::test_truncate_cuts_long_text": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_textutil.py::test_slugify_collapses_runs_of_separators"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.19
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_textutil.py::test_slugify_collapses_runs_of_separators": "PASSED",
+          "tests/test_textutil.py::test_slugify_lowercases_and_joins_words": "PASSED",
+          "tests/test_textutil.py::test_slugify_custom_separator": "PASSED",
+          "tests/test_textutil.py::test_slugify_strips_leading_and_trailing_punctuation": "PASSED",
+          "tests/test_textutil.py::test_truncate_keeps_short_text": "PASSED",
+          "tests/test_textutil.py::test_truncate_cuts_long_text": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.12
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_textutil.py::test_slugify_collapses_runs_of_separators": "FAILED",
+          "tests/test_textutil.py::test_slugify_lowercases_and_joins_words": "PASSED",
+          "tests/test_textutil.py::test_slugify_custom_separator": "PASSED",
+          "tests/test_textutil.py::test_slugify_strips_leading_and_trailing_punctuation": "PASSED",
+          "tests/test_textutil.py::test_truncate_keeps_short_text": "PASSED",
+          "tests/test_textutil.py::test_truncate_cuts_long_text": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_textutil.py::test_slugify_collapses_runs_of_separators"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.1
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_textutil.py::test_slugify_collapses_runs_of_separators": "PASSED",
+          "tests/test_textutil.py::test_slugify_lowercases_and_joins_words": "PASSED",
+          "tests/test_textutil.py::test_slugify_custom_separator": "PASSED",
+          "tests/test_textutil.py::test_slugify_strips_leading_and_trailing_punctuation": "PASSED",
+          "tests/test_textutil.py::test_truncate_keeps_short_text": "PASSED",
+          "tests/test_textutil.py::test_truncate_cuts_long_text": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.25
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_textutil.py::test_slugify_collapses_runs_of_separators": "FAILED",
+          "tests/test_textutil.py::test_slugify_lowercases_and_joins_words": "PASSED",
+          "tests/test_textutil.py::test_slugify_custom_separator": "PASSED",
+          "tests/test_textutil.py::test_slugify_strips_leading_and_trailing_punctuation": "PASSED",
+          "tests/test_textutil.py::test_truncate_keeps_short_text": "PASSED",
+          "tests/test_textutil.py::test_truncate_cuts_long_text": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_textutil.py::test_slugify_collapses_runs_of_separators"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.01
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_textutil.py::test_slugify_collapses_runs_of_separators": "PASSED",
+          "tests/test_textutil.py::test_slugify_lowercases_and_joins_words": "PASSED",
+          "tests/test_textutil.py::test_slugify_custom_separator": "PASSED",
+          "tests/test_textutil.py::test_slugify_strips_leading_and_trailing_punctuation": "PASSED",
+          "tests/test_textutil.py::test_truncate_keeps_short_text": "PASSED",
+          "tests/test_textutil.py::test_truncate_cuts_long_text": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.06
+      }
+    }
+  ]
+}

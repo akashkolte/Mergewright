@@ -1,0 +1,15 @@
+diff --git a/flask_smorest/spec/__init__.py b/flask_smorest/spec/__init__.py
+index d78332d..7116b8e 100644
+--- a/flask_smorest/spec/__init__.py
++++ b/flask_smorest/spec/__init__.py
+@@ -307,8 +307,9 @@ class APISpecMixin(DocBlueprintMixin):
+         for status in http.HTTPStatus:
+             response = {
+                 "description": status.phrase,
+-                "schema": self.ERROR_SCHEMA,
+             }
++            if not (100 <= status < 200) and status not in (204, 304):
++                response["schema"] = self.ERROR_SCHEMA
+             prepare_response(response, self.spec, DEFAULT_RESPONSE_CONTENT_TYPE)
+             self.spec.components.response(status.name, response, lazy=True)
+ 

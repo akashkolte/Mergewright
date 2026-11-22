@@ -1,0 +1,16 @@
+diff --git a/tests/test_dates.py b/tests/test_dates.py
+index a4b6e28..dd0359a 100644
+--- a/tests/test_dates.py
++++ b/tests/test_dates.py
+@@ -21,3 +21,11 @@ def test_february_has_29_days_in_a_leap_year():
+ def test_days_in_month_rejects_a_bad_month():
+     with pytest.raises(ValueError):
+         days_in_month(2024, 13)
++
++
++def test_century_divisible_by_400_is_leap():
++    assert is_leap_year(2000)
++
++
++def test_february_2000_has_29_days():
++    assert days_in_month(2000, 2) == 29

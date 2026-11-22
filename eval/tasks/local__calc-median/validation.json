@@ -1,0 +1,128 @@
+{
+  "task": "local__calc-median",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "mergewright-python:1",
+  "validated_at": "2026-11-22T22:13:04Z",
+  "seconds": 6.33,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_calc.py::test_median_even_length": "FAILED",
+          "tests/test_calc.py::test_mean": "PASSED",
+          "tests/test_calc.py::test_mean_empty_raises": "PASSED",
+          "tests/test_calc.py::test_median_odd_length": "PASSED",
+          "tests/test_calc.py::test_median_empty_raises": "PASSED",
+          "tests/test_calc.py::test_value_range": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_calc.py::test_median_even_length"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 0.99
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_calc.py::test_median_even_length": "PASSED",
+          "tests/test_calc.py::test_mean": "PASSED",
+          "tests/test_calc.py::test_mean_empty_raises": "PASSED",
+          "tests/test_calc.py::test_median_odd_length": "PASSED",
+          "tests/test_calc.py::test_median_empty_raises": "PASSED",
+          "tests/test_calc.py::test_value_range": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.07
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_calc.py::test_median_even_length": "FAILED",
+          "tests/test_calc.py::test_mean": "PASSED",
+          "tests/test_calc.py::test_mean_empty_raises": "PASSED",
+          "tests/test_calc.py::test_median_odd_length": "PASSED",
+          "tests/test_calc.py::test_median_empty_raises": "PASSED",
+          "tests/test_calc.py::test_value_range": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_calc.py::test_median_even_length"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.06
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_calc.py::test_median_even_length": "PASSED",
+          "tests/test_calc.py::test_mean": "PASSED",
+          "tests/test_calc.py::test_mean_empty_raises": "PASSED",
+          "tests/test_calc.py::test_median_odd_length": "PASSED",
+          "tests/test_calc.py::test_median_empty_raises": "PASSED",
+          "tests/test_calc.py::test_value_range": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.04
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_calc.py::test_median_even_length": "FAILED",
+          "tests/test_calc.py::test_mean": "PASSED",
+          "tests/test_calc.py::test_mean_empty_raises": "PASSED",
+          "tests/test_calc.py::test_median_odd_length": "PASSED",
+          "tests/test_calc.py::test_median_empty_raises": "PASSED",
+          "tests/test_calc.py::test_value_range": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_calc.py::test_median_even_length"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.1
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_calc.py::test_median_even_length": "PASSED",
+          "tests/test_calc.py::test_mean": "PASSED",
+          "tests/test_calc.py::test_mean_empty_raises": "PASSED",
+          "tests/test_calc.py::test_median_odd_length": "PASSED",
+          "tests/test_calc.py::test_median_empty_raises": "PASSED",
+          "tests/test_calc.py::test_value_range": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.07
+      }
+    }
+  ]
+}
