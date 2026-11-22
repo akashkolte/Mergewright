@@ -1,9 +1,9 @@
 import json
-import os
 from pathlib import Path
 
 import pytest
 
+from mergewright.sandbox import ExecResult
 from mergewright.tools import (
     CODER_TOOLS,
     TOOLS,
@@ -11,11 +11,13 @@ from mergewright.tools import (
     Workspace,
     edit_file,
     execute,
+    gate,
     read_file,
     run_tests,
     search_code,
 )
 from tests.conftest import BUGGY_LINE, FIXED_LINES
+from tests.fakes import ScriptedSandbox
 
 # --- read_file -----------------------------------------------------------------------------
 
@@ -128,42 +130,86 @@ def test_edit_file_protects_tests_test_config_and_ci(buggy_calc: Path, path: str
 
 # --- run_tests -----------------------------------------------------------------------------
 
+FAILING_RUN = """\
+....F.
+=========================== short test summary info ============================
+FAILED tests/test_calc.py::test_median_even_length - assert 3 == 2.5
+1 failed, 5 passed in 0.03s
+"""
+COLLECTION_ERRORS_RUN = """\
+E   ModuleNotFoundError: No module named 'flask'
+=========================== short test summary info ============================
+ERROR tests/test_plugin_flask.py
+ERROR tests/test_spec.py
+12 passed, 2 errors in 4.56s
+"""
 
-def test_run_tests_reports_the_failing_test(buggy_calc: Path):
-    report = run_tests(Workspace(buggy_calc))
+
+def scripted(output: str, exit_code: int, **kwargs) -> ScriptedSandbox:
+    return ScriptedSandbox([ExecResult(exit_code, output, False, **kwargs)])
+
+
+def test_run_tests_runs_the_command_in_the_sandbox_without_cache_writes():
+    sandbox = scripted("6 passed in 0.01s\n", 0)
+
+    run_tests(sandbox, "python -m pytest -q", timeout_s=42)
+
+    (argv,) = sandbox.commands
+    assert argv[:2] == ["bash", "-c"]
+    assert "PYTHONDONTWRITEBYTECODE=1" in argv[2] and argv[2].endswith("python -m pytest -q")
+
+
+def test_run_tests_reports_the_failing_test():
+    report = run_tests(scripted(FAILING_RUN, 1), "pytest")
 
     assert not report.passed
     assert (report.num_passed, report.num_failed) == (5, 1)
     assert report.failures == ["tests/test_calc.py::test_median_even_length"]
+    assert report.errors == []
 
 
-def test_run_tests_reports_a_pass_after_the_fix(fixed_calc: Path):
-    report = run_tests(Workspace(fixed_calc))
+def test_run_tests_reports_a_pass():
+    report = run_tests(scripted("6 passed in 0.01s\n", 0), "pytest")
 
-    assert report.passed
-    assert (report.num_passed, report.num_failed) == (6, 0)
+    assert report.passed and (report.num_passed, report.num_failed) == (6, 0)
 
 
-def test_run_tests_timeout_is_a_result_not_an_exception(buggy_calc: Path):
-    (buggy_calc / "tests" / "test_slow.py").write_text(
-        "import time\n\ndef test_slow():\n    time.sleep(10)\n"
-    )
+def test_run_tests_keeps_collection_errors_apart_from_failures():
+    report = run_tests(scripted(COLLECTION_ERRORS_RUN, 1), "pytest")
 
-    report = run_tests(Workspace(buggy_calc), timeout_s=1)
+    assert report.errors == ["tests/test_plugin_flask.py", "tests/test_spec.py"]
+    assert report.failures == [] and report.num_passed == 12 and report.num_errors == 2
+
+
+def test_gate_ignores_errors_known_at_base_but_never_failures():
+    known = frozenset({"tests/test_plugin_flask.py", "tests/test_spec.py"})
+    errors_only = run_tests(scripted(COLLECTION_ERRORS_RUN, 1), "pytest")
+    failing = run_tests(scripted(FAILING_RUN, 1), "pytest")
+
+    assert gate(errors_only, known) == []
+    assert gate(errors_only, frozenset()) == ["tests/test_plugin_flask.py", "tests/test_spec.py"]
+    assert gate(failing, known) == ["tests/test_calc.py::test_median_even_length"]
+
+
+def test_gate_fails_when_no_test_ran():
+    report = run_tests(scripted(COLLECTION_ERRORS_RUN.replace("12 passed, ", ""), 1), "pytest")
+
+    assert gate(report, frozenset(report.errors)) == ["(no test passed)"]
+
+
+def test_run_tests_timeout_is_a_result_not_an_exception():
+    sandbox = ScriptedSandbox([ExecResult(124, "", True, seconds=1.0)])
+
+    report = run_tests(sandbox, "pytest", timeout_s=1)
 
     assert report.timed_out and not report.passed
+    assert gate(report, frozenset()) == ["(timed out)"]
 
 
-def test_run_tests_subprocess_gets_no_secrets(buggy_calc: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("MERGEWRIGHT_API_KEY", "canary-secret-value")
-    (buggy_calc / "tests" / "test_env.py").write_text(
-        "import os\n\ndef test_no_secret():\n    assert 'MERGEWRIGHT_API_KEY' not in os.environ\n"
-    )
+def test_run_tests_passes_on_the_canary_flag():
+    report = run_tests(scripted("[REDACTED:canary]\n1 passed\n", 0, canary_leaked=True), "pytest")
 
-    report = run_tests(Workspace(buggy_calc))
-
-    assert "tests/test_env.py::test_no_secret" not in report.failures
-    assert os.environ["MERGEWRIGHT_API_KEY"] == "canary-secret-value"  # parent unchanged
+    assert report.canary_leaked
 
 
 # --- registry ------------------------------------------------------------------------------
@@ -176,7 +222,7 @@ def test_execute_rejects_unknown_tool(buggy_calc: Path):
 
 
 def test_execute_enforces_the_allow_list(buggy_calc: Path):
-    result = execute("run_tests", "{}", Workspace(buggy_calc), CODER_TOOLS)
+    result = execute("search_code", '{"pattern": "x"}', Workspace(buggy_calc), ("read_file",))
 
     assert not result.ok and "not allowed" in result.output
 
@@ -194,6 +240,11 @@ def test_execute_returns_tool_errors_as_results(buggy_calc: Path):
     )
 
     assert not result.ok and "file not found" in result.output
+
+
+def test_run_tests_is_not_a_coder_tool():
+    # Only the Tester runs tests; it calls run_tests with the sandbox directly.
+    assert "run_tests" not in TOOLS and "run_tests" not in CODER_TOOLS
 
 
 def test_every_tool_has_a_valid_schema():

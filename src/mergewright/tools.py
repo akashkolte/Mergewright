@@ -1,8 +1,9 @@
 """The agent's tools and the registry that validates and runs them.
 
-Every tool works inside one workspace directory. Paths from the model are untrusted: they are
-resolved and must stay inside the workspace. Tool failures are returned as results, never raised
-to the graph, so a bad tool call cannot crash a run.
+The Coder's file tools work on the host workspace, which is bind-mounted into the sandbox.
+Paths from the model are untrusted: they are resolved and must stay inside the workspace. Tool
+failures are returned as results, never raised to the graph, so a bad tool call cannot crash a
+run. run_tests is the Tester's: it runs the test command inside the sandbox, never on the host.
 """
 
 from __future__ import annotations
@@ -11,14 +12,14 @@ import fnmatch
 import json
 import os
 import re
-import subprocess
-import sys
 from collections.abc import Callable
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError
+
+from mergewright.sandbox import Sandbox
 
 MAX_READ_BYTES = 200_000
 MAX_READ_LINES = 400
@@ -128,56 +129,84 @@ def edit_file(ws: Workspace, path: str, old: str, new: str) -> str:
 class TestReport:
     __test__ = False  # not a pytest test class
 
-    passed: bool
+    passed: bool  # pytest exited 0
     num_passed: int = 0
     num_failed: int = 0
     num_errors: int = 0
-    failures: list[str] = field(default_factory=list)
+    failures: list[str] = field(default_factory=list)  # FAILED test ids
+    errors: list[str] = field(default_factory=list)  # ERROR ids: setup or collection errors
     timed_out: bool = False
+    exit_code: int = 0
+    canary_leaked: bool = False
     log_tail: str = ""
 
 
-def _sandbox_env() -> dict[str, str]:
-    """A minimal environment for the test subprocess: no API keys or other secrets."""
-    keep = ("PATH", "SYSTEMROOT", "TMPDIR", "TEMP", "TMP", "LANG")
-    env = {k: os.environ[k] for k in keep if k in os.environ}
-    env["PYTHONDONTWRITEBYTECODE"] = "1"
-    return env
+# --continue-on-collection-errors: a test file that cannot be imported (a missing optional
+# dependency in a task image, say) must not stop the rest of the suite from running.
+DEFAULT_TEST_COMMAND = (
+    "python -m pytest -q -rfE -p no:cacheprovider --continue-on-collection-errors"
+)
 
 
-def run_tests(ws: Workspace, timeout_s: float = 60.0) -> TestReport:
-    """Run the workspace's pytest suite in a subprocess and summarise the result."""
-    command = [sys.executable, "-m", "pytest", "-q", "-rfE", "-p", "no:cacheprovider"]
-    try:
-        proc = subprocess.run(
-            command,
-            cwd=ws.root,
-            env=_sandbox_env(),
-            capture_output=True,
-            text=True,
-            timeout=timeout_s,
+def run_tests(sandbox: Sandbox, command: str, timeout_s: float = 60.0) -> TestReport:
+    """Run the test command in the sandbox and summarise pytest's output.
+
+    Bytecode and the pytest cache are off, so test runs never add files to the diff.
+    """
+    result = sandbox.exec(
+        ["bash", "-c", f"export PYTHONDONTWRITEBYTECODE=1; {command}"], timeout_s=timeout_s
+    )
+    if result.timed_out:
+        return TestReport(
+            passed=False,
+            timed_out=True,
+            exit_code=result.exit_code,
+            canary_leaked=result.canary_leaked,
+            log_tail=f"timed out after {timeout_s}s",
         )
-    except subprocess.TimeoutExpired:
-        return TestReport(passed=False, timed_out=True, log_tail=f"timed out after {timeout_s}s")
-    output = proc.stdout + proc.stderr
+    output = result.output
 
     def count(word: str) -> int:
         match = re.search(rf"(\d+) {word}", output)
         return int(match.group(1)) if match else 0
 
-    failures = [
-        line.split(" - ")[0].split(" ", 1)[1]
-        for line in output.splitlines()
-        if line.startswith(("FAILED ", "ERROR "))
-    ]
+    def ids(word: str) -> list[str]:
+        return [
+            line.split(" - ")[0].split(" ", 1)[1]
+            for line in output.splitlines()
+            if line.startswith(f"{word} ")
+        ]
+
     return TestReport(
-        passed=proc.returncode == 0,
+        passed=result.exit_code == 0,
         num_passed=count("passed"),
         num_failed=count("failed"),
         num_errors=count("error"),
-        failures=failures,
+        failures=ids("FAILED"),
+        errors=ids("ERROR"),
+        exit_code=result.exit_code,
+        canary_leaked=result.canary_leaked,
         log_tail="\n".join(output.strip().splitlines()[-30:]),
     )
+
+
+def gate(report: TestReport, known_errors: frozenset[str] = frozenset()) -> list[str]:
+    """What still blocks DONE; empty when the run is good enough.
+
+    known_errors are the ERROR ids seen at base (for example, a test file whose optional
+    dependency the task image lacks): they are ignored. Failing tests never are, even if
+    they failed at base: a visible test the bug breaks must pass after the fix.
+    """
+    if report.timed_out:
+        return ["(timed out)"]
+    problems = report.failures + [e for e in report.errors if e not in known_errors]
+    if problems:
+        return problems
+    if report.exit_code not in (0, 1):
+        return [f"(pytest exited {report.exit_code})"]
+    if report.num_passed == 0:
+        return ["(no test passed)"]
+    return []
 
 
 # --- Registry ------------------------------------------------------------------------------
@@ -198,10 +227,6 @@ class EditFileArgs(BaseModel):
     path: str = Field(description="File path relative to the repository root")
     old: str = Field(description="Exact text to replace; must occur exactly once")
     new: str = Field(description="Replacement text")
-
-
-class RunTestsArgs(BaseModel):
-    pass
 
 
 @dataclass(frozen=True)
@@ -237,7 +262,6 @@ TOOLS: dict[str, ToolSpec] = {
             EditFileArgs,
             edit_file,
         ),
-        ToolSpec("run_tests", "Run the repository's pytest suite.", RunTestsArgs, run_tests),
     )
 }
 
@@ -265,8 +289,6 @@ def execute(name: str, raw_args: str, ws: Workspace, allowed: tuple[str, ...]) -
         result = spec.run(ws, **args.model_dump())
     except ToolError as exc:
         return ToolResult(False, str(exc))
-    if isinstance(result, TestReport):
-        return ToolResult(result.passed, json.dumps(asdict(result)))
     if isinstance(result, list):
         return ToolResult(True, json.dumps(result))
     return ToolResult(True, str(result))

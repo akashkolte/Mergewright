@@ -8,11 +8,11 @@ import sys
 from pathlib import Path
 
 from mergewright.config import ConfigError, Limits, load_dotenv, load_live_settings
-from mergewright.graph import AgentDeps, build_graph
+from mergewright.environments import DEFAULT_IMAGE, LocalRepo
+from mergewright.graph import assemble_graph, next_after_coder, next_after_tester
 from mergewright.llm import LLMClient, OpenAIClient, RecordingLLM, ScriptedLLM
-from mergewright.runlog import RunLog
 from mergewright.runner import run_agent
-from mergewright.tools import Workspace
+from mergewright.sandbox import SandboxError
 
 EXIT_DONE, EXIT_FAILED, EXIT_CONFIG = 0, 1, 2
 
@@ -33,6 +33,11 @@ def _parser() -> argparse.ArgumentParser:
     )
     run.add_argument("--record", type=Path, help="save live responses to this replay file")
     run.add_argument("--runs-dir", type=Path, default=Path("runs"))
+    run.add_argument(
+        "--image",
+        default=DEFAULT_IMAGE,
+        help="Docker image the repo's tests run in (build the default: docker/python)",
+    )
 
     sub.add_parser("graph", help="print the workflow graph as Mermaid")
     return parser
@@ -60,7 +65,13 @@ def _run(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_CONFIG
 
-    result = run_agent(args.repo, args.issue.read_text(), llm, args.runs_dir, limits)
+    env = LocalRepo(args.repo, image=args.image)
+    try:
+        result = run_agent(env, args.issue.read_text(), llm, args.runs_dir, limits)
+    except SandboxError as exc:  # no Docker, daemon not running, image missing, ...
+        print(f"error: the sandbox could not start: {exc}", file=sys.stderr)
+        print("Docker is required; see the README for setup.", file=sys.stderr)
+        return EXIT_CONFIG
     print("\n--- diff ---")
     print(result.diff or "(no changes)")
     print(f"--- status: {result.status} ({result.reason}) ---")
@@ -69,11 +80,18 @@ def _run(args: argparse.Namespace) -> int:
 
 
 def _graph() -> int:
-    # The graph's shape does not depend on its inputs, so placeholders are enough to draw it.
-    placeholder = AgentDeps(
-        llm=ScriptedLLM([]), workspace=Workspace(Path(".")), log=RunLog(Path(os.devnull), None)
+    # The graph's shape does not depend on the node bodies, so no-op nodes are enough to draw it.
+    def noop(state):
+        return {}
+
+    graph = assemble_graph(
+        coder=noop,
+        tools=noop,
+        tester=noop,
+        after_coder=next_after_coder,
+        after_tester=next_after_tester,
     )
-    print(build_graph(placeholder).get_graph().draw_mermaid())
+    print(graph.compile().get_graph().draw_mermaid())
     return EXIT_DONE
 
 

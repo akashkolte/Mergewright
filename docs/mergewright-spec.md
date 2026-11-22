@@ -131,7 +131,7 @@ N = 1 is the default. Terminal states: `PR_OPENED`, `EVAL_DONE`, `REJECTED`, `EX
 |---|---|---|---|---|
 | Localizer | 1 call | repo map, `search_code`, `read_file` | files, symbols, hypothesis (schema-validated) | P0 |
 | Coder | loop | `read_file`, `search_code`, `edit_file` (parse-checked), `run_tests(test_ids)` | edits | P0 (exists, tools change) |
-| Tester gate | no | `run_tests` | `TestReport` | P0 (exists) |
+| Tester gate | no | `run_tests` (in the sandbox) | `TestReport`; passes when no test fails and nothing new errors. Test files that already error at base (e.g. a dependency the task image lacks) are ignored; tests that fail at base are not | P0 (exists) |
 | Checks | no | diff, ruff, tamper detector | blocking findings | P0 |
 | Reproducer | loop | `read_file`, `write_new_test` (`tests/test_mergewright_repro_*.py` only) | test that fails on base, passes on patch | P1 |
 | Verifier | staged | candidates, visible tests, repro tests | ranked candidates (Section 6.2) | P1 |

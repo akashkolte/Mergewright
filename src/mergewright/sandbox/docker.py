@@ -223,3 +223,23 @@ def _default_user() -> str:
     """The host user (so the mounted workspace stays writable), or nobody if that is root."""
     uid, gid = os.getuid(), os.getgid()
     return f"{uid}:{gid}" if uid != 0 else "65534:65534"
+
+
+def copy_from_image(image: str, src_path: str, dest: Path, docker: Docker = docker_cli) -> None:
+    """Copy src_path (e.g. a task image's /testbed, with its .git) out of image into dest.
+
+    Uses a created, never-started container, which is always removed. dest must not exist.
+    """
+    if dest.exists():
+        raise SandboxError(f"{dest} already exists")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    name = f"mw-copy-{secrets.token_hex(4)}"
+    created = docker(["create", "--name", name, image])
+    if created.code != 0:
+        raise SandboxError(f"docker create failed for {image}: {created.output.strip()[-500:]}")
+    try:
+        copied = docker(["cp", f"{name}:{src_path}", str(dest)], timeout_s=600)
+        if copied.code != 0:
+            raise SandboxError(f"docker cp failed: {copied.output.strip()[-500:]}")
+    finally:
+        docker(["rm", "-f", name])

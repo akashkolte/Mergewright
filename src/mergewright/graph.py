@@ -23,9 +23,20 @@ from mergewright.config import Limits
 from mergewright.llm import LLMClient, LLMError
 from mergewright.prompts import CODER_SYSTEM_PROMPT, issue_message, test_failure_message
 from mergewright.runlog import RunLog
-from mergewright.tools import CODER_TOOLS, TOOLS, Workspace, execute, run_tests
+from mergewright.sandbox import Sandbox
+from mergewright.tools import (
+    CODER_TOOLS,
+    DEFAULT_TEST_COMMAND,
+    TOOLS,
+    Workspace,
+    execute,
+    gate,
+    run_tests,
+)
 
-Status = Literal["RUNNING", "DONE", "FAILED_NO_FIX", "FAILED_BUDGET", "FAILED_ERROR"]
+Status = Literal[
+    "RUNNING", "DONE", "FAILED_NO_FIX", "FAILED_BUDGET", "FAILED_ERROR", "FAILED_POLICY"
+]
 
 
 class AgentState(TypedDict):
@@ -41,10 +52,13 @@ class AgentDeps:
     """Everything the nodes need from outside. Injected, so tests can use fakes."""
 
     llm: LLMClient
-    workspace: Workspace
+    workspace: Workspace  # host side, for the file tools
     log: RunLog
+    sandbox: Sandbox  # where the workspace is mounted and the tests run
     limits: Limits = field(default_factory=Limits)
     clock: Callable[[], float] = time.monotonic
+    test_command: str = DEFAULT_TEST_COMMAND
+    known_errors: frozenset[str] = frozenset()  # ERROR ids at base; the gate ignores them
 
 
 def initial_state(issue: str) -> AgentState:
@@ -98,16 +112,19 @@ def tools_step(state: AgentState, deps: AgentDeps) -> dict[str, Any]:
         name, args = call["function"]["name"], call["function"]["arguments"]
         begin = deps.clock()
         result = execute(name, args, deps.workspace, CODER_TOOLS)
+        # A command in the sandbox can copy the canary into a workspace file.
+        output, leaked = deps.sandbox.canary.redact(result.output)
         deps.log.event(
             "tool_call",
             agent="coder",
             tool=name,
             args=args,
             ok=result.ok,
-            output=result.output,
+            output=output,
+            canary_leaked=leaked,
             seconds=round(deps.clock() - begin, 3),
         )
-        results.append({"role": "tool", "tool_call_id": call["id"], "content": result.output})
+        results.append({"role": "tool", "tool_call_id": call["id"], "content": output})
     return {"messages": [*state["messages"], *results]}
 
 
@@ -115,18 +132,19 @@ def tester_step(state: AgentState, deps: AgentDeps) -> dict[str, Any]:
     """Run the test suite and decide: done, give up, or send the failures to the coder."""
     attempt = state["test_attempts"] + 1
     begin = deps.clock()
-    report = run_tests(deps.workspace, timeout_s=deps.limits.tool_timeout_s)
+    report = run_tests(deps.sandbox, deps.test_command, timeout_s=deps.limits.tool_timeout_s)
+    problems = gate(report, deps.known_errors)
     deps.log.event(
         "tool_call",
         agent="tester",
         tool="run_tests",
         args="{}",
-        ok=report.passed,
+        ok=not problems,
         output=report.log_tail,
         seconds=round(deps.clock() - begin, 3),
     )
-    deps.log.event("test_result", attempt=attempt, **asdict(report))
-    if report.passed:
+    deps.log.event("test_result", attempt=attempt, problems=problems, **asdict(report))
+    if not problems:
         return {"test_attempts": attempt, "status": "DONE", "reason": "all tests pass"}
     if attempt >= deps.limits.max_test_attempts:
         return {
@@ -136,7 +154,7 @@ def tester_step(state: AgentState, deps: AgentDeps) -> dict[str, Any]:
         }
     feedback = {
         "role": "user",
-        "content": test_failure_message(report.failures, report.log_tail),
+        "content": test_failure_message(problems, report.log_tail),
     }
     return {"test_attempts": attempt, "messages": [*state["messages"], feedback]}
 

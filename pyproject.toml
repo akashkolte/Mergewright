@@ -34,7 +34,7 @@ where = ["src"]
 # Only the project's own tests. examples/ holds demo repos whose tests fail on purpose.
 testpaths = ["tests"]
 addopts = "-ra"
-markers = ["docker: needs a Docker daemon and the sandbox test image (tests/sandbox_image)"]
+markers = ["docker: needs a Docker daemon and the mergewright-python:1 image (docker/python)"]
 
 [tool.ruff]
 line-length = 100

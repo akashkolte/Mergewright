@@ -8,8 +8,9 @@ The design of the full system (a durable issue-to-pull-request service), its eva
 
 - Python 3.11 or later
 - git
+- Docker, running: the repository's tests always run in a sandbox container
 
-The quick start needs no API key and no network access after `pip install`.
+The quick start needs no API key and no network access after setup.
 
 ## Setup
 
@@ -19,6 +20,7 @@ cd Mergewright
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
+docker build -t mergewright-python:1 docker/python   # the default sandbox image
 ```
 
 Run every command below from the repository root, with the virtual environment active.
@@ -91,7 +93,7 @@ mergewright run --llm live --repo path/to/repo --issue path/to/issue.md
 pytest
 ```
 
-Expected: `59 passed`. The tests are deterministic and make no network or model calls: they use a scripted model and temporary copies of the demo repository. The demo repository's own test, which fails on purpose, is not part of this run.
+Expected: `125 passed` with Docker and the `mergewright-python:1` image. The 17 Docker tests (sandbox guards and end-to-end runs) are skipped without them; `pytest -m "not docker"` runs only the 108 others, with a fake sandbox. The tests are deterministic and make no network or model calls. The demo repository's own test, which fails on purpose, is not part of this run.
 
 | File | What it tests |
 |---|---|
@@ -134,7 +136,7 @@ flowchart LR
 | `search_code` | Coder (model) | Regex search over the repository | 50 hits; invalid regex is an error result |
 | `read_file` | Coder (model) | Reads a line range with line numbers | 400 lines, 200 KB; path must stay inside the workspace |
 | `edit_file` | Coder (model) | Replaces one exact occurrence of a text | Test files, `conftest.py`, pytest config (`pytest.ini`, `pyproject.toml`, `setup.cfg`, `tox.ini`), `.git` and `.github` are protected |
-| `run_tests` | Tester node | Runs `pytest` and returns a structured report | 60 s timeout; the subprocess gets no API keys or other secrets |
+| `run_tests` | Tester node | Runs the test command in the sandbox and returns a structured report | 60 s timeout; no network, non-root, resource limits, no host environment. Test files that already error at the start of the run (for example, a missing optional dependency) are ignored by the gate; failing tests never are |
 
 The model is offered only the three Coder tools. A call to any other tool is refused by code, not by the prompt.
 
@@ -159,7 +161,7 @@ Each run writes `runs/<run_id>/run.jsonl`, one JSON object per line. Events: `ru
 
 ## Limitations
 
-- `run_tests` runs `pytest` as a local subprocess in the run's workspace, with a reduced environment and a timeout. That is not isolation. Run the agent only on repositories you trust. Later milestones move execution into Docker sandboxes.
+- Tests run in a Docker container with no network, a non-root user and resource limits, but containers share the host kernel; gVisor comes later (spec Phase 7). The file tools read and edit the workspace on the host.
 - The tests that decide `DONE` are the repository's own tests, which the agent can read. `edit_file` blocks edits to tests and pytest config, but a fix could still special-case the tested inputs. The full system grades with hidden tests.
 - The bundled replay file was written by hand to match the demo input. Record your own with `--record` from a live run.
 - This milestone has one agent (the Coder) and a test loop. The Localizer, the diff checks, Temporal, the approval gate and GitHub integration come in later milestones.

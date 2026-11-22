@@ -29,6 +29,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.runtime import Runtime
 
 from mergewright.config import Limits
+from mergewright.environments import copy_workspace
 from mergewright.graph import (
     AgentDeps,
     AgentState,
@@ -41,9 +42,9 @@ from mergewright.graph import (
 )
 from mergewright.llm import LLMClient
 from mergewright.runlog import RunLog
-from mergewright.runner import copy_workspace
 from mergewright.tools import Workspace
 from spikes.runtime.store import MessageStore
+from tests.fakes import LocalSandbox  # the spike tests the runtime, not isolation
 
 
 class SpikeState(TypedDict):
@@ -145,6 +146,7 @@ class SpikeNodes:
             llm=self.llm,
             workspace=Workspace(Path(context["workspace"])),
             log=RunLog(Path(context["log_path"]), echo=None),
+            sandbox=LocalSandbox(Path(context["workspace"])),
             limits=self.limits,
             clock=self.clock,
         )

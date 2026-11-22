@@ -7,8 +7,10 @@ from mergewright.config import Limits
 from mergewright.graph import AgentDeps, build_graph, initial_state, recursion_limit
 from mergewright.llm import LLMError, LLMResponse, ScriptedLLM, ToolCall
 from mergewright.runlog import RunLog
+from mergewright.sandbox import Canary
 from mergewright.tools import Workspace
 from tests.conftest import BUGGY_LINE, FIXED_LINES
+from tests.fakes import LocalSandbox
 
 WRONG_FIX = "    return ordered[len(ordered) // 2 - 1]\n"  # wrong for both odd and even lengths
 
@@ -25,10 +27,17 @@ def edit(old: str, new: str) -> LLMResponse:
     return call("edit_file", path="calc.py", old=old, new=new)
 
 
-def run(workspace: Path, llm, limits: Limits | None = None, clock=None):
+def run(workspace: Path, llm, limits: Limits | None = None, clock=None, **deps_kwargs):
     limits = limits or Limits()
     log = RunLog(workspace.parent / "run.jsonl", echo=None)
-    deps = AgentDeps(llm=llm, workspace=Workspace(workspace), log=log, limits=limits)
+    deps = AgentDeps(
+        llm=llm,
+        workspace=Workspace(workspace),
+        log=log,
+        sandbox=deps_kwargs.pop("sandbox", None) or LocalSandbox(workspace),
+        limits=limits,
+        **deps_kwargs,
+    )
     if clock:
         deps.clock = clock
     final = build_graph(deps).invoke(
@@ -96,9 +105,9 @@ def test_wall_clock_cap_stops_the_run(buggy_calc: Path):
     [
         LLMResponse(tool_calls=[ToolCall(id="x", name="delete_repo", arguments="{}")]),
         LLMResponse(tool_calls=[ToolCall(id="x", name="read_file", arguments="{not json")]),
-        LLMResponse(tool_calls=[ToolCall(id="x", name="run_tests", arguments="{}")]),
+        call("edit_file", path="tests/test_calc.py", old="a", new="b"),
     ],
-    ids=["unknown-tool", "malformed-args", "tool-not-allowed"],
+    ids=["unknown-tool", "malformed-args", "protected-path"],
 )
 def test_bad_tool_call_is_reported_to_the_model_and_the_run_continues(buggy_calc: Path, bad_call):
     llm = ScriptedLLM([bad_call, edit(BUGGY_LINE, FIXED_LINES), done()])
@@ -138,9 +147,46 @@ def test_coder_is_offered_only_its_allowed_tools(buggy_calc: Path):
     assert seen[0] == ["read_file", "search_code", "edit_file"]
 
 
+def test_tester_ignores_errors_known_at_base(buggy_calc: Path):
+    (buggy_calc / "tests" / "test_needs_flask.py").write_text("import flask\n")
+    llm = ScriptedLLM([edit(BUGGY_LINE, FIXED_LINES), done()])
+
+    final, _ = run(buggy_calc, llm, known_errors=frozenset({"tests/test_needs_flask.py"}))
+
+    assert final["status"] == "DONE"
+
+
+def test_tester_still_requires_tests_that_fail_at_base(buggy_calc: Path):
+    # The bug's visible test fails at base; listing it as known must not excuse it.
+    llm = ScriptedLLM([done(), done(), done()])
+
+    final, _ = run(
+        buggy_calc, llm, known_errors=frozenset({"tests/test_calc.py::test_median_even_length"})
+    )
+
+    assert final["status"] == "FAILED_NO_FIX"
+
+
+def test_tool_output_with_the_canary_is_redacted_and_logged(buggy_calc: Path):
+    canary = Canary.new()
+    (buggy_calc / "notes.txt").write_text(f"token={canary.value}\n")
+    llm = ScriptedLLM([call("read_file", path="notes.txt"), edit(BUGGY_LINE, FIXED_LINES), done()])
+
+    final, events = run(buggy_calc, llm, sandbox=LocalSandbox(buggy_calc, canary))
+
+    tool_message = next(m for m in final["messages"] if m["role"] == "tool")
+    assert canary.value not in tool_message["content"]
+    assert Canary.REDACTED in tool_message["content"]
+    read = next(e for e in events if e["event"] == "tool_call")
+    assert read["canary_leaked"] is True and canary.value not in json.dumps(events)
+
+
 def test_graph_has_the_expected_nodes_and_edges(tmp_path: Path):
     deps = AgentDeps(
-        llm=ScriptedLLM([]), workspace=Workspace(tmp_path), log=RunLog(tmp_path / "l", None)
+        llm=ScriptedLLM([]),
+        workspace=Workspace(tmp_path),
+        log=RunLog(tmp_path / "l", None),
+        sandbox=LocalSandbox(tmp_path),
     )
     graph = build_graph(deps).get_graph()
 

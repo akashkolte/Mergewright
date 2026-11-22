@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+from mergewright.sandbox.canary import Canary
+
 
 class SandboxError(Exception):
     """The sandbox could not do what was asked. The message says why."""
@@ -25,6 +27,8 @@ class ExecResult:
 
 
 class Sandbox(Protocol):
+    canary: Canary  # planted in every sandbox (spec Section 7); callers redact with it
+
     def reset(self, base_sha: str, patch: str) -> None:
         """Make the working tree exactly base_sha + patch (spec Section 4.2 invariant)."""
         ...

@@ -12,6 +12,8 @@ import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
+from mergewright.sandbox.base import SandboxError
+
 DEFAULT_MAX_OUTPUT_BYTES = 64_000
 
 
@@ -87,10 +89,15 @@ def docker_cli(
     timeout_s: float | None = None,
     max_output_bytes: int | None = None,
 ) -> CommandResult:
-    """Run `docker <args>` on the host."""
-    return run_command(
-        ["docker", *args],
-        input=input,
-        timeout_s=timeout_s,
-        max_output_bytes=max_output_bytes or DEFAULT_MAX_OUTPUT_BYTES,
-    )
+    """Run `docker <args>` on the host. Raises SandboxError if there is no docker command."""
+    try:
+        return run_command(
+            ["docker", *args],
+            input=input,
+            timeout_s=timeout_s,
+            max_output_bytes=max_output_bytes or DEFAULT_MAX_OUTPUT_BYTES,
+        )
+    except FileNotFoundError as exc:
+        raise SandboxError(
+            "Docker is required: the `docker` command was not found. Install Docker and start it."
+        ) from exc

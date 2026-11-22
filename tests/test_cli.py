@@ -1,10 +1,20 @@
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
 
 from mergewright.__main__ import EXIT_CONFIG, EXIT_DONE, main
+from mergewright.environments import DEFAULT_IMAGE
 from tests.conftest import BUGGY_LINE, EXAMPLES_DIR, REPO_ROOT
+
+
+def _image_ready() -> bool:
+    if shutil.which("docker") is None:
+        return False
+    probe = subprocess.run(["docker", "image", "inspect", DEFAULT_IMAGE], capture_output=True)
+    return probe.returncode == 0
 
 
 @pytest.fixture(autouse=True)
@@ -15,6 +25,8 @@ def _in_repo_root(monkeypatch: pytest.MonkeyPatch):
         monkeypatch.delenv(key, raising=False)
 
 
+@pytest.mark.docker
+@pytest.mark.skipif(not _image_ready(), reason=f"needs Docker and {DEFAULT_IMAGE}")
 def test_replay_run_reaches_done_and_logs_every_tool(tmp_path: Path):
     code = main(["run", "--llm", "replay", "--runs-dir", str(tmp_path)])
 
@@ -30,6 +42,8 @@ def test_replay_run_reaches_done_and_logs_every_tool(tmp_path: Path):
     assert events[-1]["event"] == "run_finished" and events[-1]["status"] == "DONE"
 
 
+@pytest.mark.docker
+@pytest.mark.skipif(not _image_ready(), reason=f"needs Docker and {DEFAULT_IMAGE}")
 def test_run_leaves_the_example_repo_unchanged(tmp_path: Path):
     main(["run", "--llm", "replay", "--runs-dir", str(tmp_path)])
 
@@ -55,6 +69,15 @@ def test_missing_issue_file_is_a_clear_error(tmp_path: Path, capsys):
 
     assert code == EXIT_CONFIG
     assert "issue file not found" in capsys.readouterr().err
+
+
+def test_run_without_docker_fails_with_a_clear_message(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setenv("PATH", str(tmp_path))  # no docker binary on PATH
+
+    code = main(["run", "--llm", "replay", "--runs-dir", str(tmp_path / "runs")])
+
+    assert code == EXIT_CONFIG
+    assert "Docker" in capsys.readouterr().err
 
 
 def test_graph_command_prints_mermaid(capsys):

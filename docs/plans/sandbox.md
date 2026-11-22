@@ -35,9 +35,10 @@ ExecResult` (exit code, output tail, timed_out), `diff()` (against `base_sha`), 
 - Unit (always run): canary, bounded output reader, `docker run` arguments, config
   validation, orphan sweeper (fake docker).
 - Docker (`-m docker`; skipped without Docker or the test image): one per guard, plus
-  `reset`/`diff` and `close`. Test image: `tests/sandbox_image/Dockerfile` (pinned
-  `python:3.12-slim-bookworm` + git), built once with
-  `docker build -t mergewright-sandbox-test:1 tests/sandbox_image`.
+  `reset`/`diff` and `close`. Image: `docker/python/Dockerfile` (pinned
+  `python:3.12-slim-bookworm` + git + pytest), built once with
+  `docker build -t mergewright-python:1 docker/python` (step 8 renamed it from the
+  step 7 test image).
 
 ## Progress
 

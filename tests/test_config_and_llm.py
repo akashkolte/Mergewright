@@ -180,3 +180,18 @@ def test_turn_replay_loads_the_same_replay_file_format(tmp_path: Path):
 
     assert replayed.model.startswith("replay of")
     assert replayed.complete(_turns(1), []) == responses[1]
+
+
+def test_run_log_redacts_every_string_once_a_redactor_is_set(tmp_path: Path):
+    from mergewright.runlog import RunLog
+
+    log = RunLog(tmp_path / "run.jsonl", echo=None)
+    log.event("before", text="SECRET")  # no redactor yet: kept as is
+    log.redact = lambda text: text.replace("SECRET", "[R]")
+
+    log.event("after", text="a SECRET", items=["SECRET"], nested={"k": "SECRET"}, n=3)
+
+    before, after = log.events()
+    assert before["text"] == "SECRET"
+    assert after["text"] == "a [R]" and after["items"] == ["[R]"]
+    assert after["nested"] == {"k": "[R]"} and after["n"] == 3

@@ -1,7 +1,7 @@
 """Docker sandbox guards on a real Docker daemon: one test per guard.
 
-Needs Docker and the test image:
-    docker build -t mergewright-sandbox-test:1 tests/sandbox_image
+Needs Docker and the default sandbox image:
+    docker build -t mergewright-python:1 docker/python
 Skipped otherwise. Run only these: pytest -m docker
 """
 
@@ -14,7 +14,7 @@ import pytest
 
 from mergewright.sandbox import Canary, DockerSandbox, SandboxLimits, sweep_orphans
 
-IMAGE = "mergewright-sandbox-test:1"
+IMAGE = "mergewright-python:1"
 LIMITS = SandboxLimits(cpus=1, mem_floor_mb=128, mem_ceiling_mb=256, pids=64)
 
 
