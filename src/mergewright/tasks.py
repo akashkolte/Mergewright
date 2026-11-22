@@ -283,7 +283,10 @@ def _filter_page(
     sleep: Callable[[float], None],
     attempts: int = 4,
 ) -> dict[str, Any]:
-    """One /filter page. Retries 5xx and connection errors with backoff (2 s, 4 s, ...)."""
+    """One /filter page. Retries 5xx, connection errors and timeouts with backoff (2 s, 4 s, ...).
+
+    A read timeout (a slow page) is a TimeoutError from reading the body, not a URLError.
+    """
     query = {
         "dataset": DATASET,
         "config": "default",
@@ -301,7 +304,7 @@ def _filter_page(
         except urllib.error.HTTPError as exc:  # before URLError: it is a subclass
             if exc.code < 500 or attempt == attempts:
                 raise
-        except urllib.error.URLError:
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
             if attempt == attempts:
                 raise
         sleep(2**attempt)

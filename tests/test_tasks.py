@@ -278,6 +278,25 @@ def test_fetch_retries_server_errors_then_returns_the_row():
     assert attempts[0].get_header("User-agent") == "mergewright"
 
 
+def test_fetch_retries_a_read_timeout():
+    """A slow page times out while the body is read: a TimeoutError, not a URLError."""
+
+    class SlowBody(io.BytesIO):
+        def read(self, *args):
+            raise TimeoutError("The read operation timed out")
+
+    calls = []
+
+    def opener(request, timeout):
+        calls.append(request)
+        return SlowBody() if len(calls) == 1 else io.BytesIO(b'{"rows": [{"row": {"n": 1}}]}')
+
+    sleeps = []
+    row = fetch_swe_rebench_row("a__b-1", opener=opener, sleep=sleeps.append)
+
+    assert row == {"n": 1} and len(calls) == 2 and sleeps == [2]
+
+
 def test_fetch_rows_pages_until_the_total_is_reached():
     pages = [
         {"rows": [{"row": {"n": 1}}, {"row": {"n": 2}}], "num_rows_total": 3},
