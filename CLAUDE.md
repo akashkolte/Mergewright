@@ -17,6 +17,19 @@ Commands (from the repo root, venv active):
 
 Tests must stay deterministic: use `ScriptedLLM` or pass a fake SDK client to `OpenAIClient(client=...)`, never a real model. The full system keeps the `openai` package; LiteLLM is deferred (spec Section 14).
 
+## Working with subagents (keep the main context small)
+
+The user has asked for this way of working (2026-11-22). The main agent keeps the long-lived context: the conversation, decisions, the plan and the current step. Bounded work goes to a fresh subagent, which gets only what it needs, returns a short result, and ends.
+
+- **Delegate:** searches or reads across many files; implementing one scoped change with clear acceptance criteria; running test suites or long commands and summarizing them; reviews; web or docs research.
+- **Keep in the main agent:** small edits, anything that needs the conversation's history, and every user decision or approval.
+- **Brief (self-contained; the subagent sees nothing else):** the goal and why; exact files and paths; the constraints that apply (deterministic tests, no new dependencies, no commits or pushes, the step size rules: about 300–500 `src/` lines per step); what done looks like; what to return.
+- **Return:** a short report: files changed with added/removed line counts, the commands run and their results, problems found, open questions. Never file dumps or full logs.
+- **Approvals stay with the user:** a subagent never downloads, adds a dependency, deletes data, commits, pushes or contacts an outside service. It stops and reports what it needs, and the main agent asks the user.
+- **Parallel subagents** only for tasks that touch different files; otherwise run them one after another, or give each its own worktree.
+- **Verify before reporting:** a subagent's report is a claim. The main agent checks the diff and re-runs the key check (tests, lint) before telling the user it is done.
+- **One task per subagent.** It ends when it returns. A follow-up on the same task may continue it; new work gets a new subagent with a new brief.
+
 ## Planned system (summary of `docs/mergewright-spec.md` v6)
 
 Mergewright turns a GitHub issue into a pull request on a `mergewright/<run-id>` branch (minimal diff, passing tests, rationale, run record) for Python repos with a pytest suite. It runs in service (issue → PR), eval (hidden-test verdict) and sweep (verified trajectories for training) modes. The contribution is the durability, bounded cost, throughput, measured model improvement, honest evaluation and safety of the system around the agent, not agent cleverness. The project is no longer bound to the course deadline.
