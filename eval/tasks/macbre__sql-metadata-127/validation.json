@@ -1,0 +1,146 @@
+{
+  "task": "macbre__sql-metadata-127",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "swerebench/sweb.eval.x86_64.macbre_1776_sql-metadata-127@sha256:2979a7c7f0a90905356d97d4af0da68a344ba044a0f6476070ff363772bc12ba",
+  "validated_at": "2026-11-22T20:41:36Z",
+  "seconds": 13.48,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "test/test_getting_columns.py::test_columns_and_sql_functions": "FAILED",
+          "test/test_getting_columns.py::test_cast_and_convert_functions": "PASSED",
+          "test/test_getting_columns.py::test_queries_with_null_conditions": "PASSED",
+          "test/test_getting_columns.py::test_queries_with_distinct": "PASSED",
+          "test/test_getting_columns.py::test_joins": "PASSED",
+          "test/test_getting_columns.py::test_getting_columns": "PASSED",
+          "test/test_getting_columns.py::test_columns_with_order_by": "PASSED",
+          "test/test_getting_columns.py::test_update_and_replace": "PASSED",
+          "test/test_getting_columns.py::test_complex_queries_columns": "PASSED"
+        },
+        "f2p_failing": [
+          "test/test_getting_columns.py::test_columns_and_sql_functions"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.16
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "test/test_getting_columns.py::test_columns_and_sql_functions": "PASSED",
+          "test/test_getting_columns.py::test_cast_and_convert_functions": "PASSED",
+          "test/test_getting_columns.py::test_queries_with_null_conditions": "PASSED",
+          "test/test_getting_columns.py::test_queries_with_distinct": "PASSED",
+          "test/test_getting_columns.py::test_joins": "PASSED",
+          "test/test_getting_columns.py::test_getting_columns": "PASSED",
+          "test/test_getting_columns.py::test_columns_with_order_by": "PASSED",
+          "test/test_getting_columns.py::test_update_and_replace": "PASSED",
+          "test/test_getting_columns.py::test_complex_queries_columns": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.2
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "test/test_getting_columns.py::test_columns_and_sql_functions": "FAILED",
+          "test/test_getting_columns.py::test_cast_and_convert_functions": "PASSED",
+          "test/test_getting_columns.py::test_queries_with_null_conditions": "PASSED",
+          "test/test_getting_columns.py::test_queries_with_distinct": "PASSED",
+          "test/test_getting_columns.py::test_joins": "PASSED",
+          "test/test_getting_columns.py::test_getting_columns": "PASSED",
+          "test/test_getting_columns.py::test_columns_with_order_by": "PASSED",
+          "test/test_getting_columns.py::test_update_and_replace": "PASSED",
+          "test/test_getting_columns.py::test_complex_queries_columns": "PASSED"
+        },
+        "f2p_failing": [
+          "test/test_getting_columns.py::test_columns_and_sql_functions"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.24
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "test/test_getting_columns.py::test_columns_and_sql_functions": "PASSED",
+          "test/test_getting_columns.py::test_cast_and_convert_functions": "PASSED",
+          "test/test_getting_columns.py::test_queries_with_null_conditions": "PASSED",
+          "test/test_getting_columns.py::test_queries_with_distinct": "PASSED",
+          "test/test_getting_columns.py::test_joins": "PASSED",
+          "test/test_getting_columns.py::test_getting_columns": "PASSED",
+          "test/test_getting_columns.py::test_columns_with_order_by": "PASSED",
+          "test/test_getting_columns.py::test_update_and_replace": "PASSED",
+          "test/test_getting_columns.py::test_complex_queries_columns": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.4
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "test/test_getting_columns.py::test_columns_and_sql_functions": "FAILED",
+          "test/test_getting_columns.py::test_cast_and_convert_functions": "PASSED",
+          "test/test_getting_columns.py::test_queries_with_null_conditions": "PASSED",
+          "test/test_getting_columns.py::test_queries_with_distinct": "PASSED",
+          "test/test_getting_columns.py::test_joins": "PASSED",
+          "test/test_getting_columns.py::test_getting_columns": "PASSED",
+          "test/test_getting_columns.py::test_columns_with_order_by": "PASSED",
+          "test/test_getting_columns.py::test_update_and_replace": "PASSED",
+          "test/test_getting_columns.py::test_complex_queries_columns": "PASSED"
+        },
+        "f2p_failing": [
+          "test/test_getting_columns.py::test_columns_and_sql_functions"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.27
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "test/test_getting_columns.py::test_columns_and_sql_functions": "PASSED",
+          "test/test_getting_columns.py::test_cast_and_convert_functions": "PASSED",
+          "test/test_getting_columns.py::test_queries_with_null_conditions": "PASSED",
+          "test/test_getting_columns.py::test_queries_with_distinct": "PASSED",
+          "test/test_getting_columns.py::test_joins": "PASSED",
+          "test/test_getting_columns.py::test_getting_columns": "PASSED",
+          "test/test_getting_columns.py::test_columns_with_order_by": "PASSED",
+          "test/test_getting_columns.py::test_update_and_replace": "PASSED",
+          "test/test_getting_columns.py::test_complex_queries_columns": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.21
+      }
+    }
+  ]
+}

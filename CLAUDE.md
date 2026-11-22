@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `AGENTS.md` (imported above) holds the working rules: communication, coding, step size, testing, safety, git and the completion report. This file holds the project's facts and the Claude-specific way of working.
 
-**Cloud sessions:** Docker may not be available there. Without a Docker daemon, the `docker` tests skip and `mergewright run` / `mergewright tasks validate` cannot run; say so in the report instead of claiming they passed. Downloads from Hugging Face or Docker Hub need the environment's network access and the owner's approval.
+**Cloud sessions:** run `bash scripts/cloud-setup.sh` first (as root; idempotent; `--no-images` skips the task images, about 5 GB each). It starts the Docker daemon, creates the non-root user `mw`, installs the venv, builds `mergewright-python:1` through the session proxy and pulls the pinned task images. Then run `pytest`, `mergewright tasks …` and `mergewright run` as `mw` (`su mw -s /bin/bash -c '. .venv/bin/activate && pytest -q'`): as root, the sandbox user cannot write the workspace. Run the script again after the agent writes files, so `mw` owns them. The environment `mergewright_cloud` allows `datasets-server.huggingface.co` and `deb.debian.org`. On this host, `test_cpu_memory_and_pid_limits_are_set_in_the_cgroup` fails (cgroup v1; the test reads v2 files). If Docker cannot start, the `docker` tests skip and `mergewright run` / `tasks validate` cannot run; say so in the report instead of claiming they passed. New downloads (datasets, images) still need the owner's approval.
 
 ## Current state
 
