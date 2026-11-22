@@ -1,5 +1,6 @@
 """Environments: how a run gets its workspace and sandbox. Fake docker and sandboxes only."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -93,7 +94,11 @@ def test_image_repo_copies_the_repo_out_of_the_image(tmp_path: Path):
 
     create, cp, rm = docker.calls
     name = create[create.index("--name") + 1]
-    assert create == ["create", "--name", name, "img@sha256:abc"]
+    assert re.fullmatch(  # labelled like a sandbox, so sweep_orphans finds it after a crash
+        rf"create --name {name} --label mergewright\.sandbox=1 --label mergewright\.run_id=copy "
+        r"--label mergewright\.created=\d+ img@sha256:abc",
+        " ".join(create),
+    )
     assert cp == ["cp", f"{name}:/testbed", str(tmp_path / "ws")]
     assert rm == ["rm", "-f", name]
     assert (tmp_path / "ws" / "setup.py").exists()

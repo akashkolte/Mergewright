@@ -1,0 +1,64 @@
+{
+  "instance_id": "0b01001001__spectree-64",
+  "base_commit": "a091fab020ac26548250c907bae0855273a98778",
+  "created_at": "2020-10-12 13:21:50",
+  "environment_setup_commit": "a091fab020ac26548250c907bae0855273a98778",
+  "hints_text": "",
+  "patch": "diff --git a/setup.py b/setup.py\nindex 1b3cb64..4ef21e6 100644\n--- a/setup.py\n+++ b/setup.py\n@@ -14,7 +14,7 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:\n \n setup(\n     name='spectree',\n-    version='0.3.7',\n+    version='0.3.8',\n     author='Keming Yang',\n     author_email='kemingy94@gmail.com',\n     description=('generate OpenAPI document and validate request&response '\ndiff --git a/spectree/utils.py b/spectree/utils.py\nindex bb5698d..73d6c71 100644\n--- a/spectree/utils.py\n+++ b/spectree/utils.py\n@@ -54,6 +54,7 @@ def parse_params(func, params, models):\n                 'in': 'query',\n                 'schema': schema,\n                 'required': name in query.get('required', []),\n+                'description': schema.get('description', ''),\n             })\n \n     if hasattr(func, 'headers'):\n@@ -64,6 +65,7 @@ def parse_params(func, params, models):\n                 'in': 'header',\n                 'schema': schema,\n                 'required': name in headers.get('required', []),\n+                'description': schema.get('description', ''),\n             })\n \n     if hasattr(func, 'cookies'):\n@@ -74,6 +76,7 @@ def parse_params(func, params, models):\n                 'in': 'cookie',\n                 'schema': schema,\n                 'required': name in cookies.get('required', []),\n+                'description': schema.get('description', ''),\n             })\n \n     return params\n",
+  "problem_statement": "[BUG]description for query paramters can not show in swagger ui\nHi, when I add a description for a schema used in query, it can not show in swagger ui but can show in Redoc\r\n```py\r\n@HELLO.route('/', methods=['GET'])\r\n@api.validate(query=HelloForm)\r\ndef hello():\r\n    \"\"\"\r\n    hello \u6ce8\u91ca\r\n    :return:\r\n    \"\"\"\r\n   return 'ok'\r\n\r\nclass HelloForm(BaseModel):\r\n    \"\"\"\r\n    hello\u8868\u5355\r\n    \"\"\"\r\n    user: str # \u7528\u6237\u540d\u79f0\r\n    msg: str = Field(description='msg test', example='aa')\r\n    index: int\r\n    data: HelloGetListForm\r\n    list: List[HelloListForm]\r\n```\r\n\r\n![\u622a\u5c4f2020-10-12 \u4e0b\u53487 54 52](https://user-images.githubusercontent.com/60063723/95743785-de70f480-0cc4-11eb-857b-fffd3d7e9cdd.png)\r\n![\u622a\u5c4f2020-10-12 \u4e0b\u53487 53 59](https://user-images.githubusercontent.com/60063723/95743805-e5980280-0cc4-11eb-99ae-11e6439bae02.png)\r\n\r\n\r\n",
+  "repo": "0b01001001/spectree",
+  "test_patch": "diff --git a/tests/common.py b/tests/common.py\nindex 0f2d696..83b4140 100644\n--- a/tests/common.py\n+++ b/tests/common.py\n@@ -1,7 +1,7 @@\n from enum import IntEnum, Enum\n from typing import List\n \n-from pydantic import BaseModel, root_validator\n+from pydantic import BaseModel, root_validator, Field\n \n \n class Order(IntEnum):\n@@ -43,7 +43,7 @@ class Cookies(BaseModel):\n class DemoModel(BaseModel):\n     uid: int\n     limit: int\n-    name: str\n+    name: str = Field(..., description='user name')\n \n \n def get_paths(spec):\ndiff --git a/tests/test_utils.py b/tests/test_utils.py\nindex bf3426d..53dd3e1 100644\n--- a/tests/test_utils.py\n+++ b/tests/test_utils.py\n@@ -98,8 +98,10 @@ def test_parse_params():\n         'name': 'uid',\n         'in': 'query',\n         'required': True,\n+        'description': '',\n         'schema': {\n             'title': 'Uid',\n             'type': 'integer',\n         }\n     }\n+    assert params[2]['description'] == 'user name'\n",
+  "meta": {
+    "commit_name": "head_commit",
+    "failed_lite_validators": [
+      "has_hyperlinks",
+      "has_media",
+      "has_many_modified_files",
+      "has_many_hunks"
+    ],
+    "has_test_patch": true,
+    "is_lite": false,
+    "llm_score": {
+      "difficulty_score": 1,
+      "issue_text_score": 2,
+      "test_score": 0
+    },
+    "num_modified_files": 2
+  },
+  "version": "0.3",
+  "install_config": {
+    "env_vars": null,
+    "env_yml_path": null,
+    "install": "pip install -e .[flask,falcon,starlette]",
+    "log_parser": "parse_log_pytest",
+    "no_use_env": null,
+    "packages": "requirements.txt",
+    "pip_packages": [
+      "pytest"
+    ],
+    "pre_install": null,
+    "python": "3.9",
+    "reqs_path": [
+      "requirements.txt"
+    ],
+    "test_cmd": "pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning"
+  },
+  "requirements": "annotated-types==0.7.0\nanyio==4.9.0\nblinker==1.9.0\ncertifi==2025.1.31\ncharset-normalizer==3.4.1\nclick==8.1.8\nexceptiongroup==1.2.2\nfalcon==4.0.2\nFlask==3.1.0\nidna==3.10\nimportlib_metadata==8.6.1\niniconfig==2.1.0\nitsdangerous==2.2.0\nJinja2==3.1.6\nMarkupSafe==3.0.2\npackaging==24.2\npluggy==1.5.0\npydantic==2.11.1\npydantic_core==2.33.0\npytest==8.3.5\nrequests==2.32.3\nsniffio==1.3.1\n-e git+https://github.com/0b01001001/spectree.git@a091fab020ac26548250c907bae0855273a98778#egg=spectree\nstarlette==0.46.1\ntomli==2.2.1\ntyping-inspection==0.4.0\ntyping_extensions==4.13.0\nurllib3==2.3.0\nWerkzeug==3.1.3\nzipp==3.21.0\n",
+  "environment": "name: spectree\nchannels:\n  - defaults\n  - https://repo.anaconda.com/pkgs/main\n  - https://repo.anaconda.com/pkgs/r\n  - conda-forge\ndependencies:\n  - _libgcc_mutex=0.1=main\n  - _openmp_mutex=5.1=1_gnu\n  - ca-certificates=2025.2.25=h06a4308_0\n  - ld_impl_linux-64=2.40=h12ee557_0\n  - libffi=3.4.4=h6a678d5_1\n  - libgcc-ng=11.2.0=h1234567_1\n  - libgomp=11.2.0=h1234567_1\n  - libstdcxx-ng=11.2.0=h1234567_1\n  - ncurses=6.4=h6a678d5_0\n  - openssl=3.0.16=h5eee18b_0\n  - pip=25.0=py39h06a4308_0\n  - python=3.9.21=he870216_1\n  - readline=8.2=h5eee18b_0\n  - setuptools=75.8.0=py39h06a4308_0\n  - sqlite=3.45.3=h5eee18b_0\n  - tk=8.6.14=h39e8969_0\n  - tzdata=2025a=h04d1e81_0\n  - wheel=0.45.1=py39h06a4308_0\n  - xz=5.6.4=h5eee18b_1\n  - zlib=1.2.13=h5eee18b_1\n  - pip:\n      - annotated-types==0.7.0\n      - anyio==4.9.0\n      - blinker==1.9.0\n      - certifi==2025.1.31\n      - charset-normalizer==3.4.1\n      - click==8.1.8\n      - exceptiongroup==1.2.2\n      - falcon==4.0.2\n      - flask==3.1.0\n      - idna==3.10\n      - importlib-metadata==8.6.1\n      - iniconfig==2.1.0\n      - itsdangerous==2.2.0\n      - jinja2==3.1.6\n      - markupsafe==3.0.2\n      - packaging==24.2\n      - pluggy==1.5.0\n      - pydantic==2.11.1\n      - pydantic-core==2.33.0\n      - pytest==8.3.5\n      - requests==2.32.3\n      - sniffio==1.3.1\n      - starlette==0.46.1\n      - tomli==2.2.1\n      - typing-extensions==4.13.0\n      - typing-inspection==0.4.0\n      - urllib3==2.3.0\n      - werkzeug==3.1.3\n      - zipp==3.21.0\nprefix: /opt/conda/envs/spectree\n",
+  "FAIL_TO_PASS": [
+    "tests/test_utils.py::test_parse_params"
+  ],
+  "FAIL_TO_FAIL": [],
+  "PASS_TO_PASS": [
+    "tests/test_utils.py::test_comments",
+    "tests/test_utils.py::test_parse_code",
+    "tests/test_utils.py::test_parse_name",
+    "tests/test_utils.py::test_has_model",
+    "tests/test_utils.py::test_parse_resp",
+    "tests/test_utils.py::test_parse_request"
+  ],
+  "PASS_TO_FAIL": [],
+  "license_name": "Apache License 2.0",
+  "docker_image": "swerebench/sweb.eval.x86_64.0b01001001_1776_spectree-64",
+  "image_name": "swerebench/sweb.eval.x86_64.0b01001001_1776_spectree-64"
+}

@@ -225,16 +225,30 @@ def _default_user() -> str:
     return f"{uid}:{gid}" if uid != 0 else "65534:65534"
 
 
-def copy_from_image(image: str, src_path: str, dest: Path, docker: Docker = docker_cli) -> None:
+def copy_from_image(
+    image: str,
+    src_path: str,
+    dest: Path,
+    docker: Docker = docker_cli,
+    clock: Callable[[], float] = time.time,
+) -> None:
     """Copy src_path (e.g. a task image's /testbed, with its .git) out of image into dest.
 
-    Uses a created, never-started container, which is always removed. dest must not exist.
+    Uses a created, never-started container, which is always removed. It carries the sandbox
+    labels, so sweep_orphans removes it if a crash skips the removal. dest must not exist.
     """
     if dest.exists():
         raise SandboxError(f"{dest} already exists")
     dest.parent.mkdir(parents=True, exist_ok=True)
     name = f"mw-copy-{secrets.token_hex(4)}"
-    created = docker(["create", "--name", name, image])
+    args = [
+        "create", "--name", name,
+        "--label", f"{SANDBOX_LABEL}=1",
+        "--label", f"{RUN_LABEL}=copy",
+        "--label", f"{CREATED_LABEL}={int(clock())}",
+        image,
+    ]  # fmt: skip
+    created = docker(args)
     if created.code != 0:
         raise SandboxError(f"docker create failed for {image}: {created.output.strip()[-500:]}")
     try:
