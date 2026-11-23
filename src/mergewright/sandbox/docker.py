@@ -145,7 +145,10 @@ class DockerSandbox:
         if not _COMMIT.match(base_sha):
             raise SandboxError(f"base must be a commit hash, got {base_sha!r}")
         self._git(["checkout", "--force", "--detach", base_sha])
-        self._git(["clean", "-ffdxq"])
+        # Untracked files go; ignored ones stay (no -x): task images keep compiled modules and
+        # package metadata (*.so, *.egg-info) as ignored files, and the tests need them. The
+        # oracle starts from a fresh copy each time, so ignored files never reach a verdict.
+        self._git(["clean", "-ffdq"])
         if patch:
             self._git(["apply", "--whitespace=nowarn"], input=patch)
         self._base = base_sha

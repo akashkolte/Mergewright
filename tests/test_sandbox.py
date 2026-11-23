@@ -224,7 +224,7 @@ def test_reset_checks_out_cleans_and_applies_the_patch(tmp_path: Path):
     git = [(args, stdin) for args, stdin in docker.calls if "git" in args]
     steps = [" ".join(args[args.index("git") :]) for args, _ in git]
     assert "checkout --force --detach " + "a" * 40 in steps[0]
-    assert "clean -ffdxq" in steps[1]
+    assert steps[1].endswith("clean -ffdq")  # not -x: ignored build output stays
     assert "apply" in steps[2] and git[2][1] == "diff --git a/x b/x\n"
     assert all("core.hooksPath=/dev/null" in step for step in steps)
 

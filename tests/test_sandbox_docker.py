@@ -189,6 +189,30 @@ def test_reset_restores_base_plus_patch_and_diff_reports_it(tmp_path: Path):
     assert "junk.txt" not in diff
 
 
+def test_reset_keeps_ignored_build_output(tmp_path: Path):
+    """Task images keep compiled modules and package metadata as git-ignored files in the repo
+    (e.g. rsatoolbox's `similarity.*.so`, sqlfluff's `*.egg-info`); the tests need them."""
+    repo = tmp_path / "repo"
+    make_repo(repo)
+    (repo / ".gitignore").write_text("*.so\n*.egg-info/\n")
+    git(repo, "add", ".gitignore")
+    git(repo, "commit", "-qm", "ignore build output")
+    base = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "fast.cpython-39-x86_64-linux-gnu.so").write_bytes(b"\x7fELF")
+    (repo / "calc.egg-info").mkdir()
+    (repo / "calc.egg-info" / "entry_points.txt").write_text("[plugins]\n")
+    box = DockerSandbox.start(IMAGE, repo, run_id="ignored", limits=LIMITS)
+    try:
+        box.reset(base, "")
+        diff = box.diff()
+    finally:
+        box.close()
+
+    assert (repo / "fast.cpython-39-x86_64-linux-gnu.so").exists()
+    assert (repo / "calc.egg-info" / "entry_points.txt").exists()
+    assert ".so" not in diff and "egg-info" not in diff
+
+
 def test_diff_includes_new_files(tmp_path: Path):
     repo = tmp_path / "repo"
     base = make_repo(repo)
