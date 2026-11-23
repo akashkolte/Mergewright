@@ -221,11 +221,10 @@ Base runs on the owner's Apple Silicon Mac (Docker Desktop; under 35 GB free dis
    `wall_s`, `steps`, `tokens_in/out` and `failure_category` in
    `results/<eval-id>/runs/*/base/1.json`; fix any pipeline bug before step 4 (as in steps 11
    and 12, the first real run of a path has found one each time). The pilot is not Base.
-4. **Base.** `bash scripts/eval-tasks.sh --split dev --k 3 --llm live --jobs 3` with every dev
-   task but `kornia__kornia-1740` (28.9 GB unpacked; it may not fit), listed explicitly; note the
-   eval id it prints. Then free disk or raise Docker Desktop's disk limit and add kornia:
-   `bash scripts/eval-tasks.sh --split dev --k 3 --llm live --jobs 3 --eval-id <id>
-   kornia__kornia-1740`. An interrupted run continues with `--eval-id <id>`. Do not change code,
+4. **Base.** `bash scripts/eval-tasks.sh --split dev --k 3 --llm live --jobs 3` (every dev
+   task; images 4.7–8.7 GB, one on disk at a time); note the eval id it prints. An interrupted
+   run continues with `--eval-id <id>`. (`kornia-1740`, 28.9 GB, was replaced by
+   `arctic3d-181` before any run; `crate-python-472` in between was invalid: `eval/PLAN.md`.) Do not change code,
    prompts, `.env` or package versions between invocations (`--resume` refuses). `--jobs 3`:
    lower it if the Mac runs out of memory (each sandbox has its task's memory ceiling).
 5. **Lost trials.** A trial whose run failed only because the endpoint could not be reached (VPN

@@ -1,0 +1,27 @@
+{
+  "id": "haddocking__arctic3d-181",
+  "source": "swe-rebench",
+  "split": "dev",
+  "repo": "haddocking/arctic3d",
+  "base_sha": "e6fd4a88dfeb9ce8b7bf0dd104f5c513658cf57e",
+  "image": "swerebench/sweb.eval.x86_64.haddocking_1776_arctic3d-181@sha256:45789e8e4addce2716393a067afd65ebc2d9cf1c5b17b145f6572969ce7f32be",
+  "repo_dir": "/testbed",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "tests/test_cli_resclust.py::test_resclust_cli",
+    "tests/test_cli_resclust.py::test_wrong_residue_list",
+    "tests/test_cli_resclust.py::test_resclust_maxclust"
+  ],
+  "p2p": [],
+  "test_cmd": "source /opt/conda/etc/profile.d/conda.sh && conda activate testbed && pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2023-01-11T09:36:52Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 1800
+}
