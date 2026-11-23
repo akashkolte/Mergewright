@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 import mergewright.__main__ as cli
-from mergewright.__main__ import EXIT_CONFIG, EXIT_DONE, main
+from mergewright.__main__ import EXIT_CONFIG, EXIT_DONE, EXIT_FAILED, main
 from mergewright.environments import DEFAULT_IMAGE
 from tests.conftest import BUGGY_LINE, EXAMPLES_DIR, REPO_ROOT
 from tests.test_evaluation import make_task, mark_valid
@@ -125,6 +125,21 @@ def test_tasks_validate_stale_runs_only_missing_and_stale_records(tmp_path, monk
     assert listed == code == EXIT_DONE
     assert states == ["valid (x)", "stale (x)", "not validated"]
     assert validated == ["org__r-2", "org__r-3"]
+
+
+def test_tasks_list_check_fails_unless_every_listed_record_is_current(tmp_path: Path, capsys):
+    current, stale = make_task(tmp_path, "org__r-1"), make_task(tmp_path, "org__r-2")
+    mark_valid(current)
+    mark_valid(stale)
+    gold = stale.path / "gold.patch"
+    original = gold.read_bytes()
+    gold.write_text("changed")
+    common = ["tasks", "list", "--tasks-dir", str(tmp_path), "--check"]
+
+    assert main(common) == EXIT_FAILED  # org__r-2 is stale
+    assert main([*common, "--split", "smoke"]) == EXIT_DONE  # no smoke tasks listed
+    gold.write_bytes(original)  # current again
+    assert main(common) == EXIT_DONE
 
 
 def test_eval_checks_its_inputs_before_any_run(tmp_path: Path, capsys):

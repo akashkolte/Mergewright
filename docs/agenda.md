@@ -27,7 +27,7 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 12. ✅ `mergewright eval --split --system --k` → `results/` per trial (resolved, tokens, $, latency, steps, tool calls, failure category, trace) + manifest (server-reported model ID and dates, task fingerprints). Validation fingerprint + `tasks validate --stale`; eval refuses invalid or stale tasks.
 13. ✅ `mergewright report`: bootstrap over tasks; paired bootstrap and McNemar for system pairs → Markdown tables.
 14. Baseline (Base): the current agent unchanged, config frozen, dev at k = 3 → the reference results.
-15. CI: ruff, pytest (unit and Docker guard tests), replay smoke suite, `tasks validate --stale` for smoke; fingerprint check (warning) for SWE-rebench tasks.
+15. ✅ CI: ruff, pytest (unit and Docker guard tests), replay smoke suite, `tasks list --split smoke --check` (fails the build); the same check for dev as a warning.
 
 **Exit:** Base dev table with task-level intervals, generated from manifests.
 

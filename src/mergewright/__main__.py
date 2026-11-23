@@ -98,7 +98,13 @@ def _parser() -> argparse.ArgumentParser:
     )
     val.add_argument("--runs", type=int, default=3)
     val.add_argument("--work-dir", type=Path, default=Path("runs/oracle"))
-    tasks_sub.add_parser("list", parents=[common], help="list tasks and their validation status")
+    lst = tasks_sub.add_parser("list", parents=[common], help="list tasks and validation status")
+    lst.add_argument("--split", choices=get_args(Split), help="only tasks of this split")
+    lst.add_argument(
+        "--check",
+        action="store_true",
+        help="exit 1 unless every listed record is valid and current",
+    )
     sel = tasks_sub.add_parser("select", help="dev candidates from SWE-rebench, in rule order")
     sel.add_argument("--count", type=int, default=30)
     sel.add_argument("--per-repo", type=int, default=1)
@@ -227,9 +233,11 @@ def _tasks(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_CONFIG
     if args.tasks_command == "list":
-        for task in tasks:
+        listed = [task for task in tasks if args.split in (None, task.split)]
+        for task in listed:
             print(f"{task.id}  {task.split}  {_validation_status(task)}")
-        return EXIT_DONE
+        current = all(validation_state(task)[0] == "valid" for task in listed)
+        return EXIT_FAILED if args.check and not current else EXIT_DONE
     if not tasks:
         print(f"error: no tasks in {args.tasks_dir}", file=sys.stderr)
         return EXIT_CONFIG

@@ -183,10 +183,15 @@ infra error. Refuses evals on different splits; warns when models or a shared ta
 fingerprint differ, or an eval is incomplete. Check: two smoke evals (k = 2 and k = 1) report
 100 % each and a delta of +0.0 [+0.0, +0.0], not distinguishable.
 
-## Step 15: CI (planned)
+## Step 15: CI (done)
 
-On every push: `ruff format --check`, `ruff check`, `pytest` (unit and Docker guard tests, with
-`mergewright-python:1` built in CI) and the replay smoke suite. Also `tasks validate --stale`
-for the smoke split (cheap: local tasks, no task images). For SWE-rebench tasks, CI only checks
-fingerprints (no image pulls) and reports stale records as a warning, not a failure; they are
-re-validated in a cloud session before the next measured run.
+`.github/workflows/ci.yml`, on every push and pull request: `ruff format --check`, `ruff check`,
+`docker build` of `mergewright-python:1`, `pytest` (unit tests, Docker guard tests and the
+replay smoke suite: `tests/test_smoke_docker.py`, `tests/test_eval_docker.py`), then the record
+checks. `mergewright tasks list --split smoke --check` fails the build unless every smoke record
+is valid and current, so a change to verdict code must come with re-validated smoke records
+(`mergewright tasks validate --stale`, about 1 minute). For dev the same check is a warning only
+(no image pulls in CI); those records are re-validated in a cloud session before the next
+measured run. Tests that need a SWE-rebench image skip in CI. Changed from the plan: CI checks
+the committed records instead of re-validating them, because a validation in CI that is not
+committed would not show that the committed records are current.
