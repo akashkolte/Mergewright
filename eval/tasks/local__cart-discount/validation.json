@@ -4,12 +4,96 @@
   "problems": [],
   "flaky": [],
   "image": "mergewright-python:1",
-  "fingerprint": "sha256:cb0341ecfe5ef7c7b60a92f8e1502446246a10370ce18220d85d45a3f9d87eb2",
-  "validated_at": "2026-11-23T17:59:24Z",
-  "seconds": 10.8,
+  "fingerprint": "sha256:7b0b5d7d5662e346774284d9adf34a1d979a57653c85d2eb7dcbbcba5cfa257d",
+  "validated_at": "2026-11-23T21:04:34Z",
+  "seconds": 10.95,
   "runs": [
     {
       "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "FAILED",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "FAILED",
+          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
+          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
+          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
+          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.82
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "PASSED",
+          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
+          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
+          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
+          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.95
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "FAILED",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "FAILED",
+          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
+          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
+          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
+          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.78
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "PASSED",
+          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
+          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
+          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
+          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
+          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 1.75
+      }
+    },
+    {
+      "run": 3,
       "empty": {
         "resolved": false,
         "tests": {
@@ -47,91 +131,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 1.87
-      }
-    },
-    {
-      "run": 2,
-      "empty": {
-        "resolved": false,
-        "tests": {
-          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "FAILED",
-          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "FAILED",
-          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
-          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
-          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
-          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
-          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
-        },
-        "f2p_failing": [
-          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent",
-          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent"
-        ],
-        "p2p_failing": [],
-        "patch_applies": true,
-        "timed_out": false,
-        "infra_error": "",
-        "seconds": 1.77
-      },
-      "gold": {
-        "resolved": true,
-        "tests": {
-          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "PASSED",
-          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "PASSED",
-          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
-          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
-          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
-          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
-          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
-        },
-        "f2p_failing": [],
-        "p2p_failing": [],
-        "patch_applies": true,
-        "timed_out": false,
-        "infra_error": "",
-        "seconds": 1.78
-      }
-    },
-    {
-      "run": 3,
-      "empty": {
-        "resolved": false,
-        "tests": {
-          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "FAILED",
-          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "FAILED",
-          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
-          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
-          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
-          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
-          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
-        },
-        "f2p_failing": [
-          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent",
-          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent"
-        ],
-        "p2p_failing": [],
-        "patch_applies": true,
-        "timed_out": false,
-        "infra_error": "",
-        "seconds": 1.78
-      },
-      "gold": {
-        "resolved": true,
-        "tests": {
-          "tests/test_cart.py::test_total_rounds_the_discounted_price_to_the_nearest_cent": "PASSED",
-          "tests/test_pricing.py::test_percent_off_rounds_to_the_nearest_cent": "PASSED",
-          "tests/test_cart.py::test_subtotal_sums_the_quantities": "PASSED",
-          "tests/test_cart.py::test_add_rejects_a_zero_quantity": "PASSED",
-          "tests/test_cart.py::test_total_without_a_discount": "PASSED",
-          "tests/test_cart.py::test_total_with_a_discount": "PASSED",
-          "tests/test_pricing.py::test_percent_off_rejects_more_than_100": "PASSED"
-        },
-        "f2p_failing": [],
-        "p2p_failing": [],
-        "patch_applies": true,
-        "timed_out": false,
-        "infra_error": "",
-        "seconds": 1.77
+        "seconds": 1.82
       }
     }
   ]

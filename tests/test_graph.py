@@ -7,10 +7,10 @@ from mergewright.config import Limits
 from mergewright.graph import AgentDeps, build_graph, initial_state, recursion_limit
 from mergewright.llm import LLMError, LLMResponse, ScriptedLLM, ToolCall
 from mergewright.runlog import RunLog
-from mergewright.sandbox import Canary
+from mergewright.sandbox import Canary, ExecResult
 from mergewright.tools import Workspace
 from tests.conftest import BUGGY_LINE, FIXED_LINES
-from tests.fakes import LocalSandbox
+from tests.fakes import LocalSandbox, ScriptedSandbox
 
 WRONG_FIX = "    return ordered[len(ordered) // 2 - 1]\n"  # wrong for both odd and even lengths
 
@@ -218,6 +218,23 @@ def test_tester_rejects_a_test_that_passed_at_base_and_now_fails(buggy_calc: Pat
     final, _ = run(buggy_calc, llm, known_failing=known)
 
     assert final["status"] == "FAILED_NO_FIX"  # the wrong fix breaks the odd-length test
+
+
+def test_tester_ignores_a_failure_that_passes_when_re_run_alone(buggy_calc: Path):
+    flaky_run = ScriptedSandbox(
+        [
+            ExecResult(1, "FAILED tests/test_calc.py::test_median_even_length\n5 passed\n", False),
+            ExecResult(0, "1 passed in 0.01s\n", False),  # the re-run of the blamed test
+        ]
+    )
+
+    final, events = run(buggy_calc, ScriptedLLM([done()]), sandbox=flaky_run)
+
+    assert final["status"] == "DONE" and final["test_attempts"] == 1
+    (result,) = [e for e in events if e["event"] == "test_result"]
+    assert result["problems"] == [] and result["flaky"] == [
+        "tests/test_calc.py::test_median_even_length"
+    ]
 
 
 def test_tool_output_with_the_canary_is_redacted_and_logged(buggy_calc: Path):

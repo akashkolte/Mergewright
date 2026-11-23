@@ -30,6 +30,7 @@ from mergewright.tools import (
     DEFAULT_TEST_COMMAND,
     TOOLS,
     Workspace,
+    confirm_failures,
     execute,
     gate,
     run_tests,
@@ -145,7 +146,12 @@ def tester_step(state: AgentState, deps: AgentDeps) -> dict[str, Any]:
     attempt = state["test_attempts"] + 1
     begin = deps.clock()
     report = run_tests(deps.sandbox, deps.test_command, timeout_s=deps.limits.tool_timeout_s)
-    problems = gate(report, deps.known_failing)
+    problems, flaky = confirm_failures(
+        deps.sandbox,
+        deps.test_command,
+        gate(report, deps.known_failing),
+        deps.limits.tool_timeout_s,
+    )
     deps.log.event(
         "tool_call",
         agent="tester",
@@ -155,7 +161,7 @@ def tester_step(state: AgentState, deps: AgentDeps) -> dict[str, Any]:
         output=report.log_tail,
         seconds=round(deps.clock() - begin, 3),
     )
-    deps.log.event("test_result", attempt=attempt, problems=problems, **asdict(report))
+    deps.log.event("test_result", attempt=attempt, problems=problems, flaky=flaky, **asdict(report))
     if not problems:
         return {"test_attempts": attempt, "status": "DONE", "reason": "all tests pass"}
     if attempt >= deps.limits.max_test_attempts:

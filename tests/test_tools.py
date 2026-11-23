@@ -9,6 +9,7 @@ from mergewright.tools import (
     TOOLS,
     ToolError,
     Workspace,
+    confirm_failures,
     edit_file,
     execute,
     gate,
@@ -316,17 +317,48 @@ def test_execute_returns_tool_errors_as_results(buggy_calc: Path):
 
 
 def test_coder_run_tests_runs_the_chosen_ids_shell_quoted_and_lists_failures():
-    sandbox = scripted(FAILING_RUN, 1)
+    still_failing = ExecResult(1, FAILING_RUN, False)
+    sandbox = ScriptedSandbox([ExecResult(1, FAILING_RUN, False), still_failing])
     ids = ["tests/test_calc.py::test_median_even_length", "tests/x.py::t[a b]"]
 
     result = run_tests_for_coder(sandbox, "pytest -q", json.dumps({"test_ids": ids}), 60)
 
-    (argv,) = sandbox.commands
-    assert argv[2].endswith(
+    chosen, rerun = sandbox.commands
+    assert chosen[2].endswith(
         "pytest -q tests/test_calc.py::test_median_even_length 'tests/x.py::t[a b]'"
     )
+    assert rerun[2].endswith("pytest -q tests/test_calc.py::test_median_even_length")
     assert result.ok and "5 passed, 1 failed" in result.output
     assert "- tests/test_calc.py::test_median_even_length" in result.output
+
+
+def test_confirm_failures_drops_a_test_that_passes_when_re_run_alone():
+    blamed = ["tests/test_slug.py::test_slug[a-1]", "(no test passed)"]
+    flaky = ScriptedSandbox([ExecResult(0, "1 passed in 0.01s\n", False)])
+    real = ScriptedSandbox([ExecResult(1, "FAILED tests/test_slug.py::test_slug[a-1]\n", False)])
+    lost = ScriptedSandbox([ExecResult(124, "", True)])
+
+    assert confirm_failures(flaky, "pytest", blamed, 60) == (
+        ["(no test passed)"],
+        ["tests/test_slug.py::test_slug[a-1]"],
+    )
+    assert confirm_failures(real, "pytest", blamed, 60) == (blamed, [])
+    assert confirm_failures(lost, "pytest", blamed, 60) == (blamed, [])  # in doubt: failing
+    assert confirm_failures(ScriptedSandbox([]), "pytest", ["(timed out)"], 60) == (
+        ["(timed out)"],
+        [],
+    )  # nothing to re-run
+
+
+def test_coder_run_tests_says_when_a_failure_was_flaky():
+    sandbox = ScriptedSandbox(
+        [ExecResult(1, FAILING_RUN, False), ExecResult(0, "1 passed in 0.01s\n", False)]
+    )
+
+    result = run_tests_for_coder(sandbox, "pytest", "{}", 60)
+
+    assert result.output.startswith("No new failures.")
+    assert "passed when re-run alone (flaky; ignored):\n- tests/test_calc.py" in result.output
 
 
 def test_coder_run_tests_refuses_options_and_never_runs_them():

@@ -245,6 +245,30 @@ def _strip_message(rest: str) -> str:
     return rest.strip()
 
 
+def confirm_failures(
+    sandbox: Sandbox, command: str, problems: list[str], timeout_s: float
+) -> tuple[list[str], list[str]]:
+    """Re-run the tests the gate blamed, alone, once: (still failing, flaky).
+
+    A test that passes on the re-run is flaky (base attempt 1: textual's slug tests fail a
+    different subset on every run of unchanged code) and does not block DONE. Conservative: a
+    test counts as passed only when pytest exits 0 or lists it as PASSED; a timeout, an id
+    pytest cannot select, or any other doubt keeps it failing. Markers such as "(timed out)"
+    are not tests and are kept. Trade-off: a regression that shows only in the full suite's
+    order is missed; the hidden-test oracle still judges the fix.
+    """
+    ids = [problem for problem in problems if not problem.startswith("(")]
+    if not ids:
+        return problems, []
+    rerun = run_tests(sandbox, f"{command} {shlex.join(ids)}", timeout_s=timeout_s)
+    if rerun.timed_out:
+        return problems, []
+    passed = (
+        set(ids) if rerun.exit_code == 0 else {t for t in ids if rerun.results.get(t) == "PASSED"}
+    )
+    return [p for p in problems if p not in passed], [t for t in ids if t in passed]
+
+
 def gate(report: TestReport, known_failing: frozenset[str] = frozenset()) -> list[str]:
     """What still blocks DONE: a regression check; empty when the run is good enough.
 
@@ -315,15 +339,18 @@ def run_tests_for_coder(
     bad = [test for test in args.test_ids if not test.strip() or test.startswith("-")]
     if bad:
         return ToolResult(False, f"not a test file or node id: {bad}")
+    base_command = command
     if args.test_ids:
         command = f"{command} {shlex.join(args.test_ids)}"
     report = run_tests(sandbox, command, timeout_s=timeout_s)
     if report.timed_out:
         return ToolResult(True, f"tests timed out after {timeout_s}s; run fewer tests")
     failing = report.failures + report.errors
-    new = [t for t in failing if t not in known_failing]
     old = [t for t in failing if t in known_failing]
-    problems = gate(report, known_failing)
+    problems, flaky = confirm_failures(
+        sandbox, base_command, gate(report, known_failing), timeout_s
+    )
+    new = [t for t in failing if t in problems]
     counts = f"{report.num_passed} passed, {report.num_failed} failed, {report.num_errors} errors."
     if not problems:
         verdict = "All selected tests passed." if not failing else "No new failures."
@@ -334,6 +361,8 @@ def run_tests_for_coder(
         lines = [f"Not a pass: {problems[0]}. {counts}"]
     if old:
         lines.append(_listed("Already failing before your change (not caused by you)", old))
+    if flaky:
+        lines.append(_listed("Failed, then passed when re-run alone (flaky; ignored)", flaky))
     if problems:
         lines.append(f"Output (last lines):\n{report.log_tail}")
     return ToolResult(True, "\n".join(lines))
