@@ -1,0 +1,140 @@
+{
+  "task": "reata__sqllineage-369",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "swerebench/sweb.eval.x86_64.reata_1776_sqllineage-369@sha256:549ffd6efa489c88954fa0a75a14084ac5deb486bc7afb0f8f5db8f46f230d19",
+  "validated_at": "2026-11-23T00:10:06Z",
+  "seconds": 216.21,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_cte.py::test_with_insert_in_query": "FAILED",
+          "tests/test_cte.py::test_with_select": "PASSED",
+          "tests/test_cte.py::test_with_select_one": "PASSED",
+          "tests/test_cte.py::test_with_select_many": "PASSED",
+          "tests/test_cte.py::test_with_select_many_reference": "PASSED",
+          "tests/test_cte.py::test_with_select_using_alias": "PASSED",
+          "tests/test_cte.py::test_with_select_join_table_with_same_name": "PASSED",
+          "tests/test_cte.py::test_with_insert": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_cte.py::test_with_insert_in_query"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 27.66
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_cte.py::test_with_insert_in_query": "PASSED",
+          "tests/test_cte.py::test_with_select": "PASSED",
+          "tests/test_cte.py::test_with_select_one": "PASSED",
+          "tests/test_cte.py::test_with_select_many": "PASSED",
+          "tests/test_cte.py::test_with_select_many_reference": "PASSED",
+          "tests/test_cte.py::test_with_select_using_alias": "PASSED",
+          "tests/test_cte.py::test_with_select_join_table_with_same_name": "PASSED",
+          "tests/test_cte.py::test_with_insert": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 27.9
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_cte.py::test_with_insert_in_query": "FAILED",
+          "tests/test_cte.py::test_with_select": "PASSED",
+          "tests/test_cte.py::test_with_select_one": "PASSED",
+          "tests/test_cte.py::test_with_select_many": "PASSED",
+          "tests/test_cte.py::test_with_select_many_reference": "PASSED",
+          "tests/test_cte.py::test_with_select_using_alias": "PASSED",
+          "tests/test_cte.py::test_with_select_join_table_with_same_name": "PASSED",
+          "tests/test_cte.py::test_with_insert": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_cte.py::test_with_insert_in_query"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 34.94
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_cte.py::test_with_insert_in_query": "PASSED",
+          "tests/test_cte.py::test_with_select": "PASSED",
+          "tests/test_cte.py::test_with_select_one": "PASSED",
+          "tests/test_cte.py::test_with_select_many": "PASSED",
+          "tests/test_cte.py::test_with_select_many_reference": "PASSED",
+          "tests/test_cte.py::test_with_select_using_alias": "PASSED",
+          "tests/test_cte.py::test_with_select_join_table_with_same_name": "PASSED",
+          "tests/test_cte.py::test_with_insert": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 39.11
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_cte.py::test_with_insert_in_query": "FAILED",
+          "tests/test_cte.py::test_with_select": "PASSED",
+          "tests/test_cte.py::test_with_select_one": "PASSED",
+          "tests/test_cte.py::test_with_select_many": "PASSED",
+          "tests/test_cte.py::test_with_select_many_reference": "PASSED",
+          "tests/test_cte.py::test_with_select_using_alias": "PASSED",
+          "tests/test_cte.py::test_with_select_join_table_with_same_name": "PASSED",
+          "tests/test_cte.py::test_with_insert": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_cte.py::test_with_insert_in_query"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 42.75
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_cte.py::test_with_insert_in_query": "PASSED",
+          "tests/test_cte.py::test_with_select": "PASSED",
+          "tests/test_cte.py::test_with_select_one": "PASSED",
+          "tests/test_cte.py::test_with_select_many": "PASSED",
+          "tests/test_cte.py::test_with_select_many_reference": "PASSED",
+          "tests/test_cte.py::test_with_select_using_alias": "PASSED",
+          "tests/test_cte.py::test_with_select_join_table_with_same_name": "PASSED",
+          "tests/test_cte.py::test_with_insert": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 43.85
+      }
+    }
+  ]
+}

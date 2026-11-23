@@ -1,0 +1,134 @@
+{
+  "task": "radiasoft__sirepo-6507",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "swerebench/sweb.eval.x86_64.radiasoft_1776_sirepo-6507@sha256:2f0c3e4a0be052c6bb05b57165b903c831eabdbc8fb8771363a3f6c0d6153b31",
+  "validated_at": "2026-11-23T00:04:09Z",
+  "seconds": 41.0,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/template/code_variable_test.py::test_arrays": "FAILED",
+          "tests/template/code_variable_test.py::test_cache": "PASSED",
+          "tests/template/code_variable_test.py::test_case_insensitive": "PASSED",
+          "tests/template/code_variable_test.py::test_eval": "PASSED",
+          "tests/template/code_variable_test.py::test_eval2": "PASSED",
+          "tests/template/code_variable_test.py::test_infix_to_postfix": "PASSED",
+          "tests/template/code_variable_test.py::test_postfix_to_infix": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/template/code_variable_test.py::test_arrays"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 5.79
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/template/code_variable_test.py::test_arrays": "PASSED",
+          "tests/template/code_variable_test.py::test_cache": "PASSED",
+          "tests/template/code_variable_test.py::test_case_insensitive": "PASSED",
+          "tests/template/code_variable_test.py::test_eval": "PASSED",
+          "tests/template/code_variable_test.py::test_eval2": "PASSED",
+          "tests/template/code_variable_test.py::test_infix_to_postfix": "PASSED",
+          "tests/template/code_variable_test.py::test_postfix_to_infix": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 4.58
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/template/code_variable_test.py::test_arrays": "FAILED",
+          "tests/template/code_variable_test.py::test_cache": "PASSED",
+          "tests/template/code_variable_test.py::test_case_insensitive": "PASSED",
+          "tests/template/code_variable_test.py::test_eval": "PASSED",
+          "tests/template/code_variable_test.py::test_eval2": "PASSED",
+          "tests/template/code_variable_test.py::test_infix_to_postfix": "PASSED",
+          "tests/template/code_variable_test.py::test_postfix_to_infix": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/template/code_variable_test.py::test_arrays"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 14.34
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/template/code_variable_test.py::test_arrays": "PASSED",
+          "tests/template/code_variable_test.py::test_cache": "PASSED",
+          "tests/template/code_variable_test.py::test_case_insensitive": "PASSED",
+          "tests/template/code_variable_test.py::test_eval": "PASSED",
+          "tests/template/code_variable_test.py::test_eval2": "PASSED",
+          "tests/template/code_variable_test.py::test_infix_to_postfix": "PASSED",
+          "tests/template/code_variable_test.py::test_postfix_to_infix": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 5.64
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/template/code_variable_test.py::test_arrays": "FAILED",
+          "tests/template/code_variable_test.py::test_cache": "PASSED",
+          "tests/template/code_variable_test.py::test_case_insensitive": "PASSED",
+          "tests/template/code_variable_test.py::test_eval": "PASSED",
+          "tests/template/code_variable_test.py::test_eval2": "PASSED",
+          "tests/template/code_variable_test.py::test_infix_to_postfix": "PASSED",
+          "tests/template/code_variable_test.py::test_postfix_to_infix": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/template/code_variable_test.py::test_arrays"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 5.66
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/template/code_variable_test.py::test_arrays": "PASSED",
+          "tests/template/code_variable_test.py::test_cache": "PASSED",
+          "tests/template/code_variable_test.py::test_case_insensitive": "PASSED",
+          "tests/template/code_variable_test.py::test_eval": "PASSED",
+          "tests/template/code_variable_test.py::test_eval2": "PASSED",
+          "tests/template/code_variable_test.py::test_infix_to_postfix": "PASSED",
+          "tests/template/code_variable_test.py::test_postfix_to_infix": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 4.99
+      }
+    }
+  ]
+}
