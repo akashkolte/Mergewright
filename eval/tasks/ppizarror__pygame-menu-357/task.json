@@ -1,0 +1,33 @@
+{
+  "id": "ppizarror__pygame-menu-357",
+  "source": "swe-rebench",
+  "split": "dev",
+  "repo": "ppizarror/pygame-menu",
+  "base_sha": "0788c1842603c3b004b1acfa498207a60ff36d15",
+  "image": "swerebench/sweb.eval.x86_64.ppizarror_1776_pygame-menu-357@sha256:e3cb9a510c71ca95a730c7abee98c3f6e3424511817fc613ce7d926ec561781f",
+  "repo_dir": "/testbed",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_invalid_range"
+  ],
+  "p2p": [
+    "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double",
+    "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double_discrete",
+    "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_empty_title",
+    "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_kwargs",
+    "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_discrete",
+    "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_rangeslider",
+    "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_value"
+  ],
+  "test_cmd": "source /opt/conda/etc/profile.d/conda.sh && conda activate testbed && pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2021-06-14T21:41:07Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 1800
+}
