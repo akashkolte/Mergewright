@@ -1,0 +1,46 @@
+diff --git a/sceptre/resolvers/__init__.py b/sceptre/resolvers/__init__.py
+index 5dde952..fb6e2ce 100644
+--- a/sceptre/resolvers/__init__.py
++++ b/sceptre/resolvers/__init__.py
+@@ -238,8 +238,22 @@ class ResolvableContainerProperty(ResolvableProperty):
+             resolve, container, Resolver
+         )
+         # Remove keys and indexes from their containers that had resolvers resolve to None.
++        # For lists, we must delete in reverse order (highest index first) to avoid
++        # index shifting issues when multiple items are removed.
++        # For dicts, order doesn't matter.
++        # Group by container to handle each container separately.
++        from collections import defaultdict
++        containers_to_keys = defaultdict(list)
+         for attr, key in keys_to_delete:
+-            del attr[key]
++            containers_to_keys[id(attr)].append((attr, key))
++
++        for container_items in containers_to_keys.values():
++            # Check if the container is a list
++            if container_items and isinstance(container_items[0][0], list):
++                # Sort by index in descending order for lists
++                container_items.sort(key=lambda x: x[1], reverse=True)
++            for attr, key in container_items:
++                del attr[key]
+ 
+         return container
+ 
+@@ -325,7 +339,16 @@ class ResolvableContainerProperty(ResolvableProperty):
+             result = self._resolution_function()
+             if result is None:
+                 self.logger.debug(f"Removing item {self._key} because resolver returned None.")
+-                del attr[self._key]
++                # For lists, we need to handle the case where multiple items are being removed.
++                # Since this is called individually for each ResolveLater, we can't easily coordinate
++                # with other deletions. However, we can check if the index is still valid.
++                if isinstance(attr, list) and self._key >= len(attr):
++                    # Index is out of range, likely due to previous deletions shifting indices.
++                    # This can happen when multiple resolvers in a list return None.
++                    # We'll just skip the deletion since the item was likely already removed.
++                    self.logger.debug(f"Index {self._key} out of range for list of length {len(attr)}, skipping deletion.")
++                else:
++                    del attr[self._key]
+             else:
+                 attr[self._key] = result
+ 

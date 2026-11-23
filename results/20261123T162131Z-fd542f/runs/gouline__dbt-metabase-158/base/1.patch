@@ -1,0 +1,22 @@
+diff --git a/dbtmetabase/parsers/dbt_manifest.py b/dbtmetabase/parsers/dbt_manifest.py
+index 0a1ca00..24dcc6e 100644
+--- a/dbtmetabase/parsers/dbt_manifest.py
++++ b/dbtmetabase/parsers/dbt_manifest.py
+@@ -187,6 +187,17 @@ class DbtManifestReader(DbtReader):
+                 child.get("resource_type") == "test"
+                 and child.get("test_metadata", {}).get("name") == "relationships"
+             ):
++                # Skip incoming relationship tests, where the fk_target_table is the model currently being read.
++                # The test's model (in test_metadata.kwargs.model) indicates which model the test is defined on.
++                # If it's not the current model, this is an incoming relationship test from another model.
++                test_model = child.get("test_metadata", {}).get("kwargs", {}).get("model", "")
++                if unique_id not in test_model:
++                    logger().debug(
++                        "Skipping incoming relationship test %s (defined on different model)",
++                        child_id,
++                    )
++                    continue
++
+                 # To get the name of the foreign table, we could use child['test_metadata']['kwargs']['to'], which
+                 # would return the ref() written in the test, but if the model has an alias, that's not enough.
+                 # It is better to use child['depends_on']['nodes'] and exclude the current model

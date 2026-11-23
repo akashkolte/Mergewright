@@ -1,0 +1,13 @@
+diff --git a/sql_metadata/parser.py b/sql_metadata/parser.py
+index 472ad57..2d76ef7 100644
+--- a/sql_metadata/parser.py
++++ b/sql_metadata/parser.py
+@@ -138,7 +138,7 @@ class Parser:  # pylint: disable=R0902
+         subqueries_names = self.subqueries_names
+ 
+         for token in self.tokens:
+-            if token.is_name and not token.next_token.is_dot:
++            if token.is_name and not token.next_token.is_dot and not token.next_token.is_left_parenthesis:
+                 # analyze the name tokens, column names and where condition values
+                 if (
+                     token.last_keyword_normalized in KEYWORDS_BEFORE_COLUMNS

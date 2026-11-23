@@ -1,0 +1,64 @@
+diff --git a/sceptre/resolvers/__init__.py b/sceptre/resolvers/__init__.py
+index 5dde952..f2d47c6 100644
+--- a/sceptre/resolvers/__init__.py
++++ b/sceptre/resolvers/__init__.py
+@@ -238,6 +238,10 @@ class ResolvableContainerProperty(ResolvableProperty):
+             resolve, container, Resolver
+         )
+         # Remove keys and indexes from their containers that had resolvers resolve to None.
++        # For lists, we must delete from highest index to lowest to avoid index shifting.
++        # For dicts, order doesn't matter.
++        # Sort by key in reverse order for list containers with integer keys.
++        keys_to_delete.sort(key=lambda x: x[1] if isinstance(x[0], list) and isinstance(x[1], int) else -1, reverse=True)
+         for attr, key in keys_to_delete:
+             del attr[key]
+ 
+@@ -297,11 +301,31 @@ class ResolvableContainerProperty(ResolvableProperty):
+             # We set it first rather than after to avoid entering this block again on this property
+             # for this stack.
+             setattr(stack, has_been_resolved_attr_name, True)
++
++            # Collect all ResolveLater objects and their containers/keys first
++            resolve_laters = []
++            def collect_resolve_later(attr, key, value):
++                resolve_laters.append((attr, key, value))
++
+             _call_func_on_values(
+-                lambda attr, key, value: value(),
++                collect_resolve_later,
+                 container,
+                 self.ResolveLater
+             )
++
++            # Resolve each ResolveLater, collecting those that return None for later deletion
++            # For lists, we must delete from highest index to lowest to avoid index shifting.
++            none_deletions = []
++            for attr, key, resolve_later in resolve_laters:
++                result = resolve_later()
++                if result is None:
++                    none_deletions.append((attr, key))
++
++            # Sort by key in reverse order for list containers with integer keys
++            none_deletions.sort(key=lambda x: x[1] if isinstance(x[0], list) and isinstance(x[1], int) else -1, reverse=True)
++            for attr, key in none_deletions:
++                del attr[key]
++
+             # Search the container to see if there are any ResolveLaters left;
+             # Raise a RecursiveResolve if there are.
+             _call_func_on_values(
+@@ -321,13 +345,10 @@ class ResolvableContainerProperty(ResolvableProperty):
+ 
+         def __call__(self):
+             """Resolve the value."""
+-            attr = getattr(self._instance, self._name)
+             result = self._resolution_function()
+             if result is None:
+-                self.logger.debug(f"Removing item {self._key} because resolver returned None.")
+-                del attr[self._key]
+-            else:
+-                attr[self._key] = result
++                self.logger.debug(f"Resolver returned None for key {self._key}.")
++            return result
+ 
+ 
+ class ResolvableValueProperty(ResolvableProperty):
