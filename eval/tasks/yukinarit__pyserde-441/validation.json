@@ -4,8 +4,8 @@
   "problems": [],
   "flaky": [],
   "image": "swerebench/sweb.eval.x86_64.yukinarit_1776_pyserde-441@sha256:6daf12ddd697e0909cddb1e6c83fc48c0e6af677347d6be033cf85d7b7676d64",
-  "validated_at": "2026-11-23T00:16:28Z",
-  "seconds": 26.14,
+  "validated_at": "2026-11-23T00:56:55Z",
+  "seconds": 24.63,
   "runs": [
     {
       "run": 1,
@@ -45,7 +45,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 5.48
+        "seconds": 4.78
       },
       "gold": {
         "resolved": true,
@@ -81,7 +81,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.4
+        "seconds": 3.99
       }
     },
     {
@@ -122,7 +122,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.64
+        "seconds": 4.06
       },
       "gold": {
         "resolved": true,
@@ -199,7 +199,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.78
+        "seconds": 3.86
       },
       "gold": {
         "resolved": true,
@@ -235,7 +235,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.75
+        "seconds": 3.85
       }
     }
   ]

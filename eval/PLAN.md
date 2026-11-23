@@ -25,7 +25,7 @@ before any row was read:
   dropped (listed below with the reason) and the next one in order is taken.
 
 2,471 rows are in the window; 691 pass the rule (393 repos). `mergewright tasks select` prints
-the order. Candidates 1–21:
+the order. Candidates 1–23 (validated 3× on 2026-11-23, after the reset fix `0e67e0a`):
 
 | # | Task | Status |
 |---|---|---|
@@ -33,25 +33,27 @@ the order. Candidates 1–21:
 | 2 | `jackdewinter__pymarkdown-893` | dev |
 | 3 | `xonsh__xonsh-5013` | dev |
 | 4 | `macbre__sql-metadata-127` | dev |
-| 5 | `fastscape-lem__fastscape-32` | dev, not yet validated |
-| 6 | `scikit-image__scikit-image-5271` | dev, not yet validated |
-| 7 | `sqlfluff__sqlfluff-785` | dev, not yet validated |
-| 8 | `reata__sqllineage-369` | dev, not yet validated |
-| 9 | `ably__ably-python-161` | dev, not yet validated |
-| 10 | `marshmallow-code__flask-smorest-318` | dev, not yet validated |
-| 11 | `yukinarit__pyserde-441` | dev, not yet validated |
-| 12 | `mirumee__ariadne-719` | dev, not yet validated |
-| 13 | `reanahub__reana-client-647` | dev, not yet validated |
-| 14 | `gouline__dbt-metabase-158` | dev, not yet validated |
-| 15 | `catalystneuro__neuroconv-679` | dev, not yet validated |
-| 16 | `radiasoft__sirepo-6507` | dev, not yet validated |
-| 17 | `kornia__kornia-1740` | dev, not yet validated |
-| 18 | `tobymao__sqlglot-555` | dev, not yet validated |
-| 19 | `Sceptre__sceptre-1249` | dev, not yet validated |
-| 20 | `rsagroup__rsatoolbox-350` | dev, not yet validated |
-| 21 | `Textualize__textual-3334` | dev, not yet validated |
+| 5 | `fastscape-lem__fastscape-32` | dev |
+| 6 | `scikit-image__scikit-image-5271` | dev |
+| 7 | `sqlfluff__sqlfluff-785` | dev |
+| 8 | `reata__sqllineage-369` | dev |
+| 9 | `ably__ably-python-161` | dropped: the test setup calls a live service (`sandbox-rest.ably.io`); the sandbox has no network |
+| 10 | `marshmallow-code__flask-smorest-318` | dev |
+| 11 | `yukinarit__pyserde-441` | dev |
+| 12 | `mirumee__ariadne-719` | dev |
+| 13 | `reanahub__reana-client-647` | dev |
+| 14 | `gouline__dbt-metabase-158` | dev |
+| 15 | `catalystneuro__neuroconv-679` | dropped: importing `pynwb` writes a cache file into site-packages; the sandbox is non-root |
+| 16 | `radiasoft__sirepo-6507` | dev |
+| 17 | `kornia__kornia-1740` | dev |
+| 18 | `tobymao__sqlglot-555` | dev |
+| 19 | `Sceptre__sceptre-1249` | dev |
+| 20 | `rsagroup__rsatoolbox-350` | dev |
+| 21 | `Textualize__textual-3334` | dev |
+| 22 | `pypa__hatch-377` | dev |
+| 23 | `ppizarror__pygame-menu-357` | dev |
 
-Next candidates in order, for replacements: `pypa__hatch-377`, `ppizarror__pygame-menu-357`,
+3 of 23 dropped (13 %). Next candidates in order, for replacements:
 `crate__crate-python-472`, `haddocking__arctic3d-181`, `UXARRAY__uxarray-325`,
 `spdx__tools-python-520`, `tofunlp__lineflow-254`, `sec-edgar__sec-edgar-203`,
 `hhursev__recipe-scrapers-915`.

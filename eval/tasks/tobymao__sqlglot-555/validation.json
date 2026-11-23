@@ -4,8 +4,8 @@
   "problems": [],
   "flaky": [],
   "image": "swerebench/sweb.eval.x86_64.tobymao_1776_sqlglot-555@sha256:86cdcca3fc27fb5e82bfd4f8e7791e2bebec4bf9f217681d80713abd21fbe4fb",
-  "validated_at": "2026-11-23T00:15:34Z",
-  "seconds": 21.2,
+  "validated_at": "2026-11-23T00:55:56Z",
+  "seconds": 20.35,
   "runs": [
     {
       "run": 1,
@@ -21,7 +21,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 5.1
+        "seconds": 4.48
       },
       "gold": {
         "resolved": true,
@@ -33,7 +33,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.36
+        "seconds": 3.23
       }
     },
     {
@@ -50,7 +50,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.3
+        "seconds": 3.09
       },
       "gold": {
         "resolved": true,
@@ -62,7 +62,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.28
+        "seconds": 3.06
       }
     },
     {
@@ -79,7 +79,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.05
+        "seconds": 3.2
       },
       "gold": {
         "resolved": true,
@@ -91,7 +91,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.11
+        "seconds": 3.29
       }
     }
   ]

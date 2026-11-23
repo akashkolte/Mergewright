@@ -60,7 +60,7 @@ quick loop. Open: the sandbox keeps only the last 64 KB of test output, so a tas
 long logs may show tests as "missing" and fail validation (safe, but may reject good tasks);
 `validation.json` has no log tail yet.
 
-## Step 11: splits (in progress)
+## Step 11: splits (done)
 
 Dev, first 5 (to prove the pipeline). Selection rules, fixed before looking at rows: SWE-rebench
 `test` split, `created_at` 2021-01-01 to 2023-12-31, published image, `parse_log_pytest`,
@@ -114,5 +114,25 @@ Part 2 (local, 2026-11-22):
   hash order, never relaxed. Risk: with the dev rule's pass rate (28 %), 100 tasks need about
   350 rows after the cutoff. Rule text: `eval/PLAN.md`.
 
-Left: validate the 17 new dev tasks in a cloud session (x86; about 17 × 1.3 GB of pulls and
-5 GB of disk each, so the session may need to validate in batches).
+Part 3 (cloud, 2026-11-23): all dev tasks validated 3×, one image at a time (pull, validate,
+remove: images are 4.7–29 GB unpacked, `kornia-1740` 28.9 GB, and the session has about 44 GB
+free). Two more bugs of ours, both fixed with a regression test:
+
+- `Sandbox.reset` ran `git clean -ffdx`, and `-x` also deletes ignored files. The images keep
+  build output in the repo as ignored files: compiled modules (`rsatoolbox`'s
+  `similarity.*.so`, scikit-image's Cython modules) and package metadata (`sqlfluff`'s
+  `*.egg-info` entry points, which register its core plugin). Those 3 tasks looked invalid.
+  Fix: `git clean -ffd` (untracked files go, ignored ones stay; the harness never cleans). The
+  oracle still starts from a fresh copy, so ignored files an agent creates never reach a
+  verdict. Every task was re-validated after this change.
+- A slow dataset page timed out while its body was read (`TimeoutError`, not `URLError`), so
+  `tasks select` stopped without a retry. It is retried now.
+
+Dropped, both by our sandbox rules, not by bugs: `ably-python-161` (its test setup calls the live
+service `sandbox-rest.ably.io`; no network) and `neuroconv-679` (importing `pynwb` writes a
+cache into site-packages; non-root). Replaced by the next two candidates, `hatch-377` and
+`pygame-menu-357`. Result: 20 dev tasks valid (14–163 s each for 3× validation), 20 repos; 3
+of 23 candidates dropped. Smoke: 5 valid. `tasks select` reproduces the order in
+`eval/PLAN.md` (first 30 identical). Tests: 187 passed, 1 failed (the cgroup v1 file test).
+Open: `validation.json` still keeps no log tail; every root cause above needed a manual
+re-run to see the test output.
