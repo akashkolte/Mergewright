@@ -26,7 +26,7 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 11. ✅ Splits: smoke (5, local, recorded responses, for CI); dev: 5 SWE-rebench tasks to prove the pipeline, then 20 (at most 3 per repo); held-out selection rule frozen in `eval/PLAN.md` (ids drawn by it at Phase 5, after the headline model is chosen), never run or inspected before Phase 5.
 12. ✅ `mergewright eval --split --system --k` → `results/` per trial (resolved, tokens, $, latency, steps, tool calls, failure category, trace) + manifest (server-reported model ID and dates, task fingerprints). Validation fingerprint + `tasks validate --stale`; eval refuses invalid or stale tasks.
 13. ✅ `mergewright report`: bootstrap over tasks; paired bootstrap and McNemar for system pairs → Markdown tables.
-14. Baseline (Base): the current agent unchanged, config frozen, dev at k = 3 → the reference results.
+14. Baseline (Base): the current agent plus the pilot fixes (`docs/plans/phase-1.md`, step 14: edit hint, wall-clock safety stop, `finish`, in-loop `run_tests`), config frozen, dev at k = 3 → the reference results.
 15. ✅ CI: ruff, pytest (unit and Docker guard tests), replay smoke suite, `tasks list --split smoke --check` (fails the build); the same check for dev as a warning.
 
 **Exit:** Base dev table with task-level intervals, generated from manifests.
@@ -37,7 +37,7 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 17. Before each comparison, write its decision rule (default: keep if the paired 95 % interval of the resolve-rate delta is above 0, or if tokens per resolved task drop and the delta's lower bound is above −5 points).
 18. Localizer node (schema-validated output).
 19. Checks: ruff, diff size, tamper detector (protected tests, pytest config, `.git`, `.github`; allows the Reproducer's own `tests/test_mergewright_repro_*.py`), built together with the adversarial split (≥ 20).
-20. Candidates, in the order the failure categories give: parse-checked `edit_file`; focused `run_tests(test_ids)`; context policy; Reproducer.
+20. Candidates, in the order the failure categories give: parse-checked `edit_file`; context policy; Reproducer. (Focused `run_tests(test_ids)` moved into Base in step 14.)
 21. Stop after 2–3 features with a measured gain, or when the candidates are tried. Grow dev to 40 if the intervals are too wide to decide. Run S0, S1, S2 at k = 3.
 
 **Exit:** ablation table (each feature vs Base, paired intervals); adversarial results (tamper attempts blocked, 0 canary leaks).

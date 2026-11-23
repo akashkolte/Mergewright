@@ -319,6 +319,21 @@ oracle anyway) passes 41 of the task's 42 hidden tests; it fails
 `test_get__resolver_references_same_property_for_other_value__resolves_it`, a test its edit to
 `ResolveLater.__call__` broke, which the tester's feedback could have caught.
 
+4. **Two test layers: `run_tests(test_ids)` in the loop (owner's decision, option A).** Pilot 3
+   showed why `finish` alone is not enough: after its edits the model wants to check its work
+   and searches for a way to run tests, but the only way to run them was `finish`. So it never
+   finished. The Coder now has `run_tests(test_ids)`: existing test files or node ids it
+   chooses, or the whole visible suite (`tools.run_tests_for_coder`; ids are shell-quoted and an
+   option-like id is refused; one step and `tool_timeout_s` per call). It does not write tests
+   (test files stay protected; reproduction tests are the Phase 2 Reproducer). The tester node
+   is unchanged: after `finish` it runs the full suite as the deterministic gate. The spec
+   listed focused `run_tests` as a Phase 2 feature; it moves into Base (spec Section 9.2 Base
+   row and Section 6.1, agenda step 14), so Phase 2 no longer measures it. Reason: a Base whose
+   runs never reach the tester measures nothing about the gate, the oracle or the statistics.
+   Tests: `test_coder_runs_chosen_tests_in_the_loop_before_the_gate`,
+   `test_coder_run_tests_runs_the_chosen_ids_shell_quoted_and_lists_failures`,
+   `test_coder_run_tests_refuses_options_and_never_runs_them`. Pilot 4: `sceptre-1249` only.
+
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
 

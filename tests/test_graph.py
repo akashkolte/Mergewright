@@ -173,7 +173,23 @@ def test_coder_is_offered_only_its_allowed_tools(buggy_calc: Path):
 
     run(buggy_calc, SpyLLM([edit(BUGGY_LINE, FIXED_LINES), done()]))
 
-    assert seen[0] == ["read_file", "search_code", "edit_file", "finish"]
+    assert seen[0] == ["read_file", "search_code", "edit_file", "run_tests", "finish"]
+
+
+def test_coder_runs_chosen_tests_in_the_loop_before_the_gate(buggy_calc: Path):
+    llm = ScriptedLLM(
+        [
+            edit(BUGGY_LINE, FIXED_LINES),
+            call("run_tests", test_ids=["tests/test_calc.py::test_median_even_length"]),
+            call("finish"),
+        ]
+    )
+
+    final, events = run(buggy_calc, llm)
+
+    assert final["status"] == "DONE" and final["test_attempts"] == 1  # the gate ran once
+    coder_run = next(e for e in events if e["event"] == "tool_call" and e["tool"] == "run_tests")
+    assert coder_run["agent"] == "coder" and "1 passed, 0 failed" in coder_run["output"]
 
 
 def test_tester_ignores_errors_known_at_base(buggy_calc: Path):

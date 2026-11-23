@@ -219,7 +219,7 @@ All changes are measured as paired deltas on dev (k = 3), and confirmed once on 
 
 ### 6.1 Level A: scaffold and context (no training)
 
-- **Tool interface:** `edit_file` rejects edits that do not parse; windowed `read_file`; test output reduced to failing assertions and tracebacks; `run_tests(test_ids)` for focused runs; repo map in the Localizer.
+- **Tool interface:** `edit_file` rejects edits that do not parse; windowed `read_file`; test output reduced to failing assertions and tracebacks; repo map in the Localizer. (`run_tests(test_ids)` for focused runs moved into Base in Phase 1 step 14: without a way to check its work, the pilot model never ended its turn.)
 - **Context policy:** truncate long tool output (head + tail + pointer); drop superseded file reads between attempts; keep an "attempts so far" summary; stable prompt prefix for caching.
 - **Error-driven rounds:** label failures (Section 9.7), change one thing aimed at the top label, measure, repeat. Publish the curve over 3–4 rounds, including changes that did not help.
 
@@ -292,7 +292,7 @@ Issue text, repo files, tool output and human feedback are untrusted data. Agent
 
 | ID | System | Question | Priority |
 |---|---|---|---|
-| Base | The Milestone 2 Coder ⇄ Tester loop, unchanged, config frozen | Reference for every Phase 2 comparison | P0 |
+| Base | The Milestone 2 Coder ⇄ Tester loop with the Phase 1 pilot fixes (`edit_file` whitespace hint, 1800 s wall-clock safety stop, `finish` tool, focused `run_tests(test_ids)` in the loop; `docs/plans/phase-1.md`, step 14), config frozen | Reference for every Phase 2 comparison | P0 |
 | S0 | Localizer + one patch, no execution feedback | What does iteration buy? | P0 |
 | S1 | Single loop, `run_tests` as a normal tool, no gate or checks | What do the gate and checks buy? | P0 |
 | S2 | Mergewright with the Phase 2 features kept, fixed router, N = 1 | The system | P0 |
@@ -405,7 +405,7 @@ Order is fixed. Dates are set when a phase starts. Each phase's exit is a genera
 |---|---|---|
 | 0 | **Spikes (done):** runtime gate (Section 4.2) on `buggy_calc`; one SWE-rebench image runs its F2P tests on an x86 VM; hosted endpoint limits and tool-call quality; Temporal Cloud actions per run | Results in `docs/spikes.md`; runtime confirmed |
 | 1 | **Eval core and baseline:** Docker `Sandbox` behind the existing tools; task format and validator (gold patch 3×); oracle; smoke split, dev (5, then 20), held-out rule frozen; `eval` at k = 3; report (bootstrap over tasks, paired deltas); Base frozen and run on dev; CI | Sandbox guard tests pass; Base dev table with task-level intervals from manifests |
-| 2 | **Agent features:** error analysis of Base failures; Localizer; checks with tamper detector and the adversarial split; then parse-checked edits, focused `run_tests`, context policy, Reproducer, in the order the failures give, each kept only on its pre-written decision rule; S0, S1, S2 and two S2+E rounds at k = 3 | Ablation table vs Base with paired intervals; adversarial results (tamper attempts blocked, 0 canary leaks) |
+| 2 | **Agent features:** error analysis of Base failures; Localizer; checks with tamper detector and the adversarial split; then parse-checked edits, context policy, Reproducer, in the order the failures give, each kept only on its pre-written decision rule; S0, S1, S2 and two S2+E rounds at k = 3 | Ablation table vs Base with paired intervals; adversarial results (tamper attempts blocked, 0 canary leaks) |
 | 3 | **Durable core:** message store; parent and candidate workflows on the plugin; budget ledger; diff gate; `post_comment`; `open_pr`; workflow replay tests; R1 baseline; K1–K7 and K10 on R0/R1/R2 | Durability table generated in CI; S2 on Temporal matches the Phase 2 S2 resolve rate within its interval; one real PR on our repo |
 | 4 | **Throughput and distributed systems:** task queues; fake provider; rate limiter with AIMD; FastAPI admission control; sandbox pool; metrics dashboard; L1–L5; K8, K9, K11, K12 | Saturation curve with a named bottleneck; limiter comparison; two-host scaling factor; Section 5.3 targets met or the gap explained |
 | 5 | **Test-time compute and held-out:** Best-of-N (candidate child workflows) with staged verifier, cascade; vLLM and L6; held-out re-checked and run for S2, BoN-*N*, Ref; budget and training decision | Best-of-N chart (pass@N vs selection accuracy vs $); held-out table with intervals and failures |

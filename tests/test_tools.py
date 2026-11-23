@@ -15,6 +15,7 @@ from mergewright.tools import (
     parse_pytest_results,
     read_file,
     run_tests,
+    run_tests_for_coder,
     search_code,
 )
 from tests.conftest import BUGGY_LINE, FIXED_LINES
@@ -280,9 +281,33 @@ def test_execute_returns_tool_errors_as_results(buggy_calc: Path):
     assert not result.ok and "file not found" in result.output
 
 
-def test_run_tests_is_not_a_coder_tool():
-    # Only the Tester runs tests; it calls run_tests with the sandbox directly.
-    assert "run_tests" not in TOOLS and "run_tests" not in CODER_TOOLS
+def test_coder_run_tests_runs_the_chosen_ids_shell_quoted_and_lists_failures():
+    sandbox = scripted(FAILING_RUN, 1)
+    ids = ["tests/test_calc.py::test_median_even_length", "tests/x.py::t[a b]"]
+
+    result = run_tests_for_coder(sandbox, "pytest -q", json.dumps({"test_ids": ids}), 60)
+
+    (argv,) = sandbox.commands
+    assert argv[2].endswith(
+        "pytest -q tests/test_calc.py::test_median_even_length 'tests/x.py::t[a b]'"
+    )
+    assert result.ok and "5 passed, 1 failed" in result.output
+    assert "- tests/test_calc.py::test_median_even_length" in result.output
+
+
+def test_coder_run_tests_refuses_options_and_never_runs_them():
+    sandbox = ScriptedSandbox([])
+
+    result = run_tests_for_coder(sandbox, "pytest", json.dumps({"test_ids": ["-p", "x"]}), 60)
+
+    assert not result.ok and "not a test file or node id" in result.output
+    assert sandbox.commands == []
+
+
+def test_run_tests_needs_the_sandbox_so_execute_refuses_it(buggy_calc: Path):
+    result = execute("run_tests", "{}", Workspace(buggy_calc), CODER_TOOLS)
+
+    assert not result.ok and "runs in the sandbox" in result.output
 
 
 def test_every_tool_has_a_valid_schema():

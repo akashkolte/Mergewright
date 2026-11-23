@@ -33,6 +33,7 @@ from mergewright.tools import (
     execute,
     gate,
     run_tests,
+    run_tests_for_coder,
 )
 
 Status = Literal[
@@ -112,7 +113,12 @@ def tools_step(state: AgentState, deps: AgentDeps) -> dict[str, Any]:
     for call in state["messages"][-1].get("tool_calls", []):
         name, args = call["function"]["name"], call["function"]["arguments"]
         begin = deps.clock()
-        result = execute(name, args, deps.workspace, CODER_TOOLS)
+        if name == "run_tests":
+            result = run_tests_for_coder(
+                deps.sandbox, deps.test_command, args, deps.limits.tool_timeout_s
+            )
+        else:
+            result = execute(name, args, deps.workspace, CODER_TOOLS)
         # A command in the sandbox can copy the canary into a workspace file.
         output, leaked = deps.sandbox.canary.redact(result.output)
         deps.log.event(

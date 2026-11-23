@@ -3,7 +3,8 @@
 The Coder's file tools work on the host workspace, which is bind-mounted into the sandbox.
 Paths from the model are untrusted: they are resolved and must stay inside the workspace. Tool
 failures are returned as results, never raised to the graph, so a bad tool call cannot crash a
-run. run_tests is the Tester's: it runs the test command inside the sandbox, never on the host.
+run. run_tests runs the test command inside the sandbox, never on the host: the Tester runs the
+whole suite as the gate, and the Coder runs chosen existing tests while it works.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ import fnmatch
 import json
 import os
 import re
+import shlex
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -278,6 +280,50 @@ class EditFileArgs(BaseModel):
     new: str = Field(description="Replacement text")
 
 
+class RunTestsArgs(BaseModel):
+    test_ids: list[str] = Field(
+        default_factory=list,
+        description="Test files or pytest node ids, for example tests/test_x.py::test_y; "
+        "empty runs the whole suite",
+    )
+
+
+MAX_LISTED_TESTS = 20  # failing ids shown to the Coder; the log tail follows
+
+
+def run_tests_for_coder(
+    sandbox: Sandbox, command: str, raw_args: str, timeout_s: float
+) -> ToolResult:
+    """The Coder's in-loop test run: existing tests only, chosen by id. Not the gate.
+
+    Ids are passed as pytest arguments, shell-quoted; one that starts with "-" (an option)
+    is refused, so the model cannot change how pytest runs.
+    """
+    try:
+        args = RunTestsArgs.model_validate(json.loads(raw_args or "{}"))
+    except (json.JSONDecodeError, ValidationError) as exc:
+        return ToolResult(False, f"invalid arguments for run_tests: {exc}")
+    bad = [test for test in args.test_ids if not test.strip() or test.startswith("-")]
+    if bad:
+        return ToolResult(False, f"not a test file or node id: {bad}")
+    if args.test_ids:
+        command = f"{command} {shlex.join(args.test_ids)}"
+    report = run_tests(sandbox, command, timeout_s=timeout_s)
+    if report.timed_out:
+        return ToolResult(True, f"tests timed out after {timeout_s}s; run fewer tests")
+    failing = report.failures + report.errors
+    listed = "\n".join(f"- {test}" for test in failing[:MAX_LISTED_TESTS])
+    more = len(failing) - MAX_LISTED_TESTS
+    lines = [
+        f"{report.num_passed} passed, {report.num_failed} failed, {report.num_errors} errors"
+        f" (pytest exit code {report.exit_code})",
+        *([f"Failing:\n{listed}"] if failing else []),
+        *([f"... and {more} more"] if more > 0 else []),
+        f"Output (last lines):\n{report.log_tail}",
+    ]
+    return ToolResult(True, "\n".join(lines))
+
+
 class FinishArgs(BaseModel):
     summary: str = Field(default="", description="One paragraph: the cause and your change")
 
@@ -292,7 +338,7 @@ class ToolSpec:
     name: str
     description: str
     args_model: type[BaseModel]
-    run: Callable[..., Any]
+    run: Callable[..., Any] | None  # None: needs the sandbox, so the graph runs it
 
     def schema(self) -> dict[str, Any]:
         """OpenAI-style function schema for the chat completions `tools` parameter."""
@@ -321,16 +367,23 @@ TOOLS: dict[str, ToolSpec] = {
             edit_file,
         ),
         ToolSpec(
+            "run_tests",
+            "Run existing tests (chosen files or node ids, or the whole suite) on your change "
+            "and get the pass/fail counts, the failing ids and the output tail.",
+            RunTestsArgs,
+            None,  # runs in the sandbox: the graph calls run_tests_for_coder
+        ),
+        ToolSpec(
             "finish",
-            "Call when the fix is complete. The repository's test suite then runs "
-            "automatically (you cannot run it yourself); if tests fail, you get the failures.",
+            "Call when the fix is complete. The repository's full test suite then runs as the "
+            "final check; if tests fail, you get the failures.",
             FinishArgs,
             finish,
         ),
     )
 }
 
-CODER_TOOLS = ("read_file", "search_code", "edit_file", "finish")
+CODER_TOOLS = ("read_file", "search_code", "edit_file", "run_tests", "finish")
 
 
 @dataclass
@@ -346,6 +399,8 @@ def execute(name: str, raw_args: str, ws: Workspace, allowed: tuple[str, ...]) -
     if name not in allowed:
         return ToolResult(False, f"tool {name!r} is not allowed for this agent")
     spec = TOOLS[name]
+    if spec.run is None:
+        return ToolResult(False, f"tool {name!r} runs in the sandbox, not on the workspace")
     try:
         args = spec.args_model.model_validate(json.loads(raw_args or "{}"))
     except (json.JSONDecodeError, ValidationError) as exc:
