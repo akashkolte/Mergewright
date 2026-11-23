@@ -392,6 +392,16 @@ step 50 it sent the same `run_tests` call 37 times in a row, ignoring the verdic
 `finish` nudge. The tooling worked as intended (clear verdict, base failures marked); this is a
 repetition loop of the model.
 
+**Pilot 6: `moonshotai/kimi-k3.1-pro` (eval `20261123T181340Z-4b1c86`, committed as evidence).**
+Same code, only `MERGEWRIGHT_MODEL` changed in `.env`. **Resolved**: `DONE` in 8 steps, 546 s,
+133k / 2.8k tokens; the gate passed at the first attempt (482 passed, the base failures
+ignored) and the oracle passes all 42 hidden tests. The model searched and read (steps 1–5,
+several calls per step), edited once (step 6), ran the resolver tests (step 7, all passed) and
+called `finish` (step 8). Each model call took 33–110 s on NIM (the `buggy_calc` check before
+it: 21–73 s per call). So the loop, the tools and the gate work end to end; Nemotron's failures
+in pilots 2–5 are the model's. Minor: `search_code` returned a match in the binary `.coverage`
+file (it does not skip binary files); harmless here.
+
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
 
