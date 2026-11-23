@@ -198,7 +198,76 @@ infra error. Refuses evals on different splits; warns when models or a shared ta
 fingerprint differ, or an eval is incomplete. Check: two smoke evals (k = 2 and k = 1) report
 100 % each and a delta of +0.0 [+0.0, +0.0], not distinguishable.
 
-## Step 14: Base run (runbook; to do in a cloud session)
+## Step 14: Base run (runbook; deferred by the owner)
+
+### Summary of 2026-11-23: decisions and why (details and evidence below)
+
+**Status.** Base is not run yet. The owner deferred step 14 (2026-11-23) and will decide later
+when to start Phase 2. Everything needed to run it is in place; the open items are listed at the
+end of this summary. All pilot and attempt results are committed in `results/` (manifests,
+trial records, patches, traces).
+
+**Agent changes before Base (each found by a pilot; all part of the frozen Base system):**
+
+| # | Change | Why (evidence) |
+|---|---|---|
+| 1 | `edit_file` shows the exact text when `old` differs only in whitespace | 12 of 14 edits failed: the model copied `read_file`'s 2 spaces after the line number into the indentation (pilot 1) |
+| 2 | Budgets: 50 steps (was 25), 900 s per test run (was 60 s), 5400 s wall-clock safety stop (was 300 s) | Runs ended by time or steps before any test ran; a slow endpoint must not decide results; full suites of big repos take minutes (pilots 1–4) |
+| 3 | Explicit `finish` tool | Ending a turn by replying without a tool call is an implicit signal; no pilot model ended its turn (pilot 2) |
+| 4 | Two test layers: `run_tests(test_ids)` in the loop, the tester gate after `finish` | The model wanted to check its work, could not, and never finished (pilot 3). Owner's option A: moved from the Phase 2 list into Base; spec 9.2, 6.1 and agenda updated |
+| 5 | In-loop verdict first ("All selected tests passed" / "No new failures" / "New failures"), base failures marked, nudge to `finish`; two parser fixes (captured log lines, `PASSED` tail) | A correct patch (42/42 hidden tests) never finished: the summary showed pytest exit code 1 with 0 failures, and old failures looked new (pilot 4) |
+| 6 | Gate = regression check: tests failing or erroring at base are ignored | 4 tests fail at base in sceptre's image, so the gate could never pass; the hidden-test oracle judges the fix (pilot 4; spec Section 6 Tester row) |
+| 7 | Gate re-runs "new" failures alone once; only those that fail again block (`tools.confirm_failures`) | textual's slug tests fail a different subset on every run of unchanged code; all 3 correct patches were rejected (Base attempt 1) |
+| — | `finish` stays required; passing tests do not end a run | The bug's tests are hidden, so the visible suite passes before any change; auto-finish would also make `overclaim` meaningless |
+
+**Models and endpoints.**
+
+- The UB endpoint (GLM-5.2, Phase 0) is VPN-only, so cloud sessions cannot use it.
+- The code stays **model-agnostic**: the model is a `.env` setting, and every eval records the
+  requested model (and the served one, where the server reports it). **Base is per model:** a
+  Phase 2 feature is compared with the Base of the same model; another model means another Base.
+- `MERGEWRIGHT_API_STYLE` picks the client: `openai` (any OpenAI-compatible server) or
+  `bedrock-converse` (new: every Amazon Bedrock model, Anthropic's included; Claude on Bedrock
+  does not accept OpenAI-format requests, and Bedrock Mantle does not serve Sonnet 4.6). No new
+  package: `httpx` was already installed with `openai`.
+- Pilot results on `sceptre-1249` (same code, model changed in `.env`):
+
+| Model | Endpoint | Result | Steps | Wall | Cost |
+|---|---|---|---|---|---|
+| Nemotron 3 Ultra | NVIDIA NIM | never finished: searched for tests, then repeated one call 37 times | 25–50 | 93–697 s | $0 |
+| Kimi K3.1 | NVIDIA NIM | resolved | 8 | 546 s (33–110 s per call) | $0 |
+| GLM-5.3-flash | NVIDIA NIM | not testable: no answer within 120 s | — | — | — |
+| Sonnet 4.6 | Bedrock (Converse) | resolved | 23 | 136 s (2–6 s per call) | $0.47 |
+
+- **Sonnet 4.6 was chosen** for Base attempt 1 (fast and consistent; about 1.5–2 h). Kimi stays
+  the free alternative (about 4–5 h on NIM's shared service).
+
+**Base attempt 1** (Sonnet 4.6, stopped by the owner after 4 of 20 tasks, $14.19): sceptre 3/3
+resolved; textual 0/3 with 3 correct patches (gate problem, fixed by change 7); fastscape 0/3
+overclaim (real wrong fixes); dbt-metabase not run (Docker Hub pull limit).
+
+**Other fixes:** `.gitignore` ignored `results/<eval>/runs/` (trial records were never
+committed); the rule is now `/runs/` and all trial files are committed.
+
+**Credentials** (stored on the cloud environment `mergewright_cloud` as network secrets, never
+in the repository): NVIDIA NIM (`integrate.api.nvidia.com`), Bedrock Mantle
+(`bedrock-mantle.us-east-1.api.aws`, used only for tests) and Bedrock Runtime
+(`bedrock-runtime.us-east-1.amazonaws.com`). The local `.env` (not committed) is set to Sonnet 4.6
+with the price $3 / $15 per million tokens.
+
+**Open items before Base is run again:**
+
+1. Docker Hub's anonymous pull limit (shared address) stopped attempt 1 three times: add a Docker
+   Hub access token, or pull the images ahead while the limit allows.
+2. Cost: big repositories use 0.7–1.3M input tokens per trial ($2–4.50 with Sonnet); estimate
+   $60–150 for Base. There is no per-run dollar cap yet (spec: caps on tokens, dollars, steps and
+   wall clock); add one before a paid Base run.
+3. Minor: `search_code` does not skip binary files (it matched `.coverage`);
+   `test_cpu_memory_and_pid_limits_are_set_in_the_cgroup` reads cgroup v2 files only, so it fails
+   on cgroup v1 hosts such as the cloud container.
+4. Rerun Base from scratch (new eval id): attempt 1 ran before change 7.
+
+### Runbook
 
 **The model is a setting, not code.** `.env` names it: `MERGEWRIGHT_MODEL`,
 `MERGEWRIGHT_API_BASE` (any OpenAI-compatible server), `MERGEWRIGHT_API_KEY` and the two
