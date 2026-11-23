@@ -334,6 +334,23 @@ oracle anyway) passes 41 of the task's 42 hidden tests; it fails
    `test_coder_run_tests_runs_the_chosen_ids_shell_quoted_and_lists_failures`,
    `test_coder_run_tests_refuses_options_and_never_runs_them`. Pilot 4: `sceptre-1249` only.
 
+**Pilot 4 (eval `20261123T174620Z-a245e9`, committed as evidence).** First correct patch: the
+oracle passes all 42 hidden tests (`patch_resolves: true`). Not resolved: `FAILED_BUDGET` at the
+step cap (25 steps, 169 s, 428k / 3.0k tokens); `finish` never called. The edit landed at step
+9 (no failed edit); steps 10–25 were 15 `run_tests` calls. Two causes, both in the in-loop
+summary, and one gate problem:
+
+- The summary said `38 passed, 0 failed, 0 errors (pytest exit code 1)`; the log tail was a
+  list of `PASSED` lines. The model read exit code 1 as a failure and re-ran one test 8 times.
+- The full visible suite has 4 failures and 1 error that were there before the change
+  (`tests/test_template.py`, an environment problem in the image, and
+  `tests/test_connection_manager.py`); the summary did not say so, and the model spent its last
+  6 steps on them.
+- The tester gate ignores only errors known at base, not failures (spec Section 6). With those
+  4 failures, the gate can never pass on this task: even a perfect patch ends `FAILED_NO_FIX`,
+  so the task can never count as resolved. Of the 3 pilot tasks, only sceptre has failures at
+  base; the other dev tasks are not checked yet.
+
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
 
