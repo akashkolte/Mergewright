@@ -424,6 +424,32 @@ exited 4`, reported as "Not a pass"); 15 `search_code` calls looking for tests b
 | Kimi K3.1 (NIM) | 8 | 546 s | 133k / 2.8k | $0 (NIM credits) | resolved |
 | Sonnet 4.6 (Bedrock) | 23 | 136 s | 142k / 2.7k | $0.47 | resolved |
 
+**Base attempt 1 (eval `20261123T194535Z-97d51e`, Sonnet 4.6, k = 3): stopped by the owner
+after 4 of 20 tasks; committed as evidence, not Base.** 9 trials, $14.19:
+
+| Task | Trials | Note |
+|---|---|---|
+| `sceptre-1249` | ✅ ✅ ✅ | |
+| `textual-3334` | ❌ ❌ ❌ budget | all 3 patches correct (`patch_resolves: true`); the gate rejected them |
+| `fastscape-32` | ❌ ❌ ❌ overclaim | `DONE` and gate passed, but the hidden tests fail: wrong fixes |
+| `dbt-metabase-158` | not run | Docker Hub pull limit (429) |
+
+Two open problems, to fix before Base is run again:
+
+1. **Flaky visible tests defeat the regression gate.** `textual`'s
+   `tests/test_slug.py::test_tracked_slugs` fails a different subset of its cases on every run
+   of the unchanged code (the 3 baselines: 11–13 failing cases, different ids). The gate ignores
+   only the ids that failed in that trial's baseline, so other failing cases count as "new"
+   after the fix: a correct patch is rejected, and the Coder spends its remaining steps on tests
+   it did not break ($2.35–4.45 per trial, 0.7–1.3M input tokens). Proposed fix: the gate re-runs
+   the "new" failures once, alone; only those that fail again count.
+2. **Docker Hub's anonymous pull limit** (100 per hour per address, shared with other users of
+   the session's egress addresses) stopped the run 3 times (about 30 min each). Fix: a Docker Hub
+   access token for authenticated pulls (a per-account limit), or pull the images while the
+   limit allows. Also: big repositories cost far more than sceptre; a realistic Base estimate is
+   $60–150, and there is no per-run dollar cap yet (spec: caps on tokens, dollars, steps, wall
+   clock).
+
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
 

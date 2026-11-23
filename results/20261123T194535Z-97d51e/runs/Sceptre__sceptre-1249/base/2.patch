@@ -1,0 +1,14 @@
+diff --git a/sceptre/resolvers/__init__.py b/sceptre/resolvers/__init__.py
+index 5dde952..9d2cbf8 100644
+--- a/sceptre/resolvers/__init__.py
++++ b/sceptre/resolvers/__init__.py
+@@ -238,6 +238,9 @@ class ResolvableContainerProperty(ResolvableProperty):
+             resolve, container, Resolver
+         )
+         # Remove keys and indexes from their containers that had resolvers resolve to None.
++        # For lists, we must delete in reverse order to avoid index shifting issues when
++        # multiple resolvers in the same list resolve to None.
++        keys_to_delete.sort(key=lambda item: item[1] if isinstance(item[1], int) else 0, reverse=True)
+         for attr, key in keys_to_delete:
+             del attr[key]
+ 

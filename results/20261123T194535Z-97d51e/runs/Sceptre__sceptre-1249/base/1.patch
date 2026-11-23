@@ -1,0 +1,32 @@
+diff --git a/sceptre/resolvers/__init__.py b/sceptre/resolvers/__init__.py
+index 5dde952..e2b1cd3 100644
+--- a/sceptre/resolvers/__init__.py
++++ b/sceptre/resolvers/__init__.py
+@@ -1,6 +1,7 @@
+ # -*- coding: utf-8 -*-
+ import abc
+ import logging
++from collections import defaultdict
+ from contextlib import contextmanager
+ from threading import RLock
+ from typing import Any, TYPE_CHECKING, Type, Union, TypeVar
+@@ -238,8 +239,18 @@ class ResolvableContainerProperty(ResolvableProperty):
+             resolve, container, Resolver
+         )
+         # Remove keys and indexes from their containers that had resolvers resolve to None.
++        # For lists, we must delete in reverse order to avoid index shifting after each deletion.
++        # Group deletions by their container so that list indices within the same list are
++        # processed in reverse order.
++        deletions_by_attr: dict = defaultdict(list)
+         for attr, key in keys_to_delete:
+-            del attr[key]
++            deletions_by_attr[id(attr)].append((attr, key))
++        for attr_id, items in deletions_by_attr.items():
++            # Sort by key in reverse order; for lists this prevents index-shifting errors,
++            # for dicts the order doesn't matter.
++            items.sort(key=lambda item: item[1] if isinstance(item[1], int) else 0, reverse=True)
++            for attr, key in items:
++                del attr[key]
+ 
+         return container
+ 

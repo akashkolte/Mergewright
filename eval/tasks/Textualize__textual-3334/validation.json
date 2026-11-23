@@ -4,8 +4,9 @@
   "problems": [],
   "flaky": [],
   "image": "swerebench/sweb.eval.x86_64.textualize_1776_textual-3334@sha256:acd4efc865b49377d2e41876ceed0527aca230c6c884550733e4b7694038a22a",
-  "validated_at": "2026-11-23T00:35:02Z",
-  "seconds": 32.87,
+  "fingerprint": "sha256:894864d7f49ecf30ed1000b40d6fb3d4d950136369b04cbfbddca8d49d84bb0f",
+  "validated_at": "2026-11-23T20:12:15Z",
+  "seconds": 47.27,
   "runs": [
     {
       "run": 1,
@@ -42,7 +43,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 6.47
+        "seconds": 10.56
       },
       "gold": {
         "resolved": true,
@@ -74,7 +75,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 5.39
+        "seconds": 6.13
       }
     },
     {
@@ -112,7 +113,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 5.28
+        "seconds": 6.59
       },
       "gold": {
         "resolved": true,
@@ -144,7 +145,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 5.24
+        "seconds": 7.43
       }
     },
     {
@@ -182,7 +183,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 5.2
+        "seconds": 7.8
       },
       "gold": {
         "resolved": true,
@@ -214,7 +215,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 5.29
+        "seconds": 8.76
       }
     }
   ]
