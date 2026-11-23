@@ -198,6 +198,46 @@ infra error. Refuses evals on different splits; warns when models or a shared ta
 fingerprint differ, or an eval is incomplete. Check: two smoke evals (k = 2 and k = 1) report
 100 % each and a delta of +0.0 [+0.0, +0.0], not distinguishable.
 
+## Step 14: Base run (runbook; to do on the owner's Mac)
+
+The UB endpoint (`zai-org/GLM-5.2` at `https://gateway.bullsai.buffalo.edu/v1`, as in Phase 0)
+accepts VPN traffic only, so the cloud sessions cannot reach it (502 from the egress proxy).
+Base runs on the owner's Apple Silicon Mac (Docker Desktop; under 35 GB free disk), with
+`scripts/eval-tasks.sh` (one image at a time; works without root and with bash 3.2).
+
+1. **Prepare (once).** UB VPN on for the whole run; Docker Desktop running (Settings: "Use
+   Rosetta for x86_64/amd64 emulation" on, if offered; check the disk limit under Resources).
+   In the checkout: `git checkout checkpoint-2 && git pull`; `python3 -m venv .venv && .
+   .venv/bin/activate && pip install -e ".[dev]"`; `docker build -t mergewright-python:1
+   docker/python`. `.env` (ignored by git): `MERGEWRIGHT_MODEL=zai-org/GLM-5.2`,
+   `MERGEWRIGHT_API_BASE=https://gateway.bullsai.buffalo.edu/v1`, `MERGEWRIGHT_API_KEY=<key>`,
+   `MERGEWRIGHT_PRICE_IN_PER_MTOK=0`, `MERGEWRIGHT_PRICE_OUT_PER_MTOK=0` (free endpoint: $0).
+2. **Check.** `ruff check .`; `pytest -q` (the Docker tests run on the Mac; tests that need the
+   spectree image skip); `mergewright tasks list --split smoke --check`; one smoke eval:
+   `mergewright eval --split smoke --k 1 --llm replay --out /tmp/mw-smoke`.
+3. **Pilot.** The tree must be clean (`git status`: resume refuses uncommitted code).
+   `bash scripts/eval-tasks.sh --split dev --k 1 --llm live --jobs 1 macbre__sql-metadata-127
+   gouline__dbt-metabase-158 Sceptre__sceptre-1249` (small images, about 5 GB each). Read
+   `wall_s`, `steps`, `tokens_in/out` and `failure_category` in
+   `results/<eval-id>/runs/*/base/1.json`; fix any pipeline bug before step 4 (as in steps 11
+   and 12, the first real run of a path has found one each time). The pilot is not Base.
+4. **Base.** `bash scripts/eval-tasks.sh --split dev --k 3 --llm live --jobs 3` with every dev
+   task but `kornia__kornia-1740` (28.9 GB unpacked; it may not fit), listed explicitly; note the
+   eval id it prints. Then free disk or raise Docker Desktop's disk limit and add kornia:
+   `bash scripts/eval-tasks.sh --split dev --k 3 --llm live --jobs 3 --eval-id <id>
+   kornia__kornia-1740`. An interrupted run continues with `--eval-id <id>`. Do not change code,
+   prompts, `.env` or package versions between invocations (`--resume` refuses). `--jobs 3`:
+   lower it if the Mac runs out of memory (each sandbox has its task's memory ceiling).
+5. **Lost trials.** A trial whose run failed only because the endpoint could not be reached (VPN
+   drop: `error` mentions a connection error) may be re-run once: delete its `<k>.json`,
+   `<k>.patch`, `<k>.trace.jsonl` and run the script again with `--eval-id`. Write each re-run
+   here (task, k, reason). Never re-run a trial for any other reason (spec 9.1: infra re-runs
+   once, reported apart).
+6. **Report and commit.** `mergewright report results/<id> --out results/<id>/report.md`.
+   Commit the re-validated `eval/tasks/*/validation.json` and the eval's `manifest.json`,
+   `runs/*/base/<k>.json` and `report.md` (decision pending: traces may stay out of git if they
+   are large). Record here: eval id, dates, resolve rate with interval, time per trial, issues.
+
 ## Step 15: CI (done)
 
 `.github/workflows/ci.yml`, on every push and pull request: `ruff format --check`, `ruff check`,
