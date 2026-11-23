@@ -4,8 +4,8 @@
   "problems": [],
   "flaky": [],
   "image": "swerebench/sweb.eval.x86_64.kornia_1776_kornia-1740@sha256:67c4486097206c0c945b496661fab8767064f584fc4b63ae0d5dbc24d7bc5839",
-  "validated_at": "2026-11-23T00:00:33Z",
-  "seconds": 46.32,
+  "validated_at": "2026-11-23T00:45:46Z",
+  "seconds": 44.39,
   "runs": [
     {
       "run": 1,
@@ -58,7 +58,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 6.76
+        "seconds": 8.67
       },
       "gold": {
         "resolved": true,
@@ -106,7 +106,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 7.21
+        "seconds": 7.12
       }
     },
     {
@@ -160,7 +160,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 8.17
+        "seconds": 7.04
       },
       "gold": {
         "resolved": true,
@@ -208,7 +208,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 8.59
+        "seconds": 7.46
       }
     },
     {
@@ -262,7 +262,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 7.82
+        "seconds": 7.04
       },
       "gold": {
         "resolved": true,
@@ -310,7 +310,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 7.77
+        "seconds": 7.06
       }
     }
   ]

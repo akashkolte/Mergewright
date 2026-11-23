@@ -4,8 +4,8 @@
   "problems": [],
   "flaky": [],
   "image": "swerebench/sweb.eval.x86_64.xonsh_1776_xonsh-5013@sha256:c8b5561085ea0d90f5255015a0d7bcb10b64105936380e93696dd6c0f1d648a5",
-  "validated_at": "2026-11-22T20:58:37Z",
-  "seconds": 26.04,
+  "validated_at": "2026-11-23T00:30:37Z",
+  "seconds": 22.23,
   "runs": [
     {
       "run": 1,
@@ -110,7 +110,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.1
+        "seconds": 5.04
       },
       "gold": {
         "resolved": true,
@@ -208,7 +208,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.43
+        "seconds": 3.53
       }
     },
     {
@@ -314,7 +314,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.25
+        "seconds": 3.35
       },
       "gold": {
         "resolved": true,
@@ -412,7 +412,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.46
+        "seconds": 3.48
       }
     },
     {
@@ -518,7 +518,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.59
+        "seconds": 3.41
       },
       "gold": {
         "resolved": true,
@@ -616,7 +616,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.21
+        "seconds": 3.42
       }
     }
   ]

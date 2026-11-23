@@ -4,8 +4,8 @@
   "problems": [],
   "flaky": [],
   "image": "swerebench/sweb.eval.x86_64.fastscape-lem_1776_fastscape-32@sha256:1498ca0b497eaa51b010d5b482a54af3ad5f6ef7553aeb938a905347d28e8b07",
-  "validated_at": "2026-11-22T23:59:31Z",
-  "seconds": 25.6,
+  "validated_at": "2026-11-23T00:36:32Z",
+  "seconds": 22.75,
   "runs": [
     {
       "run": 1,
@@ -22,7 +22,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 6.63
+        "seconds": 4.98
       },
       "gold": {
         "resolved": true,
@@ -35,7 +35,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.38
+        "seconds": 3.75
       }
     },
     {
@@ -53,7 +53,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.73
+        "seconds": 3.34
       },
       "gold": {
         "resolved": true,
@@ -66,7 +66,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.64
+        "seconds": 3.28
       }
     },
     {
@@ -84,7 +84,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.59
+        "seconds": 3.51
       },
       "gold": {
         "resolved": true,
@@ -97,7 +97,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.63
+        "seconds": 3.89
       }
     }
   ]

@@ -4,8 +4,8 @@
   "problems": [],
   "flaky": [],
   "image": "swerebench/sweb.eval.x86_64.radiasoft_1776_sirepo-6507@sha256:2f0c3e4a0be052c6bb05b57165b903c831eabdbc8fb8771363a3f6c0d6153b31",
-  "validated_at": "2026-11-23T00:04:09Z",
-  "seconds": 41.0,
+  "validated_at": "2026-11-23T00:48:34Z",
+  "seconds": 29.62,
   "runs": [
     {
       "run": 1,
@@ -27,7 +27,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 5.79
+        "seconds": 6.19
       },
       "gold": {
         "resolved": true,
@@ -45,7 +45,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.58
+        "seconds": 4.86
       }
     },
     {
@@ -68,7 +68,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 14.34
+        "seconds": 4.8
       },
       "gold": {
         "resolved": true,
@@ -86,7 +86,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 5.64
+        "seconds": 4.47
       }
     },
     {
@@ -109,7 +109,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 5.66
+        "seconds": 4.46
       },
       "gold": {
         "resolved": true,
@@ -127,7 +127,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.99
+        "seconds": 4.84
       }
     }
   ]

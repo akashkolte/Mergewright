@@ -1,0 +1,146 @@
+{
+  "task": "pypa__hatch-377",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "swerebench/sweb.eval.x86_64.pypa_1776_hatch-377@sha256:aac600de3c7ea489ad52a372a336bad9ed85b700f3f15103edea296b59c5e80a",
+  "validated_at": "2026-11-23T00:31:18Z",
+  "seconds": 17.77,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/cli/env/test_show.py::test_optional_columns": "FAILED",
+          "tests/cli/env/test_show.py::test_default": "PASSED",
+          "tests/cli/env/test_show.py::test_default_as_json": "PASSED",
+          "tests/cli/env/test_show.py::test_single_only": "PASSED",
+          "tests/cli/env/test_show.py::test_single_and_matrix": "PASSED",
+          "tests/cli/env/test_show.py::test_default_matrix_only": "PASSED",
+          "tests/cli/env/test_show.py::test_all_matrix_types_with_single": "PASSED",
+          "tests/cli/env/test_show.py::test_specific": "PASSED",
+          "tests/cli/env/test_show.py::test_specific_unknown": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/cli/env/test_show.py::test_optional_columns"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 4.76
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/cli/env/test_show.py::test_optional_columns": "PASSED",
+          "tests/cli/env/test_show.py::test_default": "PASSED",
+          "tests/cli/env/test_show.py::test_default_as_json": "PASSED",
+          "tests/cli/env/test_show.py::test_single_only": "PASSED",
+          "tests/cli/env/test_show.py::test_single_and_matrix": "PASSED",
+          "tests/cli/env/test_show.py::test_default_matrix_only": "PASSED",
+          "tests/cli/env/test_show.py::test_all_matrix_types_with_single": "PASSED",
+          "tests/cli/env/test_show.py::test_specific": "PASSED",
+          "tests/cli/env/test_show.py::test_specific_unknown": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.77
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/cli/env/test_show.py::test_optional_columns": "FAILED",
+          "tests/cli/env/test_show.py::test_default": "PASSED",
+          "tests/cli/env/test_show.py::test_default_as_json": "PASSED",
+          "tests/cli/env/test_show.py::test_single_only": "PASSED",
+          "tests/cli/env/test_show.py::test_single_and_matrix": "PASSED",
+          "tests/cli/env/test_show.py::test_default_matrix_only": "PASSED",
+          "tests/cli/env/test_show.py::test_all_matrix_types_with_single": "PASSED",
+          "tests/cli/env/test_show.py::test_specific": "PASSED",
+          "tests/cli/env/test_show.py::test_specific_unknown": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/cli/env/test_show.py::test_optional_columns"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.7
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/cli/env/test_show.py::test_optional_columns": "PASSED",
+          "tests/cli/env/test_show.py::test_default": "PASSED",
+          "tests/cli/env/test_show.py::test_default_as_json": "PASSED",
+          "tests/cli/env/test_show.py::test_single_only": "PASSED",
+          "tests/cli/env/test_show.py::test_single_and_matrix": "PASSED",
+          "tests/cli/env/test_show.py::test_default_matrix_only": "PASSED",
+          "tests/cli/env/test_show.py::test_all_matrix_types_with_single": "PASSED",
+          "tests/cli/env/test_show.py::test_specific": "PASSED",
+          "tests/cli/env/test_show.py::test_specific_unknown": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.61
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/cli/env/test_show.py::test_optional_columns": "FAILED",
+          "tests/cli/env/test_show.py::test_default": "PASSED",
+          "tests/cli/env/test_show.py::test_default_as_json": "PASSED",
+          "tests/cli/env/test_show.py::test_single_only": "PASSED",
+          "tests/cli/env/test_show.py::test_single_and_matrix": "PASSED",
+          "tests/cli/env/test_show.py::test_default_matrix_only": "PASSED",
+          "tests/cli/env/test_show.py::test_all_matrix_types_with_single": "PASSED",
+          "tests/cli/env/test_show.py::test_specific": "PASSED",
+          "tests/cli/env/test_show.py::test_specific_unknown": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/cli/env/test_show.py::test_optional_columns"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.44
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/cli/env/test_show.py::test_optional_columns": "PASSED",
+          "tests/cli/env/test_show.py::test_default": "PASSED",
+          "tests/cli/env/test_show.py::test_default_as_json": "PASSED",
+          "tests/cli/env/test_show.py::test_single_only": "PASSED",
+          "tests/cli/env/test_show.py::test_single_and_matrix": "PASSED",
+          "tests/cli/env/test_show.py::test_default_matrix_only": "PASSED",
+          "tests/cli/env/test_show.py::test_all_matrix_types_with_single": "PASSED",
+          "tests/cli/env/test_show.py::test_specific": "PASSED",
+          "tests/cli/env/test_show.py::test_specific_unknown": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 2.49
+      }
+    }
+  ]
+}

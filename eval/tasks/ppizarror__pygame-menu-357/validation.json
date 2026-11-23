@@ -1,0 +1,140 @@
+{
+  "task": "ppizarror__pygame-menu-357",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "swerebench/sweb.eval.x86_64.ppizarror_1776_pygame-menu-357@sha256:e3cb9a510c71ca95a730c7abee98c3f6e3424511817fc613ce7d926ec561781f",
+  "validated_at": "2026-11-23T00:32:23Z",
+  "seconds": 26.58,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_invalid_range": "FAILED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double_discrete": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_empty_title": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_kwargs": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_discrete": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_rangeslider": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_value": "PASSED"
+        },
+        "f2p_failing": [
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_invalid_range"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 6.57
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_invalid_range": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double_discrete": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_empty_title": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_kwargs": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_discrete": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_rangeslider": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_value": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 4.15
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_invalid_range": "FAILED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double_discrete": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_empty_title": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_kwargs": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_discrete": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_rangeslider": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_value": "PASSED"
+        },
+        "f2p_failing": [
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_invalid_range"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 3.77
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_invalid_range": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double_discrete": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_empty_title": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_kwargs": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_discrete": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_rangeslider": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_value": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 4.02
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_invalid_range": "FAILED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double_discrete": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_empty_title": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_kwargs": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_discrete": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_rangeslider": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_value": "PASSED"
+        },
+        "f2p_failing": [
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_invalid_range"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 3.79
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_invalid_range": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_double_discrete": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_empty_title": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_kwargs": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_discrete": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_single_rangeslider": "PASSED",
+          "test/test_widget_rangeslider.py::RangeSliderWidgetTest::test_value": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 4.28
+      }
+    }
+  ]
+}

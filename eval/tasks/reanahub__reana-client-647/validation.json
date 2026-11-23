@@ -4,8 +4,8 @@
   "problems": [],
   "flaky": [],
   "image": "swerebench/sweb.eval.x86_64.reanahub_1776_reana-client-647@sha256:a2ffe612c17267cc5b46ffb36ef431bd20e02f5c5262ce317f7b850ca8d8ea75",
-  "validated_at": "2026-11-23T00:05:39Z",
-  "seconds": 54.68,
+  "validated_at": "2026-11-23T00:50:07Z",
+  "seconds": 51.87,
   "runs": [
     {
       "run": 1,
@@ -66,7 +66,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 10.01
+        "seconds": 10.08
       },
       "gold": {
         "resolved": true,
@@ -123,7 +123,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 8.75
+        "seconds": 8.65
       }
     },
     {
@@ -185,7 +185,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 9.59
+        "seconds": 8.38
       },
       "gold": {
         "resolved": true,
@@ -242,7 +242,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 8.63
+        "seconds": 8.42
       }
     },
     {
@@ -304,7 +304,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 8.91
+        "seconds": 8.08
       },
       "gold": {
         "resolved": true,
@@ -361,7 +361,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 8.79
+        "seconds": 8.26
       }
     }
   ]

@@ -4,8 +4,8 @@
   "problems": [],
   "flaky": [],
   "image": "swerebench/sweb.eval.x86_64.marshmallow-code_1776_flask-smorest-318@sha256:3a7a6447707b887bc49926ea587a0d93025661d490ab3b65a8f9f221ec6160b1",
-  "validated_at": "2026-11-23T00:02:00Z",
-  "seconds": 21.39,
+  "validated_at": "2026-11-23T00:46:41Z",
+  "seconds": 16.74,
   "runs": [
     {
       "run": 1,
@@ -82,7 +82,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 5.82
+        "seconds": 3.9
       },
       "gold": {
         "resolved": true,
@@ -154,7 +154,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.69
+        "seconds": 2.71
       }
     },
     {
@@ -232,7 +232,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.78
+        "seconds": 2.58
       },
       "gold": {
         "resolved": true,
@@ -304,7 +304,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.92
+        "seconds": 2.52
       }
     },
     {
@@ -382,7 +382,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.39
+        "seconds": 2.57
       },
       "gold": {
         "resolved": true,
@@ -454,7 +454,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.79
+        "seconds": 2.46
       }
     }
   ]

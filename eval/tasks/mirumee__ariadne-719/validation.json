@@ -4,8 +4,8 @@
   "problems": [],
   "flaky": [],
   "image": "swerebench/sweb.eval.x86_64.mirumee_1776_ariadne-719@sha256:59a3e95ff50dd6249a6d5a3f1f9ac404f5eb513f43445a889224b9e882ecbd5f",
-  "validated_at": "2026-11-23T00:02:40Z",
-  "seconds": 15.85,
+  "validated_at": "2026-11-23T00:47:20Z",
+  "seconds": 13.55,
   "runs": [
     {
       "run": 1,
@@ -47,7 +47,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.59
+        "seconds": 3.4
       },
       "gold": {
         "resolved": true,
@@ -82,7 +82,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.14
+        "seconds": 2.16
       }
     },
     {
@@ -125,7 +125,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.13
+        "seconds": 1.95
       },
       "gold": {
         "resolved": true,
@@ -160,7 +160,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.22
+        "seconds": 2.09
       }
     },
     {
@@ -203,7 +203,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.98
+        "seconds": 1.93
       },
       "gold": {
         "resolved": true,
@@ -238,7 +238,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.79
+        "seconds": 2.02
       }
     }
   ]

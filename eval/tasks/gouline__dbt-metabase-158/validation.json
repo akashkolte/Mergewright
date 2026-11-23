@@ -4,8 +4,8 @@
   "problems": [],
   "flaky": [],
   "image": "swerebench/sweb.eval.x86_64.gouline_1776_dbt-metabase-158@sha256:f6b02562c5526b4f8928b5f5b6507c5086526e6774adf09bad3a056d06be5b29",
-  "validated_at": "2026-11-22T23:59:46Z",
-  "seconds": 14.67,
+  "validated_at": "2026-11-23T00:37:34Z",
+  "seconds": 14.88,
   "runs": [
     {
       "run": 1,
@@ -22,7 +22,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.73
+        "seconds": 3.69
       },
       "gold": {
         "resolved": true,
@@ -35,7 +35,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.38
+        "seconds": 2.12
       }
     },
     {
@@ -53,7 +53,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.3
+        "seconds": 2.23
       },
       "gold": {
         "resolved": true,
@@ -66,7 +66,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.42
+        "seconds": 2.41
       }
     },
     {
@@ -84,7 +84,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.55
+        "seconds": 2.18
       },
       "gold": {
         "resolved": true,
@@ -97,7 +97,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 2.29
+        "seconds": 2.25
       }
     }
   ]
