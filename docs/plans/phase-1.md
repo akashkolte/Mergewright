@@ -413,6 +413,17 @@ now declared. Sonnet 4.6 needs the inference profile id `us.anthropic.claude-son
 id is refused on demand). `buggy_calc` check: DONE in 5 steps, 11 s, 1.1–2.3 s per call. Tests:
 `tests/test_bedrock_converse.py`.
 
+**Pilot 7: Sonnet 4.6 on Bedrock (eval `20261123T193125Z-e60151`, committed as evidence).**
+**Resolved**: `DONE` in 23 steps, 136 s, 142k / 2.7k tokens, $0.47 at $3 / $15 per million
+tokens; the gate passed at the first attempt and the oracle passes all 42 hidden tests. One
+failed edit, fixed by the hint at the next step; one in-loop run with a wrong test path (`pytest
+exited 4`, reported as "Not a pass"); 15 `search_code` calls looking for tests before `finish`.
+
+| Model (same code) | Steps | Wall | Tokens in / out | Cost | Result |
+|---|---|---|---|---|---|
+| Kimi K3.1 (NIM) | 8 | 546 s | 133k / 2.8k | $0 (NIM credits) | resolved |
+| Sonnet 4.6 (Bedrock) | 23 | 136 s | 142k / 2.7k | $0.47 | resolved |
+
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
 
