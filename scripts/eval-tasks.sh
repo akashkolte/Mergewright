@@ -92,7 +92,11 @@ for id in "${IDS[@]}"; do
     echo "INVALID: $id is skipped (see its validation.json)"
   fi
   if ((pulled)) && [[ ${image%@*} != "$FIXTURE" ]]; then
-    docker rmi "${image%@*}:latest" "$image" >/dev/null && echo "removed $image"
+    # Removing the tag also deletes the image when no other tag holds it; then the digest
+    # reference is gone too, so remove it only if it is still there.
+    docker rmi "${image%@*}:latest" >/dev/null
+    if docker image inspect "$image" >/dev/null 2>&1; then docker rmi "$image" >/dev/null; fi
+    echo "removed $image"
   fi
 done
 log "done: eval $EVAL_ID"
