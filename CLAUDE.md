@@ -20,7 +20,7 @@ Commands (from the repo root, venv active):
 - Tests: `pytest` (only `tests/`; `examples/buggy_calc` fails on purpose and is excluded). The `docker` tests need the default sandbox image (`docker build -t mergewright-python:1 docker/python`) and are skipped without it; `pytest -m "not docker"` skips them.
 - Lint and format: `ruff check .` and `ruff format .`
 - Tasks: `mergewright tasks import <instance-id> --split dev`, `mergewright tasks validate [ids]`, `mergewright tasks list`
-- Eval: `mergewright eval --split smoke --system base --k 3 --llm replay` (refuses tasks whose validation is not valid and current: `mergewright tasks validate --stale`; never pulls images)
+- Eval: `mergewright eval --split smoke --system base --k 3 --llm replay [--jobs N] [--eval-id ID | --resume ID]` (refuses tasks whose validation is not valid and current: `mergewright tasks validate --stale`; never pulls images; `--resume` runs only missing trials and refuses unless the system, config and clean git SHA match). In cloud sessions, `bash scripts/eval-tasks.sh --split dev --k 3 --llm live --jobs 3 [--eval-id ID] [ids]` (root) pulls, evaluates and removes one task image at a time
 - Report: `mergewright report results/<eval-id> [results/<other-id> ...] [--out report.md] [--seed 0] [--resamples 10000]` (Markdown tables: bootstrap intervals over tasks; paired deltas and McNemar for each pair, delta = later minus earlier argument)
 - Run: `mergewright run --llm replay` (no key) or `mergewright run --llm live` (needs `.env`, see `.env.example`); `mergewright graph` prints the workflow graph.
 

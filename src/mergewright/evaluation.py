@@ -3,7 +3,9 @@
 Writes results/<eval-id>/ (spec Section 4.5): manifest.json, and per trial
 runs/<task>/<system>/<k>.json with the patch (<k>.patch) and the run log (<k>.trace.jsonl).
 Each trial file is written as soon as the trial ends, so an interrupted eval keeps its
-finished trials. A trial that raises is recorded as "infra" or "error"; the eval goes on.
+finished trials, and `--resume <eval-id>` runs only the missing ones (written atomically, so
+a trial file is either whole or absent). A trial that raises is recorded as "infra" or
+"error"; the eval goes on.
 
 Fields that need later phases (queue time, limiter wait, cached tokens, tamper events,
 selected and oracle-best candidate) are written as null.
@@ -13,14 +15,17 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import platform
 import secrets
 import shutil
 import subprocess
 import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from functools import partial
 from importlib import metadata
 from pathlib import Path
 from typing import Any
@@ -203,9 +208,15 @@ def run_trial(
     return record
 
 
-def git_state() -> dict[str, Any]:
-    """The checked-out commit, and whether tracked files have uncommitted changes."""
-    root = Path(__file__).resolve().parents[2]
+_REPO = Path(__file__).resolve().parents[2]
+
+
+def git_state(root: Path = _REPO) -> dict[str, Any]:
+    """The checked-out commit, and whether tracked code has uncommitted changes.
+
+    eval/ is left out: task data (e.g. a validation record rewritten before a resumed task runs)
+    are tied to the eval by each task's fingerprint and image ID in the manifest.
+    """
 
     def git(*args: str) -> str | None:
         try:
@@ -214,7 +225,8 @@ def git_state() -> dict[str, Any]:
             return None
         return proc.stdout.strip() if proc.returncode == 0 else None
 
-    status = git("status", "--porcelain", "--untracked-files=no")  # results/ is untracked
+    # results/ is untracked, so untracked files are not counted.
+    status = git("status", "--porcelain", "--untracked-files=no", "--", ".", ":(exclude)eval")
     return {"sha": git("rev-parse", "HEAD"), "dirty": None if status is None else bool(status)}
 
 
@@ -225,6 +237,8 @@ def run_eval(
     results_dir: Path,
     work_dir: Path,
     eval_id: str | None = None,
+    resume: bool = False,
+    jobs: int = 1,
     image_id: Callable[[str], str | None] = local_image_id,
     now: Callable[[], datetime] = lambda: datetime.now(UTC),
     git: Callable[[], dict[str, Any]] = git_state,
@@ -235,42 +249,99 @@ def run_eval(
 ) -> Path:
     """Run every task k times; return results_dir/<eval-id>. Raises EvalRefused before any run.
 
-    make_llm gives the model client for one trial (a fresh replay per trial, or one live client).
+    resume adds to the existing eval eval_id: it runs only the trials without a <k>.json, and
+    refuses unless the eval was made by the same system (see same_system). Tasks run one after
+    another; up to `jobs` trials of one task run at the same time. make_llm gives the model
+    client for one trial; it is called once per trial, so trials share no client state.
     """
-    task_info = preflight(tasks, image_id)
     started = now()
     eval_id = eval_id or f"{started:%Y%m%dT%H%M%SZ}-{secrets.token_hex(3)}"
     out = results_dir / eval_id
-    out.mkdir(parents=True)  # never into an existing eval
-    manifest = _manifest(eval_id, spec, task_info, started, git())
+    manifest = _manifest(eval_id, spec, started, git())
+    if resume:
+        manifest = _resumable(out / "manifest.json", manifest)
+    elif out.exists():
+        raise EvalRefused(f"{out} exists; use --resume {eval_id} to add trials to it")
+
+    def trial_dir(task: Task) -> Path:
+        return out / "runs" / task.id / spec.system
+
+    todo = {
+        task.id: [k for k in range(1, spec.k + 1) if not (trial_dir(task) / f"{k}.json").exists()]
+        for task in tasks
+    }
+    pending = [task for task in tasks if todo[task.id]]
+    task_info = preflight(pending, image_id)
+    changed = [i for i, info in task_info.items() if manifest["tasks"].get(i, info) != info]
+    if changed:
+        raise EvalRefused(f"image or validation changed since the eval ran: {', '.join(changed)}")
+    out.mkdir(parents=True, exist_ok=resume)
+    manifest["tasks"].update(task_info)
+    manifest["finished_at"] = None
+    invocation = {"started_at": _utc(started), "finished_at": None, "jobs": jobs}
+    invocation["tasks"] = [task.id for task in pending]
+    manifest.setdefault("invocations", []).append(invocation)
     _write_json(out / "manifest.json", manifest)  # rewritten at the end
-    served: set[str] = set()
-    resolved = 0
-    for task in tasks:
-        for k in range(1, spec.k + 1):
-            llm = make_llm(task)
-            record = run_trial(
-                task, spec, k, llm, out / "runs" / task.id / spec.system, work_dir / eval_id,
-                run=run, judge=judge, clock=clock,
-            )  # fmt: skip
-            served |= getattr(llm, "served_models", set())
-            resolved += record["resolved"]
-            if echo:
-                echo(f"{task.id} k={k}: {record['failure_category']} ({record['status']})")
+    served = set(manifest["model"]["served"])
+    records = []
+
+    def one(task: Task, k: int) -> tuple[LLMClient, dict[str, Any]]:
+        llm = make_llm(task)
+        record = run_trial(
+            task, spec, k, llm, trial_dir(task), work_dir / eval_id, run=run, judge=judge,
+            clock=clock,
+        )  # fmt: skip
+        return llm, record
+
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        for task in pending:  # tasks one after another: each may need its own image
+            for llm, record in pool.map(partial(one, task), todo[task.id]):
+                served |= getattr(llm, "served_models", set())
+                records.append(record)
+                if echo:
+                    echo(f"{task.id} k={record['k']}: {record['failure_category']} "
+                         f"({record['status']})")  # fmt: skip
     manifest["model"]["served"] = sorted(served)
-    manifest["finished_at"] = _utc(now())
+    manifest["finished_at"] = invocation["finished_at"] = _utc(now())
     _write_json(out / "manifest.json", manifest)
     if echo:
-        echo(f"resolved {resolved} of {len(tasks) * spec.k} trials; results in {out}")
+        resolved = sum(record["resolved"] for record in records)
+        echo(f"resolved {resolved} of {len(records)} trials; results in {out}")
     return out
 
 
+# Manifest fields that must match for a resumed eval: every trial comes from the same system.
+_SAME_SYSTEM = ("split", "system", "runtime", "k", "n", "temperature", "price", "caps",
+                "prompt_hash", "versions")  # fmt: skip
+
+
+def same_system(manifest: dict[str, Any]) -> dict[str, Any]:
+    """The fields of a manifest that identify the system, its config and its code."""
+    identity = {key: manifest.get(key) for key in _SAME_SYSTEM}
+    identity["model"] = manifest.get("model", {}).get("requested")
+    identity["git sha"] = manifest.get("git", {}).get("sha")
+    return identity
+
+
+def _resumable(path: Path, current: dict[str, Any]) -> dict[str, Any]:
+    """The eval's manifest at path; EvalRefused unless the current invocation may add to it."""
+    try:
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise EvalRefused(f"cannot resume: {path} is not readable ({exc})") from exc
+    old, new = same_system(manifest), same_system(current)
+    problems = [f"{key}: {old[key]!r} in the eval, {new[key]!r} now" for key in new
+                if old[key] != new[key]]  # fmt: skip
+    for name, data in (("the eval's", manifest), ("this", current)):
+        if data.get("git", {}).get("dirty") is not False:
+            problems.append(f"{name} git tree has uncommitted changes to tracked files (or no git)")
+    if problems:
+        raise EvalRefused("cannot resume, the system differs:\n" + "\n".join(problems))
+    return manifest
+
+
 def _manifest(
-    eval_id: str,
-    spec: EvalSpec,
-    task_info: dict[str, dict[str, Any]],
-    started: datetime,
-    git: dict[str, Any],
+    eval_id: str, spec: EvalSpec, started: datetime, git: dict[str, Any]
 ) -> dict[str, Any]:
     return {
         "eval_id": eval_id,
@@ -289,7 +360,7 @@ def _manifest(
         "versions": {"python": platform.python_version(), **_versions()},
         "prompt_hash": f"sha256:{hashlib.sha256(Path(prompts.__file__).read_bytes()).hexdigest()}",
         "caps": asdict(spec.limits),
-        "tasks": task_info,
+        "tasks": {},  # task id -> preflight info, added as its trials start
     }
 
 
@@ -318,4 +389,7 @@ def _utc(moment: datetime) -> str:
 
 
 def _write_json(path: Path, data: dict[str, Any]) -> None:
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    """Write atomically: a resumed eval must never find a half-written file."""
+    tmp = path.with_name(f".{path.name}.tmp")
+    tmp.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, path)

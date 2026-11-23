@@ -151,6 +151,21 @@ configured (`MERGEWRIGHT_PRICE_*_PER_MTOK`); replay is 0. The manifest has the g
 flag, versions, requested and server-reported model, prompt hash, caps, and each task's image
 ID and fingerprint. Check: smoke at k = 2 on replay, 10 of 10 resolved.
 
+Added for step 14 (the cloud disk cannot hold all 20 task images): `--jobs N` runs up to N of
+one task's k trials at the same time (threads; one model client per trial); tasks still run one
+after another. `--resume <eval-id>` adds trials to an existing eval: it runs only the trials
+without a `<k>.json` and preflights only their tasks. It refuses unless the manifest's split,
+system, runtime, k, temperature, requested model, price, caps, prompt hash, package versions and
+git SHA match the current invocation, neither git tree is dirty, and a task already in the
+eval has the same image ID and fingerprint. The manifest keeps `started_at`, unions the served
+models and lists each invocation (`invocations`: times, tasks, jobs); trial files and the
+manifest are written atomically. `scripts/eval-tasks.sh` (root, cloud) drives one eval task by
+task: pull the pinned image (refused below `MW_MIN_FREE_GB`, default 15), re-validate if stale,
+`mergewright eval --tasks <id>` (the first creates the eval, later ones `--resume` it), then
+remove the image it pulled. It skips tasks whose k trials exist, so a rerun with `--eval-id`
+continues. Check: driver on 2 smoke tasks at k = 2, `--jobs 2`, replay: 4 of 4 resolved, a
+rerun skips both, the report shows no warning.
+
 As planned:
 
 - **Validation fingerprint.** `validation.json` gets a `fingerprint`: a SHA-256 over the code

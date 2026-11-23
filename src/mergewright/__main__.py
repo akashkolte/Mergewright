@@ -75,6 +75,12 @@ def _parser() -> argparse.ArgumentParser:
     ev.add_argument("--tasks-dir", type=Path, default=Path("eval/tasks"))
     ev.add_argument("--out", type=Path, default=Path("results"))
     ev.add_argument("--work-dir", type=Path, default=Path("runs/eval"))
+    ev.add_argument("--jobs", type=int, default=1, help="trials of one task run at the same time")
+    named = ev.add_mutually_exclusive_group()
+    named.add_argument("--eval-id", help="the new eval's id (default: time and random suffix)")
+    named.add_argument(
+        "--resume", metavar="EVAL_ID", help="add the missing trials to this existing eval"
+    )
 
     rep = sub.add_parser("report", help="Markdown tables with intervals from eval results")
     rep.add_argument("evals", nargs="+", type=Path, metavar="EVAL_DIR", help="results/<eval-id>")
@@ -152,8 +158,8 @@ def _run(args: argparse.Namespace) -> int:
 def _eval(args: argparse.Namespace) -> int:
     limits = Limits()  # system base: the default config, frozen
     try:
-        if args.k < 1:
-            raise ConfigError("--k must be at least 1")
+        if args.k < 1 or args.jobs < 1:
+            raise ConfigError("--k and --jobs must be at least 1")
         tasks = [task for task in load_tasks(args.tasks_dir) if task.split == args.split]
         if args.tasks:
             by_id = {task.id: task for task in tasks}
@@ -165,7 +171,10 @@ def _eval(args: argparse.Namespace) -> int:
             raise ConfigError(f"no {args.split} tasks in {args.tasks_dir}")
         model, price, make_llm = _eval_llm(args.llm, tasks, limits)
         spec = EvalSpec(args.split, args.system, args.k, model, price, limits)
-        out = run_eval(tasks, spec, make_llm, args.out, args.work_dir)
+        out = run_eval(
+            tasks, spec, make_llm, args.out, args.work_dir, eval_id=args.resume or args.eval_id,
+            resume=bool(args.resume), jobs=args.jobs,
+        )  # fmt: skip
     except EvalRefused as exc:
         print(f"error: the eval cannot start:\n{exc}", file=sys.stderr)
         return EXIT_CONFIG
@@ -204,8 +213,12 @@ def _eval_llm(
 
         return "replay", Price(0.0, 0.0), replay
     load_dotenv(Path(".env"), os.environ)
-    client = OpenAIClient(load_live_settings(), timeout_s=limits.llm_timeout_s)
-    return client.model, load_price(), lambda task: client
+    settings = load_live_settings()
+
+    def live(task: Task) -> LLMClient:  # one client per trial: parallel trials share no state
+        return OpenAIClient(settings, timeout_s=limits.llm_timeout_s)
+
+    return settings.model, load_price(), live
 
 
 def _tasks(args: argparse.Namespace) -> int:

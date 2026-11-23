@@ -149,9 +149,11 @@ def test_eval_checks_its_inputs_before_any_run(tmp_path: Path, capsys):
 
     no_replay = main(base)
     unknown = main([*base, "--tasks", "org__r-9"])
+    no_jobs = main([*base, "--jobs", "0"])
 
-    assert no_replay == unknown == EXIT_CONFIG
+    assert no_replay == unknown == no_jobs == EXIT_CONFIG
     err = capsys.readouterr().err
     assert "no replay.json (needed by --llm replay): org__r-1" in err
+    assert "--k and --jobs must be at least 1" in err
     assert "not in split dev: org__r-9" in err
     assert not (tmp_path / "results").exists()
