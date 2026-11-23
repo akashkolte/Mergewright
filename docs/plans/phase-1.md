@@ -383,6 +383,15 @@ summary, and one gate problem:
    `test_coder_run_tests_says_pass_and_finish_even_with_pytest_exit_code_1`,
    `test_coder_run_tests_marks_failures_that_were_there_at_base`. Pilot 5: `sceptre-1249` only.
 
+**Pilot 5 (eval `20261123T180052Z-d760f2`, committed as evidence).** `FAILED_BUDGET` at the new
+step cap (50 steps, 330 s, 730k / 5.3k tokens); no edit, so no patch and no oracle run. Steps
+1–8 are the same as in pilot 4 (temperature 0); at step 9 the model read code instead of
+editing, then ran tests: each answer was "All selected tests passed ... If your fix is complete,
+call finish." (the bug's tests are hidden, so the visible tests pass at base). From step 14 to
+step 50 it sent the same `run_tests` call 37 times in a row, ignoring the verdict and the
+`finish` nudge. The tooling worked as intended (clear verdict, base failures marked); this is a
+repetition loop of the model.
+
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
 
