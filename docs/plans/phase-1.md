@@ -311,6 +311,14 @@ the prompt says the test suite runs after its summary. Endpoint: 2 calls of 251 
 Pilot 3 checks the change on one task (`sceptre-1249`, the easiest of the three: bug found in 2
 steps in both pilots), at the owner's request; the next step is decided from its result.
 
+**Pilot 3 (eval `20261123T171204Z-22495b`, committed as evidence).** `FAILED_BUDGET` at the
+step cap: 25 steps, 237 s, 338k / 8.8k tokens, no test run. `finish` was offered on every step
+and never called. Edits: 6 (3 failed, each fixed by the next call after the hint); last good
+edit at step 19, then 6 steps of reading and searching tests. The final patch (scored by the
+oracle anyway) passes 41 of the task's 42 hidden tests; it fails
+`test_get__resolver_references_same_property_for_other_value__resolves_it`, a test its edit to
+`ResolveLater.__call__` broke, which the tester's feedback could have caught.
+
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
 
