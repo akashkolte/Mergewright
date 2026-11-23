@@ -196,20 +196,28 @@ def test_tester_ignores_errors_known_at_base(buggy_calc: Path):
     (buggy_calc / "tests" / "test_needs_flask.py").write_text("import flask\n")
     llm = ScriptedLLM([edit(BUGGY_LINE, FIXED_LINES), done()])
 
-    final, _ = run(buggy_calc, llm, known_errors=frozenset({"tests/test_needs_flask.py"}))
+    final, _ = run(buggy_calc, llm, known_failing=frozenset({"tests/test_needs_flask.py"}))
 
     assert final["status"] == "DONE"
 
 
-def test_tester_still_requires_tests_that_fail_at_base(buggy_calc: Path):
-    # The bug's visible test fails at base; listing it as known must not excuse it.
-    llm = ScriptedLLM([done(), done(), done()])
+def test_tester_is_a_regression_check_that_ignores_tests_failing_at_base(buggy_calc: Path):
+    # A test that fails at base (here the bug's own visible test) does not block DONE: the gate
+    # asks only that nothing that worked at base breaks. The hidden-test oracle judges the fix.
+    known = frozenset({"tests/test_calc.py::test_median_even_length"})
 
-    final, _ = run(
-        buggy_calc, llm, known_errors=frozenset({"tests/test_calc.py::test_median_even_length"})
-    )
+    final, _ = run(buggy_calc, ScriptedLLM([done()]), known_failing=known)
 
-    assert final["status"] == "FAILED_NO_FIX"
+    assert final["status"] == "DONE"
+
+
+def test_tester_rejects_a_test_that_passed_at_base_and_now_fails(buggy_calc: Path):
+    known = frozenset({"tests/test_calc.py::test_median_even_length"})
+    llm = ScriptedLLM([edit(BUGGY_LINE, WRONG_FIX), done(), done(), done()])
+
+    final, _ = run(buggy_calc, llm, known_failing=known)
+
+    assert final["status"] == "FAILED_NO_FIX"  # the wrong fix breaks the odd-length test
 
 
 def test_tool_output_with_the_canary_is_redacted_and_logged(buggy_calc: Path):

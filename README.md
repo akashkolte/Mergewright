@@ -155,7 +155,7 @@ The model is offered only the three Coder tools. A call to any other tool is ref
 
 ## Run limits
 
-Set in `Limits` in [src/mergewright/config.py](src/mergewright/config.py): 25 model calls, 3 test runs, 60 s per test run, 120 s per model call, 30 minutes per run (a safety stop; the step limit should end a run first). A run that hits a limit ends with `FAILED_BUDGET` or `FAILED_NO_FIX`. The exit code is 0 for `DONE`, 1 for a failed run and 2 for a configuration error.
+Set in `Limits` in [src/mergewright/config.py](src/mergewright/config.py): 50 model calls, 3 gate test runs, 15 minutes per test run, 120 s per model call, 90 minutes per run (a safety stop; the step limit should end a run first). A run that hits a limit ends with `FAILED_BUDGET` or `FAILED_NO_FIX`. The exit code is 0 for `DONE`, 1 for a failed run and 2 for a configuration error.
 
 ## Run log
 

@@ -60,7 +60,8 @@ class AgentDeps:
     limits: Limits = field(default_factory=Limits)
     clock: Callable[[], float] = time.monotonic
     test_command: str = DEFAULT_TEST_COMMAND
-    known_errors: frozenset[str] = frozenset()  # ERROR ids at base; the gate ignores them
+    # FAILED and ERROR ids at base: the gate ignores them, and the Coder sees them marked.
+    known_failing: frozenset[str] = frozenset()
 
 
 def initial_state(issue: str) -> AgentState:
@@ -115,7 +116,11 @@ def tools_step(state: AgentState, deps: AgentDeps) -> dict[str, Any]:
         begin = deps.clock()
         if name == "run_tests":
             result = run_tests_for_coder(
-                deps.sandbox, deps.test_command, args, deps.limits.tool_timeout_s
+                deps.sandbox,
+                deps.test_command,
+                args,
+                deps.limits.tool_timeout_s,
+                deps.known_failing,
             )
         else:
             result = execute(name, args, deps.workspace, CODER_TOOLS)
@@ -140,7 +145,7 @@ def tester_step(state: AgentState, deps: AgentDeps) -> dict[str, Any]:
     attempt = state["test_attempts"] + 1
     begin = deps.clock()
     report = run_tests(deps.sandbox, deps.test_command, timeout_s=deps.limits.tool_timeout_s)
-    problems = gate(report, deps.known_errors)
+    problems = gate(report, deps.known_failing)
     deps.log.event(
         "tool_call",
         agent="tester",

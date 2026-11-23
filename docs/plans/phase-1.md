@@ -351,6 +351,38 @@ summary, and one gate problem:
   so the task can never count as resolved. Of the 3 pilot tasks, only sceptre has failures at
   base; the other dev tasks are not checked yet.
 
+5. **Realistic budget, a clear in-loop verdict, a regression gate (owner's go, 2026-11-23).**
+   - *Budget (`config.Limits`).* `max_steps` 25 → 50: finding and editing took about 10 steps
+     in every pilot, and the in-loop test runs come on top. `tool_timeout_s` 60 → 900 s: one
+     test run, in the loop or at the gate; the full suite of a large dev repository
+     (scikit-image, sqlfluff, xonsh) can take minutes, and a timed-out gate fails whatever the
+     patch (sceptre's full suite: 14 s). `wall_clock_s` 1800 → 5400 s: room for 50 steps and
+     3 full gate runs, still only a safety stop. `max_test_attempts` (3) and `llm_timeout_s`
+     (120 s per attempt) are unchanged.
+   - *In-loop verdict (`run_tests_for_coder`).* The answer starts with the gate's verdict ("All
+     selected tests passed." / "No new failures." / "New failures: n."), without pytest's exit
+     code; tests that failed at base are listed apart as "Already failing before your change
+     (not caused by you)"; the output tail is shown only when something fails, and on a pass
+     the answer ends "If your fix is complete, call finish."
+   - *Two parser fixes (`tools.py`).* A captured log line (`ERROR    logger:file.py:101 ...`)
+     was parsed as a test error (sceptre's baseline had one); the log tail no longer lists
+     `PASSED` lines (`-rA` ends with one per test, which hid the useful lines).
+   - *Gate (spec Section 6, Tester row).* The gate ignores tests that fail *or* error at base:
+     it is a regression check. Trade-off: a visible test the bug breaks is no longer required by
+     the gate; the hidden-test oracle judges the fix. The other way out, dropping every dev task
+     with base failures, would shrink the split for an environment property, not a bug property.
+   - *`finish` stays required; passing tests do not end a run.* The bug's tests are hidden, and
+     the visible suite usually passes before any change, so "all tests passed" says nothing
+     about the fix; ending on it would also make `overclaim` meaningless. The verdict line
+     nudges instead.
+
+   Tests: `test_tester_is_a_regression_check_that_ignores_tests_failing_at_base`,
+   `test_tester_rejects_a_test_that_passed_at_base_and_now_fails`,
+   `test_gate_ignores_failures_and_errors_known_at_base_and_nothing_else`,
+   `test_parse_ignores_captured_log_lines_and_the_tail_drops_passed_lines`,
+   `test_coder_run_tests_says_pass_and_finish_even_with_pytest_exit_code_1`,
+   `test_coder_run_tests_marks_failures_that_were_there_at_base`. Pilot 5: `sceptre-1249` only.
+
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
 

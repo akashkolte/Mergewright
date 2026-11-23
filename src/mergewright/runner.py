@@ -47,8 +47,8 @@ def run_agent(
     sandbox = env.start(workspace_dir, run_id)
     log.redact = lambda text: sandbox.canary.redact(text)[0]
     try:
-        # Test files that already error at base (e.g. a dependency the image lacks) are known
-        # gaps of the environment; the Tester's gate ignores them. Failing tests still count.
+        # Tests that already fail or error at base (e.g. a dependency the image lacks) are known
+        # gaps of the environment: the gate ignores them and the Coder sees them marked.
         baseline = run_tests(sandbox, env.test_command, timeout_s=limits.tool_timeout_s)
         log.event(
             "test_baseline",
@@ -64,7 +64,7 @@ def run_agent(
             sandbox=sandbox,
             limits=limits,
             test_command=env.test_command,
-            known_errors=frozenset(baseline.errors),
+            known_failing=frozenset(baseline.failures + baseline.errors),
         )
         final = build_graph(deps).invoke(
             initial_state(issue), config={"recursion_limit": recursion_limit(limits)}

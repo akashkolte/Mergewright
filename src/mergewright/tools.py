@@ -212,7 +212,10 @@ def run_tests(sandbox: Sandbox, command: str, timeout_s: float = 60.0) -> TestRe
         results=results,
         exit_code=result.exit_code,
         canary_leaked=result.canary_leaked,
-        log_tail="\n".join(output.strip().splitlines()[-30:]),
+        # With -rA the summary ends in one PASSED line per test, which says nothing to a reader.
+        log_tail="\n".join(
+            [line for line in output.strip().splitlines() if not line.startswith("PASSED ")][-30:]
+        ),
     )
 
 
@@ -225,7 +228,8 @@ def parse_pytest_results(output: str) -> dict[str, str]:
     results: dict[str, str] = {}
     for line in output.splitlines():
         word, _, rest = line.partition(" ")
-        if word in RESULT_WORDS and rest:
+        # "ERROR    logger:file.py:10 message" is a captured log line (level padded), not a test.
+        if word in RESULT_WORDS and rest and not rest[0].isspace():
             results[_strip_message(rest)] = word
     return results
 
@@ -241,16 +245,16 @@ def _strip_message(rest: str) -> str:
     return rest.strip()
 
 
-def gate(report: TestReport, known_errors: frozenset[str] = frozenset()) -> list[str]:
-    """What still blocks DONE; empty when the run is good enough.
+def gate(report: TestReport, known_failing: frozenset[str] = frozenset()) -> list[str]:
+    """What still blocks DONE: a regression check; empty when the run is good enough.
 
-    known_errors are the ERROR ids seen at base (for example, a test file whose optional
-    dependency the task image lacks): they are ignored. Failing tests never are, even if
-    they failed at base: a visible test the bug breaks must pass after the fix.
+    known_failing are the FAILED and ERROR ids seen at base (an environment gap in the task
+    image, say): they are ignored, so the gate asks only that nothing that worked at base
+    breaks. Whether the bug is fixed is the hidden-test oracle's verdict, not the gate's.
     """
     if report.timed_out:
         return ["(timed out)"]
-    problems = report.failures + [e for e in report.errors if e not in known_errors]
+    problems = [t for t in report.failures + report.errors if t not in known_failing]
     if problems:
         return problems
     if report.exit_code not in (0, 1):
@@ -292,12 +296,17 @@ MAX_LISTED_TESTS = 20  # failing ids shown to the Coder; the log tail follows
 
 
 def run_tests_for_coder(
-    sandbox: Sandbox, command: str, raw_args: str, timeout_s: float
+    sandbox: Sandbox,
+    command: str,
+    raw_args: str,
+    timeout_s: float,
+    known_failing: frozenset[str] = frozenset(),
 ) -> ToolResult:
     """The Coder's in-loop test run: existing tests only, chosen by id. Not the gate.
 
     Ids are passed as pytest arguments, shell-quoted; one that starts with "-" (an option)
-    is refused, so the model cannot change how pytest runs.
+    is refused, so the model cannot change how pytest runs. The answer starts with the
+    verdict the gate would give and keeps tests that already failed at base apart.
     """
     try:
         args = RunTestsArgs.model_validate(json.loads(raw_args or "{}"))
@@ -312,16 +321,28 @@ def run_tests_for_coder(
     if report.timed_out:
         return ToolResult(True, f"tests timed out after {timeout_s}s; run fewer tests")
     failing = report.failures + report.errors
-    listed = "\n".join(f"- {test}" for test in failing[:MAX_LISTED_TESTS])
-    more = len(failing) - MAX_LISTED_TESTS
-    lines = [
-        f"{report.num_passed} passed, {report.num_failed} failed, {report.num_errors} errors"
-        f" (pytest exit code {report.exit_code})",
-        *([f"Failing:\n{listed}"] if failing else []),
-        *([f"... and {more} more"] if more > 0 else []),
-        f"Output (last lines):\n{report.log_tail}",
-    ]
+    new = [t for t in failing if t not in known_failing]
+    old = [t for t in failing if t in known_failing]
+    problems = gate(report, known_failing)
+    counts = f"{report.num_passed} passed, {report.num_failed} failed, {report.num_errors} errors."
+    if not problems:
+        verdict = "All selected tests passed." if not failing else "No new failures."
+        lines = [f"{verdict} {counts}", "If your fix is complete, call finish."]
+    elif new:
+        lines = [f"New failures: {len(new)}. {counts}", _listed("Failing now", new)]
+    else:  # nothing listed failed, but pytest did not pass: no test ran, or a crash
+        lines = [f"Not a pass: {problems[0]}. {counts}"]
+    if old:
+        lines.append(_listed("Already failing before your change (not caused by you)", old))
+    if problems:
+        lines.append(f"Output (last lines):\n{report.log_tail}")
     return ToolResult(True, "\n".join(lines))
+
+
+def _listed(title: str, tests: list[str]) -> str:
+    shown = "\n".join(f"- {test}" for test in tests[:MAX_LISTED_TESTS])
+    more = len(tests) - MAX_LISTED_TESTS
+    return f"{title}:\n{shown}" + (f"\n... and {more} more" if more > 0 else "")
 
 
 class FinishArgs(BaseModel):

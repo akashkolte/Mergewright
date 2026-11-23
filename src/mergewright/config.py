@@ -16,13 +16,17 @@ class ConfigError(Exception):
 class Limits:
     """Hard bounds on one run."""
 
-    max_steps: int = 25  # LLM calls per run
-    max_test_attempts: int = 3  # test runs before the run gives up
-    tool_timeout_s: float = 60.0  # per tool call, enforced for run_tests
-    llm_timeout_s: float = 120.0  # per LLM call
+    # Budgets from the Phase 1 pilots (docs/plans/phase-1.md, step 14): a run needs about 10
+    # steps to find and edit the code, then test runs and fixes; 25 steps ended runs mid-check.
+    max_steps: int = 50  # LLM calls per run
+    max_test_attempts: int = 3  # gate runs before the run gives up
+    # One test run, in the loop or at the gate. A full suite of a large repository takes minutes;
+    # a run that times out fails the gate whatever the patch.
+    tool_timeout_s: float = 900.0
+    llm_timeout_s: float = 120.0  # per LLM call attempt (the SDK retries a timeout twice)
     # Whole run. A safety stop, not the working budget: max_steps should end a run first, so a
-    # result does not depend on the endpoint's speed (Phase 1 pilot: 300 s cut runs at step 15).
-    wall_clock_s: float = 1800.0
+    # result does not depend on the endpoint's speed. Room for 50 steps and 3 full gate runs.
+    wall_clock_s: float = 5400.0
 
 
 @dataclass(frozen=True)

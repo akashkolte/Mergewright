@@ -220,7 +220,7 @@ def test_run_tests_keeps_collection_errors_apart_from_failures():
     assert report.failures == [] and report.num_passed == 12 and report.num_errors == 2
 
 
-def test_gate_ignores_errors_known_at_base_but_never_failures():
+def test_gate_ignores_failures_and_errors_known_at_base_and_nothing_else():
     known = frozenset({"tests/test_plugin_flask.py", "tests/test_spec.py"})
     errors_only = run_tests(scripted(COLLECTION_ERRORS_RUN, 1), "pytest")
     failing = run_tests(scripted(FAILING_RUN, 1), "pytest")
@@ -228,6 +228,40 @@ def test_gate_ignores_errors_known_at_base_but_never_failures():
     assert gate(errors_only, known) == []
     assert gate(errors_only, frozenset()) == ["tests/test_plugin_flask.py", "tests/test_spec.py"]
     assert gate(failing, known) == ["tests/test_calc.py::test_median_even_length"]
+    assert gate(failing, frozenset({"tests/test_calc.py::test_median_even_length"})) == []
+
+
+def test_parse_ignores_captured_log_lines_and_the_tail_drops_passed_lines():
+    output = (
+        "ERROR    pkg.helper:helper.py:101 A template error occured\n"
+        "PASSED tests/test_a.py::test_ok\n"
+        "1 passed in 0.01s\n"
+    )
+
+    report = run_tests(scripted(output, 0), "pytest")
+
+    assert report.results == {"tests/test_a.py::test_ok": "PASSED"} and report.errors == []
+    assert "PASSED tests/test_a.py::test_ok" not in report.log_tail
+    assert "1 passed in 0.01s" in report.log_tail
+
+
+def test_coder_run_tests_says_pass_and_finish_even_with_pytest_exit_code_1():
+    # Seen in pilot 4: pytest exited 1 with nothing failed; the model read it as a failure.
+    result = run_tests_for_coder(scripted("38 passed in 2.1s\n", 1), "pytest", "{}", 60)
+
+    assert result.output.startswith("All selected tests passed. 38 passed, 0 failed, 0 errors.")
+    assert "call finish" in result.output and "exit code" not in result.output
+
+
+def test_coder_run_tests_marks_failures_that_were_there_at_base():
+    known = frozenset({"tests/test_calc.py::test_median_even_length"})
+
+    result = run_tests_for_coder(scripted(FAILING_RUN, 1), "pytest", "{}", 60, known)
+
+    assert result.output.startswith("No new failures.")
+    assert "Already failing before your change (not caused by you):\n- tests/test_calc.py" in (
+        result.output
+    )
 
 
 def test_gate_fails_when_no_test_ran():
