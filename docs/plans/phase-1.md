@@ -198,66 +198,86 @@ infra error. Refuses evals on different splits; warns when models or a shared ta
 fingerprint differ, or an eval is incomplete. Check: two smoke evals (k = 2 and k = 1) report
 100 % each and a delta of +0.0 [+0.0, +0.0], not distinguishable.
 
-## Step 14: Base run (runbook; to do on the owner's Mac)
+## Step 14: Base run (runbook; to do in a cloud session)
 
-The UB endpoint (`zai-org/GLM-5.2` at `https://gateway.bullsai.buffalo.edu/v1`, as in Phase 0)
-accepts VPN traffic only, so the cloud sessions cannot reach it (502 from the egress proxy).
-Base runs on the owner's Apple Silicon Mac (Docker Desktop; under 35 GB free disk), with
-`scripts/eval-tasks.sh` (one image at a time; works without root and with bash 3.2).
+**The model is a setting, not code.** `.env` names it: `MERGEWRIGHT_MODEL`,
+`MERGEWRIGHT_API_BASE` (any OpenAI-compatible server), `MERGEWRIGHT_API_KEY` and the two
+`MERGEWRIGHT_PRICE_*_PER_MTOK` values. Each eval's `manifest.json` records the requested and the
+served model; `mergewright report` shows the model per eval and warns when the evals it compares
+use different models. A Base run is therefore Base *for one model*: Phase 2 features are
+compared with the Base of the same model. To compare another model later, write its `.env`,
+run Base again (new eval id), and pass both eval folders to `mergewright report`.
 
-1. **Prepare (once).** UB VPN on for the whole run; Docker Desktop running (Settings: "Use
-   Rosetta for x86_64/amd64 emulation" on, if offered; check the disk limit under Resources).
-   In the checkout: `git checkout checkpoint-2 && git pull`; `python3 -m venv .venv && .
-   .venv/bin/activate && pip install -e ".[dev]"`; `docker build -t mergewright-python:1
-   docker/python`. `.env` (ignored by git): `MERGEWRIGHT_MODEL=zai-org/GLM-5.2`,
-   `MERGEWRIGHT_API_BASE=https://gateway.bullsai.buffalo.edu/v1`, `MERGEWRIGHT_API_KEY=<key>`,
-   `MERGEWRIGHT_PRICE_IN_PER_MTOK=0`, `MERGEWRIGHT_PRICE_OUT_PER_MTOK=0` (free endpoint: $0).
-2. **Check.** `ruff check .`; `pytest -q` (the Docker tests run on the Mac; tests that need the
-   spectree image skip); `mergewright tasks list --split smoke --check`; one smoke eval:
-   `mergewright eval --split smoke --k 1 --llm replay --out /tmp/mw-smoke`.
-3. **Pilot.** The tree must be clean (`git status`: resume refuses uncommitted code).
-   `bash scripts/eval-tasks.sh --split dev --k 1 --llm live --jobs 1 macbre__sql-metadata-127
-   gouline__dbt-metabase-158 Sceptre__sceptre-1249` (small images, about 5 GB each). Read
-   `wall_s`, `steps`, `tokens_in/out` and `failure_category` in
-   `results/<eval-id>/runs/*/base/1.json`; fix any pipeline bug before step 4 (as in steps 11
-   and 12, the first real run of a path has found one each time). The pilot is not Base.
+First Base model: `nvidia/nemotron-3-ultra-550b-a55b` on NVIDIA NIM
+(`https://integrate.api.nvidia.com/v1`; no VPN, so the cloud session reaches it). The UB
+endpoint (`zai-org/GLM-5.2`, Phase 0) accepts VPN traffic only. On the owner's Mac the same
+steps work as the current user (no `cloud-setup.sh`, no `su mw`; Docker Desktop with Rosetta).
+
+1. **Prepare (once).** As root: `bash scripts/cloud-setup.sh --no-images` (Docker daemon, user
+   `mw`, venv, `mergewright-python:1`). Key: save the NIM key with the session's credential
+   form for host `integrate.api.nvidia.com` (Bearer); the proxy adds it to each request, so it
+   never enters the container. `.env` (ignored by git):
+   `MERGEWRIGHT_MODEL=nvidia/nemotron-3-ultra-550b-a55b`,
+   `MERGEWRIGHT_API_BASE=https://integrate.api.nvidia.com/v1`,
+   `MERGEWRIGHT_API_KEY=proxy-injected`, `MERGEWRIGHT_PRICE_IN_PER_MTOK=0`,
+   `MERGEWRIGHT_PRICE_OUT_PER_MTOK=0` (NIM API credits: $0 unless the owner gives a price).
+2. **Check.** As `mw`: `ruff check .`; `pytest -q` (expected: only
+   `test_cpu_memory_and_pid_limits_are_set_in_the_cgroup` fails, cgroup v1);
+   `mergewright tasks list --split smoke --check`; one smoke eval:
+   `mergewright eval --split smoke --k 1 --llm replay --out /tmp/mw-smoke`. Endpoint check:
+   `mergewright run --llm live` on the bundled `examples/buggy_calc` (tool calls must parse;
+   note the served model id, the time per step, and any 429 or context-length error).
+3. **Pilot (a small sample; not Base).** The tree must be clean (`git status`: resume refuses
+   uncommitted code). As root: `bash scripts/eval-tasks.sh --split dev --k 1 --llm live --jobs 1
+   macbre__sql-metadata-127 gouline__dbt-metabase-158 Sceptre__sceptre-1249` (small images,
+   about 5 GB each; pulled and removed one at a time). Read `wall_s`, `steps`,
+   `tokens_in/out` and `failure_category` in `results/<eval-id>/runs/*/base/1.json`; fix any
+   pipeline bug before step 4 (as in steps 11 and 12, the first real run of a path has found
+   one each time). The owner decides on the full run from these numbers.
 4. **Base.** `bash scripts/eval-tasks.sh --split dev --k 3 --llm live --jobs 3` (every dev
-   task; images 4.7–8.7 GB, one on disk at a time); note the eval id it prints. An interrupted
-   run continues with `--eval-id <id>`. (`kornia-1740`, 28.9 GB, was replaced by
-   `arctic3d-181` before any run; `crate-python-472` in between was invalid: `eval/PLAN.md`.) Do not change code,
-   prompts, `.env` or package versions between invocations (`--resume` refuses). `--jobs 3`:
-   lower it if the Mac runs out of memory (each sandbox has its task's memory ceiling).
-5. **Lost trials.** A trial whose run failed only because the endpoint could not be reached (VPN
-   drop: `error` mentions a connection error) may be re-run once: delete its `<k>.json`,
-   `<k>.patch`, `<k>.trace.jsonl` and run the script again with `--eval-id`. Write each re-run
-   here (task, k, reason). Never re-run a trial for any other reason (spec 9.1: infra re-runs
-   once, reported apart).
+   task; images 4.7–8.7 GB, one on disk at a time); note the eval id it prints. Run it in the
+   background and keep the session working until it ends: the container is reclaimed when the
+   session is idle, and results are not committed until step 6 (a commit changes the git SHA,
+   and `--resume` then refuses). An interrupted run continues with `--eval-id <id>`.
+   (`kornia-1740`, 28.9 GB, was replaced by `arctic3d-181` before any run; `crate-python-472`
+   in between was invalid: `eval/PLAN.md`.) Do not change code, prompts, `.env` or package
+   versions between invocations. Lower `--jobs` if the endpoint returns 429 often.
+5. **Lost trials.** A trial whose run failed only because of the endpoint (connection error,
+   or 429 after the client's retries: see its `error`) may be re-run once, with the owner's
+   approval: delete its `<k>.json`, `<k>.patch`, `<k>.trace.jsonl` and run the script again
+   with `--eval-id`. Write each re-run here (task, k, reason). Never re-run a trial for any
+   other reason (spec 9.1: infra re-runs once, reported apart).
 6. **Report and commit.** `mergewright report results/<id> --out results/<id>/report.md`.
    Commit the re-validated `eval/tasks/*/validation.json` and the eval's `manifest.json`,
    `runs/*/base/<k>.json` and `report.md` (decision pending: traces may stay out of git if they
-   are large). Record here: eval id, dates, resolve rate with interval, time per trial, issues.
+   are large). Record here: eval id, model, dates, resolve rate with interval, time per trial,
+   issues.
 
-**Prompt for the local Claude session** (on the Mac, in the checkout, after `git pull` on
-`checkpoint-2`, with the VPN on, Docker Desktop running and `.env` written by the owner):
+**Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
+`checkpoint-2`):
 
 ```
 Do Phase 1 step 14 (the Base run) by following the runbook in docs/plans/phase-1.md,
-section "Step 14: Base run". This is the owner's Mac (Apple Silicon, Docker Desktop, under
-35 GB free disk, UB VPN on); run commands as the current user, not root.
+section "Step 14: Base run". This is a cloud session: run setup as root, Mergewright as mw.
+Model: nvidia/nemotron-3-ultra-550b-a55b on NVIDIA NIM (https://integrate.api.nvidia.com/v1).
 
-1. Setup and checks (runbook steps 1-2): venv + pip install -e ".[dev]", build
-   mergewright-python:1, ruff check, pytest -q, the smoke record check and one smoke eval.
-   If scripts/eval-tasks.sh fails on macOS (bash 3.2), fix it in a small commit.
+1. Setup and checks (runbook steps 1-2): scripts/cloud-setup.sh --no-images; ask me for the
+   NIM key with the credential form for integrate.api.nvidia.com; write .env as the runbook
+   says; ruff check, pytest -q, the smoke record check, one smoke eval, and the live endpoint
+   check on examples/buggy_calc. Report the endpoint check (served model, time per step,
+   errors) before the pilot.
 2. Pilot (runbook step 3): the 3 named dev tasks, k=1, --llm live, --jobs 1. Report to me
    the wall time, steps, tokens and failure category of each trial, and any pipeline bug.
    Stop there and wait for my go.
-3. Only after my go: the full Base run (runbook step 4), then the report and commit
-   (runbook steps 5-6).
+3. Only after my go: the full Base run (runbook step 4) in the background, then the report
+   and commit (runbook steps 5-6).
 
-Rules: ask me before the full Base run, before deleting anything other than the task images
-the script pulls, and before re-running any trial. Do not change code, prompts, .env or
-package versions during the Base run (--resume refuses). Never print, log or commit .env or
-the API key. Commit and push only to checkpoint-2.
+You may pull and remove the task images that scripts/eval-tasks.sh pulls. Rules: ask me
+before the full Base run, before any other download or deletion, and before re-running any
+trial. Keep the code model-agnostic: the model is set only in .env; no model-specific code.
+Do not change code, prompts, .env or package versions during the Base run (--resume
+refuses). Never print, log or commit .env or the API key. Commit and push only to
+checkpoint-2.
 ```
 
 ## Step 15: CI (done)
