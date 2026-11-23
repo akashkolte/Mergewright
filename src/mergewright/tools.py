@@ -119,11 +119,38 @@ def edit_file(ws: Workspace, path: str, old: str, new: str) -> str:
     source = target.read_text(encoding="utf-8")
     count = source.count(old)
     if count == 0:
-        raise ToolError(f"old text not found in {path}; read the file and copy it exactly")
+        raise ToolError(f"old text not found in {path}; " + _whitespace_hint(source, old))
     if count > 1:
         raise ToolError(f"old text found {count} times in {path}; include more context")
     target.write_text(source.replace(old, new), encoding="utf-8")
     return f"edited {path}: replaced {old.count(chr(10)) + 1} line(s)"
+
+
+def _whitespace_hint(source: str, old: str) -> str:
+    """Show the file's exact text when old differs from it only in whitespace, else ask to copy.
+
+    Models copy read_file output with the spaces after the line number added to the indentation
+    (Phase 1 pilot: 12 of 14 edits failed so). The hint gives the exact text to copy; the edit
+    itself stays exact, so no whitespace is ever guessed.
+    """
+    wanted = [line.strip() for line in old.strip("\n").splitlines()]
+    lines = source.splitlines()
+    if not any(wanted):
+        return "read the file and copy it exactly"
+    starts = [
+        i
+        for i in range(len(lines) - len(wanted) + 1)
+        if [line.strip() for line in lines[i : i + len(wanted)]] == wanted
+    ]
+    if len(starts) != 1:
+        return "read the file and copy it exactly"
+    first, last = starts[0] + 1, starts[0] + len(wanted)
+    exact = "\n".join(lines[first - 1 : last])
+    return (
+        f"lines {first}-{last} match it except for whitespace. Their exact text (no line "
+        f"numbers; read_file's line numbers and the two spaces after them are not part of the "
+        f"file) is between the markers:\n<<<\n{exact}\n>>>"
+    )
 
 
 @dataclass

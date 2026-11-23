@@ -96,6 +96,23 @@ def test_edit_file_old_text_not_found_is_an_error(buggy_calc: Path):
         edit_file(Workspace(buggy_calc), "calc.py", "no such text", "x")
 
 
+def test_edit_file_shows_the_exact_text_when_only_whitespace_differs(buggy_calc: Path):
+    calc = buggy_calc / "calc.py"
+    before = calc.read_text()
+    # As copied from read_file output: two extra spaces of indentation on the second line.
+    old = "ordered = sorted(values)\n      return ordered[len(ordered) // 2]"
+
+    with pytest.raises(ToolError) as error:
+        edit_file(Workspace(buggy_calc), "calc.py", old, "x")
+
+    message = str(error.value)
+    assert "lines 15-16 match it except for whitespace" in message
+    assert (
+        "<<<\n    ordered = sorted(values)\n    return ordered[len(ordered) // 2]\n>>>" in message
+    )
+    assert calc.read_text() == before  # the edit stays exact: nothing is written
+
+
 def test_edit_file_ambiguous_match_is_an_error(buggy_calc: Path):
     with pytest.raises(ToolError, match="found 3 times"):
         edit_file(Workspace(buggy_calc), "calc.py", "if not values:", "if values == []:")

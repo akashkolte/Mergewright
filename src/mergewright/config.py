@@ -20,7 +20,9 @@ class Limits:
     max_test_attempts: int = 3  # test runs before the run gives up
     tool_timeout_s: float = 60.0  # per tool call, enforced for run_tests
     llm_timeout_s: float = 120.0  # per LLM call
-    wall_clock_s: float = 300.0  # whole run
+    # Whole run. A safety stop, not the working budget: max_steps should end a run first, so a
+    # result does not depend on the endpoint's speed (Phase 1 pilot: 300 s cut runs at step 15).
+    wall_clock_s: float = 1800.0
 
 
 @dataclass(frozen=True)

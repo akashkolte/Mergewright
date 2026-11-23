@@ -253,6 +253,36 @@ steps work as the current user (no `cloud-setup.sh`, no `su mw`; Docker Desktop 
    are large). Record here: eval id, model, dates, resolve rate with interval, time per trial,
    issues.
 
+**Pilot 1 and two changes before Base (2026-11-23).** Eval `20261123T155721Z-f23dba`
+(committed in `results/` as evidence; not Base): 0 of 3 resolved, all `FAILED_BUDGET`, no test
+run in any trial. Endpoint check before it: `buggy_calc` DONE in 4 steps, 16 s; no 429, no
+connection or context-length error in any call; served model = requested model.
+
+| Task | Stopped by | Wall | Steps | Tokens in / out | `edit_file` (failed) |
+|---|---|---|---|---|---|
+| `sql-metadata-127` | wall clock 300 s | 376 s | 15 | 142k / 9.8k | 1 (0) |
+| `dbt-metabase-158` | step cap 25 | 301 s | 25 | 877k / 10.9k | 4 (4) |
+| `sceptre-1249` | step cap 25 | 165 s | 25 | 260k / 5.0k | 9 (8) |
+
+1. **`edit_file` hint (tool interface defect).** 12 of 14 edits failed with "old text not
+   found". `read_file` prints `{n:>4}  {line}`; the model counted the two spaces after the
+   line number as indentation, so every line after the first of its `old` text had 2 extra
+   spaces (sceptre: 10 instead of 8, sent 7 times before one edit matched). The tool's own
+   output misled its sibling tool, so this is a defect of the Base tool set, not a missing agent
+   feature. Change: when `old` matches exactly one place in the file except for whitespace, the
+   error shows those lines' exact text (`tools._whitespace_hint`). The edit itself stays exact;
+   no whitespace is guessed. Regression test:
+   `test_edit_file_shows_the_exact_text_when_only_whitespace_differs`.
+2. **`wall_clock_s` 300 → 1800 s (budget).** Model calls took 1–103 s (about 26 output
+   tokens/s on long replies), so 300 s ended `sql-metadata` at step 15 and depended on the
+   endpoint's speed, not on the agent: a time cap that binds makes results incomparable across
+   models and providers. The step cap (25) is now the working budget; the wall clock is a
+   safety stop against a hung run. The overshoot (376 s for a 300 s cap) is bounded: the cap is
+   checked between steps, and one model call is at most `llm_timeout_s` (120 s).
+
+Both changes are part of the frozen Base system (new git SHA), so pilot 1 is not comparable with
+Base and is not resumed. Pilot 2 repeats the same 3 tasks with the changes.
+
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
 
