@@ -20,6 +20,7 @@ Commands (from the repo root, venv active):
 - Tests: `pytest` (only `tests/`; `examples/buggy_calc` fails on purpose and is excluded). The `docker` tests need the default sandbox image (`docker build -t mergewright-python:1 docker/python`) and are skipped without it; `pytest -m "not docker"` skips them.
 - Lint and format: `ruff check .` and `ruff format .`
 - Tasks: `mergewright tasks import <instance-id> --split dev`, `mergewright tasks validate [ids]`, `mergewright tasks list`
+- Eval: `mergewright eval --split smoke --system base --k 3 --llm replay` (refuses tasks whose validation is not valid and current: `mergewright tasks validate --stale`; never pulls images)
 - Run: `mergewright run --llm replay` (no key) or `mergewright run --llm live` (needs `.env`, see `.env.example`); `mergewright graph` prints the workflow graph.
 
 Tests must stay deterministic: use `ScriptedLLM` or pass a fake SDK client to `OpenAIClient(client=...)`, never a real model. The full system keeps the `openai` package; LiteLLM is deferred (spec Section 14).

@@ -1,24 +1,34 @@
-"""Command line: `mergewright run ...` runs the agent; `mergewright tasks ...` selects, imports,
-validates and lists eval tasks; `mergewright graph` prints the graph."""
+"""Command line: `mergewright run ...` runs the agent; `mergewright eval ...` runs it on a split
+and judges it; `mergewright tasks ...` selects, imports, validates and lists eval tasks;
+`mergewright graph` prints the graph."""
 
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import get_args
 
-from mergewright.config import ConfigError, Limits, load_dotenv, load_live_settings
+from mergewright.config import (
+    ConfigError,
+    Limits,
+    Price,
+    load_dotenv,
+    load_live_settings,
+    load_price,
+)
 from mergewright.environments import DEFAULT_IMAGE, LocalRepo
+from mergewright.evaluation import SYSTEMS, EvalRefused, EvalSpec, run_eval
 from mergewright.graph import assemble_graph, next_after_coder, next_after_tester
 from mergewright.llm import LLMClient, OpenAIClient, RecordingLLM, ScriptedLLM
-from mergewright.oracle import VALIDATION_FILE, validate_task
+from mergewright.oracle import validate_task, validation_state
 from mergewright.runner import run_agent
 from mergewright.sandbox import SandboxError
 from mergewright.selection import DEV_WHERE, dev_candidates
 from mergewright.tasks import (
+    REPLAY_FILE,
     Split,
     Task,
     fetch_swe_rebench_row,
@@ -53,6 +63,16 @@ def _parser() -> argparse.ArgumentParser:
         help="Docker image the repo's tests run in (build the default: docker/python)",
     )
 
+    ev = sub.add_parser("eval", help="run a system k times on each task of a split, then judge it")
+    ev.add_argument("--split", choices=get_args(Split), required=True)
+    ev.add_argument("--system", choices=SYSTEMS, default="base")
+    ev.add_argument("--k", type=int, default=1, help="trials per task")
+    ev.add_argument("--llm", choices=["live", "replay"], required=True)
+    ev.add_argument("--tasks", nargs="+", metavar="ID", help="only these tasks of the split")
+    ev.add_argument("--tasks-dir", type=Path, default=Path("eval/tasks"))
+    ev.add_argument("--out", type=Path, default=Path("results"))
+    ev.add_argument("--work-dir", type=Path, default=Path("runs/eval"))
+
     tasks = sub.add_parser("tasks", help="import, validate and list eval tasks")
     tasks_sub = tasks.add_subparsers(dest="tasks_command", required=True)
     common = argparse.ArgumentParser(add_help=False)
@@ -64,6 +84,9 @@ def _parser() -> argparse.ArgumentParser:
         "validate", parents=[common], help="check tasks with the empty and gold patches"
     )
     val.add_argument("ids", nargs="*", help="task ids (default: every task)")
+    val.add_argument(
+        "--stale", action="store_true", help="only tasks with no record or a stale record"
+    )
     val.add_argument("--runs", type=int, default=3)
     val.add_argument("--work-dir", type=Path, default=Path("runs/oracle"))
     tasks_sub.add_parser("list", parents=[common], help="list tasks and their validation status")
@@ -111,6 +134,51 @@ def _run(args: argparse.Namespace) -> int:
     return EXIT_DONE if result.status == "DONE" else EXIT_FAILED
 
 
+def _eval(args: argparse.Namespace) -> int:
+    limits = Limits()  # system base: the default config, frozen
+    try:
+        if args.k < 1:
+            raise ConfigError("--k must be at least 1")
+        tasks = [task for task in load_tasks(args.tasks_dir) if task.split == args.split]
+        if args.tasks:
+            by_id = {task.id: task for task in tasks}
+            unknown = [i for i in args.tasks if i not in by_id]
+            if unknown:
+                raise ConfigError(f"not in split {args.split}: {', '.join(unknown)}")
+            tasks = [by_id[i] for i in args.tasks]
+        if not tasks:
+            raise ConfigError(f"no {args.split} tasks in {args.tasks_dir}")
+        model, price, make_llm = _eval_llm(args.llm, tasks, limits)
+        spec = EvalSpec(args.split, args.system, args.k, model, price, limits)
+        out = run_eval(tasks, spec, make_llm, args.out, args.work_dir)
+    except EvalRefused as exc:
+        print(f"error: the eval cannot start:\n{exc}", file=sys.stderr)
+        return EXIT_CONFIG
+    except (ConfigError, SandboxError, ValueError, OSError) as exc:  # SandboxError: no Docker
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_CONFIG
+    print(f"manifest: {out / 'manifest.json'}")
+    return EXIT_DONE
+
+
+def _eval_llm(
+    mode: str, tasks: list[Task], limits: Limits
+) -> tuple[str, Price | None, Callable[[Task], LLMClient]]:
+    """The model label, its price (None: unknown) and the client for each trial."""
+    if mode == "replay":
+        missing = [task.id for task in tasks if not (task.path / REPLAY_FILE).is_file()]
+        if missing:
+            raise ConfigError(f"no {REPLAY_FILE} (needed by --llm replay): {', '.join(missing)}")
+
+        def replay(task: Task) -> LLMClient:  # a fresh script per trial
+            return ScriptedLLM.from_file(task.path / REPLAY_FILE)
+
+        return "replay", Price(0.0, 0.0), replay
+    load_dotenv(Path(".env"), os.environ)
+    client = OpenAIClient(load_live_settings(), timeout_s=limits.llm_timeout_s)
+    return client.model, load_price(), lambda task: client
+
+
 def _tasks(args: argparse.Namespace) -> int:
     try:
         if args.tasks_command == "import":
@@ -142,6 +210,11 @@ def _tasks(args: argparse.Namespace) -> int:
     if not tasks:
         print(f"error: no tasks in {args.tasks_dir}", file=sys.stderr)
         return EXIT_CONFIG
+    if args.stale:
+        tasks = [t for t in tasks if validation_state(t)[0] in ("not validated", "stale")]
+        if not tasks:
+            print("every validation record is current")
+            return EXIT_DONE
     all_valid = True
     for task in tasks:
         record = validate_task(task, args.work_dir, runs=args.runs)
@@ -157,11 +230,8 @@ def _invalid(record: dict) -> str:
 
 
 def _validation_status(task: Task) -> str:
-    path = task.path / VALIDATION_FILE
-    if not path.is_file():
-        return "not validated"
-    record = json.loads(path.read_text(encoding="utf-8"))
-    return f"{'valid' if record['valid'] else 'invalid'} ({record['validated_at']})"
+    state, record = validation_state(task)
+    return f"{state} ({record['validated_at']})" if record else state
 
 
 def _graph() -> int:
@@ -184,6 +254,8 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.command == "tasks":
         return _tasks(args)
+    if args.command == "eval":
+        return _eval(args)
     return _run(args) if args.command == "run" else _graph()
 
 

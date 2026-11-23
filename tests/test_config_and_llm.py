@@ -5,7 +5,14 @@ from types import SimpleNamespace
 import openai
 import pytest
 
-from mergewright.config import ConfigError, LiveSettings, load_dotenv, load_live_settings
+from mergewright.config import (
+    ConfigError,
+    LiveSettings,
+    Price,
+    load_dotenv,
+    load_live_settings,
+    load_price,
+)
 from mergewright.llm import (
     LLMError,
     LLMResponse,
@@ -46,6 +53,17 @@ def test_live_settings_for_an_openai_compatible_server():
     assert settings == SETTINGS
 
 
+def test_a_price_is_read_only_when_configured():
+    names = ("MERGEWRIGHT_PRICE_IN_PER_MTOK", "MERGEWRIGHT_PRICE_OUT_PER_MTOK")
+
+    price = load_price(dict(zip(names, ["0.5", "2"], strict=True)))
+
+    assert load_price({}) is None  # unknown, never a guess
+    assert price == Price(0.5, 2.0) and price.cost(2_000_000, 1_000_000) == 3.0
+    with pytest.raises(ConfigError, match="both"):
+        load_price({names[0]: "0.5"})
+
+
 SETTINGS = LiveSettings("zai-org/GLM-5.2", "http://llm.example.test/v1", "placeholder")
 
 
@@ -54,8 +72,9 @@ def _fake_sdk(create):
     return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
 
 
-def _completion(message):
+def _completion(message, model="zai-org/GLM-5.2-0901"):
     return SimpleNamespace(
+        model=model,  # the server-reported model ID
         choices=[SimpleNamespace(message=message)],
         usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5),
     )
@@ -80,6 +99,7 @@ def test_openai_client_sends_the_request_and_parses_tool_calls():
     assert (response.prompt_tokens, response.completion_tokens) == (10, 5)
     assert captured["model"] == "zai-org/GLM-5.2"  # sent as is, with no provider prefix
     assert captured["tools"] == tools and captured["temperature"] == 0
+    assert client.served_models == {"zai-org/GLM-5.2-0901"}
 
 
 def test_openai_client_configures_the_sdk_from_settings():

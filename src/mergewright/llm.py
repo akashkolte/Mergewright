@@ -79,6 +79,7 @@ class OpenAIClient:
         self, settings: LiveSettings, timeout_s: float, retries: int = 2, client: Any = None
     ) -> None:
         self.model = settings.model
+        self.served_models: set[str] = set()  # the model IDs the server reported
         self._client = client or openai.OpenAI(
             base_url=settings.api_base,
             api_key=settings.api_key or "unused",  # some local servers need no key
@@ -95,6 +96,8 @@ class OpenAIClient:
             raise LLMError(f"model call failed: {exc}") from exc
         if not raw.choices:
             raise LLMError("model returned no choices")
+        if getattr(raw, "model", None):
+            self.served_models.add(raw.model)
         return _parse_completion(raw)
 
 

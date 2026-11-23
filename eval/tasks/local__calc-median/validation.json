@@ -4,8 +4,9 @@
   "problems": [],
   "flaky": [],
   "image": "mergewright-python:1",
-  "validated_at": "2026-11-23T00:28:50Z",
-  "seconds": 10.22,
+  "fingerprint": "sha256:cb79c7e55e256aa36fa7a56084f02cb92e660f8953241b2206bf076f11401c58",
+  "validated_at": "2026-11-23T01:20:28Z",
+  "seconds": 9.97,
   "runs": [
     {
       "run": 1,
@@ -26,7 +27,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 1.79
+        "seconds": 1.65
       },
       "gold": {
         "resolved": true,
@@ -43,7 +44,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 1.66
+        "seconds": 1.6
       }
     },
     {
@@ -65,7 +66,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 1.69
+        "seconds": 1.68
       },
       "gold": {
         "resolved": true,
@@ -121,7 +122,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 1.72
+        "seconds": 1.68
       }
     }
   ]

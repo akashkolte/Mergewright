@@ -9,6 +9,7 @@ the outcomes are the same on every run.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import secrets
@@ -24,10 +25,13 @@ from typing import Any
 
 from mergewright.environments import Environment
 from mergewright.sandbox import SandboxError
-from mergewright.tasks import Task
+from mergewright.tasks import REPLAY_FILE, TASK_FILE, Task
 from mergewright.tools import run_tests
 
 VALIDATION_FILE = "validation.json"
+_PACKAGE = Path(__file__).resolve().parent
+# The code that decides a verdict; the pytest parser is in tools.py.
+_VERDICT_CODE = ("environments.py", "oracle.py", "tasks.py", "tools.py", "sandbox/*.py")
 _SECTION = re.compile(r"^diff --git ", re.MULTILINE)
 _TOUCHED = re.compile(r"^(?:diff --git a/(\S+) b/(\S+)|--- a/(\S+)|\+\+\+ b/(\S+))", re.MULTILINE)
 _ADDED_OR_CHANGED = re.compile(r"^\+\+\+ b/(\S+)$", re.MULTILINE)
@@ -172,6 +176,43 @@ def _utc_now() -> datetime:
     return datetime.now(UTC)
 
 
+def fingerprint(task: Task, package: Path = _PACKAGE) -> str:
+    """SHA-256 over the verdict code and the task's own files: whole files, path + bytes, sorted.
+
+    File level on purpose: any edit, even a comment, makes a validation record stale (safe).
+    The image digest is in task.json. A local task's repo/ is not hashed: LocalRepo checks
+    that it still commits as base_sha.
+    """
+    files = {
+        f"code/{path.relative_to(package).as_posix()}": path
+        for pattern in _VERDICT_CODE
+        for path in package.glob(pattern)
+    }
+    for name in (TASK_FILE, task.issue, task.gold_patch, task.test_patch, REPLAY_FILE):
+        if name != REPLAY_FILE or (task.path / name).is_file():  # only replay.json is optional
+            files[f"task/{name}"] = task.path / name
+    digest = hashlib.sha256()
+    for label in sorted(files):
+        data = files[label].read_bytes()
+        digest.update(f"{label}\0{len(data)}\0".encode() + data)
+    return f"sha256:{digest.hexdigest()}"
+
+
+def validation_state(task: Task) -> tuple[str, dict[str, Any] | None]:
+    """The state of a task's validation record, and the record (None if there is none).
+
+    One of "not validated", "stale" (made for other code or task files than the current ones,
+    or before records had a fingerprint), "invalid" or "valid".
+    """
+    path = task.path / VALIDATION_FILE
+    if not path.is_file():
+        return "not validated", None
+    record = json.loads(path.read_text(encoding="utf-8"))
+    if record.get("fingerprint") != fingerprint(task):
+        return "stale", record
+    return ("valid" if record["valid"] else "invalid"), record
+
+
 def validate_task(
     task: Task,
     work_dir: Path,
@@ -185,6 +226,7 @@ def validate_task(
     every test passes with the gold patch; with no infrastructure error and no flaky test (one
     whose outcome differs between runs). task.json is never rewritten.
     """
+    validated = fingerprint(task)  # before the runs: the code that was loaded
     gold = task.gold_patch_text()
     records: list[dict[str, Any]] = []
     problems: list[str] = []
@@ -207,6 +249,7 @@ def validate_task(
         "problems": problems,
         "flaky": flaky,
         "image": task.image,
+        "fingerprint": validated,
         "validated_at": now().astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "seconds": round(sum(r[k]["seconds"] for r in records for k in ("empty", "gold")), 2),
         "runs": records,

@@ -137,9 +137,21 @@ of 23 candidates dropped. Smoke: 5 valid. `tasks select` reproduces the order in
 Open: `validation.json` still keeps no log tail; every root cause above needed a manual
 re-run to see the test output.
 
-## Step 12: `mergewright eval` (planned)
+## Step 12: `mergewright eval` (done)
 
-Besides the eval runner itself (agenda step 12):
+`src/mergewright/evaluation.py`, CLI `mergewright eval --split --system base --k --llm
+replay|live [--tasks] [--out results]`. Before any run it refuses every task whose record is not
+valid and current, or whose image is not local (it never pulls). Per trial: `<k>.json` (spec 4.5
+fields; later-phase fields null), `<k>.patch`, `<k>.trace.jsonl`, written when the trial ends;
+the trial's workspace is then deleted (disk). A trial that raises is recorded (`infra` for a
+`SandboxError`, else `error`) and the eval goes on. `resolved` = the agent ended `DONE` and the
+oracle passed the patch; the oracle also judges a patch the agent gave up on (`patch_resolves`),
+so both the system's and the SWE-bench convention are available. Cost is null unless a price is
+configured (`MERGEWRIGHT_PRICE_*_PER_MTOK`); replay is 0. The manifest has the git SHA and dirty
+flag, versions, requested and server-reported model, prompt hash, caps, and each task's image
+ID and fingerprint. Check: smoke at k = 2 on replay, 10 of 10 resolved.
+
+As planned:
 
 - **Validation fingerprint.** `validation.json` gets a `fingerprint`: a SHA-256 over the code
   that decides a verdict (`oracle.py`, `sandbox/`, `environments.py`, `tasks.py`, the pytest

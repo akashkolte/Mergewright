@@ -9,6 +9,7 @@ import mergewright.__main__ as cli
 from mergewright.__main__ import EXIT_CONFIG, EXIT_DONE, main
 from mergewright.environments import DEFAULT_IMAGE
 from tests.conftest import BUGGY_LINE, EXAMPLES_DIR, REPO_ROOT
+from tests.test_evaluation import make_task, mark_valid
 from tests.test_tasks import DIGEST, ROW_FILE, TASK_ID
 
 
@@ -102,3 +103,40 @@ def test_tasks_import_then_list(tmp_path: Path, monkeypatch, capsys):
     assert (imported, listed) == (EXIT_DONE, EXIT_DONE) and fetched == [TASK_ID]
     assert (tasks_dir / TASK_ID / "task.json").is_file()
     assert capsys.readouterr().out.splitlines()[-1] == f"{TASK_ID}  dev  not validated"
+
+
+def test_tasks_validate_stale_runs_only_missing_and_stale_records(tmp_path, monkeypatch, capsys):
+    current, stale, new = (make_task(tmp_path, f"org__r-{i}") for i in (1, 2, 3))
+    mark_valid(current)
+    mark_valid(stale)
+    (stale.path / "gold.patch").write_text("changed")
+    validated = []
+
+    def fake_validate(task, work_dir, runs):
+        validated.append(task.id)
+        return {"valid": True, "seconds": 1.0, "problems": []}
+
+    monkeypatch.setattr(cli, "validate_task", fake_validate)
+
+    listed = main(["tasks", "list", "--tasks-dir", str(tmp_path)])
+    states = [line.split("  ")[2] for line in capsys.readouterr().out.splitlines()]
+    code = main(["tasks", "validate", "--stale", "--tasks-dir", str(tmp_path)])
+
+    assert listed == code == EXIT_DONE
+    assert states == ["valid (x)", "stale (x)", "not validated"]
+    assert validated == ["org__r-2", "org__r-3"]
+
+
+def test_eval_checks_its_inputs_before_any_run(tmp_path: Path, capsys):
+    make_task(tmp_path / "tasks", "org__r-1")  # no replay.json
+    base = ["eval", "--split", "dev", "--llm", "replay", "--tasks-dir", str(tmp_path / "tasks"),
+            "--out", str(tmp_path / "results")]  # fmt: skip
+
+    no_replay = main(base)
+    unknown = main([*base, "--tasks", "org__r-9"])
+
+    assert no_replay == unknown == EXIT_CONFIG
+    err = capsys.readouterr().err
+    assert "no replay.json (needed by --llm replay): org__r-1" in err
+    assert "not in split dev: org__r-9" in err
+    assert not (tmp_path / "results").exists()

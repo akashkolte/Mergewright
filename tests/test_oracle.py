@@ -11,9 +11,11 @@ from mergewright.oracle import (
     VALIDATION_FILE,
     combine_patches,
     evaluate,
+    fingerprint,
     harness_ids,
     hidden_test_files,
     validate_task,
+    validation_state,
 )
 from mergewright.sandbox import ExecResult, SandboxError
 from mergewright.tasks import Task, import_swe_rebench
@@ -200,6 +202,8 @@ def test_a_good_task_is_valid_and_the_record_is_written(task: Task, tmp_path: Pa
     assert json.loads((task.path / VALIDATION_FILE).read_text()) == record
     assert record["validated_at"] == "2026-11-22T08:30:00Z"
     assert record["image"] == task.image and len(record["runs"]) == 3
+    assert record["fingerprint"] == fingerprint(task)
+    assert validation_state(task) == ("valid", record)
     assert record["runs"][0]["gold"]["resolved"] and not record["runs"][0]["empty"]["resolved"]
     assert (task.path / "task.json").read_text() == task_json  # never rewritten
 
@@ -221,3 +225,35 @@ def test_a_test_whose_outcome_changes_between_runs_is_flaky(task: Task, tmp_path
 
     assert not record["valid"] and record["flaky"] == task.f2p
     assert record["problems"] == [f"flaky (outcome differs between runs): {task.f2p[0]}"]
+
+
+def test_a_record_is_stale_after_a_task_file_changes_and_missing_before_validation(task, tmp_path):
+    assert validation_state(task) == ("not validated", None)
+    validate(task, tmp_path, good_runs(task))
+
+    (task.path / "test.patch").write_text(task.test_patch_text() + "\n")
+
+    assert validation_state(task)[0] == "stale"
+
+
+def test_a_record_without_a_fingerprint_is_stale(task: Task):
+    (task.path / VALIDATION_FILE).write_text(json.dumps({"valid": True, "validated_at": "x"}))
+
+    assert validation_state(task)[0] == "stale"
+
+
+def test_the_fingerprint_covers_the_verdict_code_and_the_replay_file(task: Task, tmp_path: Path):
+    package = tmp_path / "pkg"
+    (package / "sandbox").mkdir(parents=True)
+    for name in ("oracle.py", "tools.py", "sandbox/docker.py", "graph.py"):
+        (package / name).write_text("# v1\n")
+    first = fingerprint(task, package)
+
+    (package / "graph.py").write_text("# not verdict code\n")
+    assert fingerprint(task, package) == first
+    (package / "sandbox" / "docker.py").write_text("# v2\n")
+    second = fingerprint(task, package)
+    (task.path / "replay.json").write_text("{}")
+
+    assert len({first, second, fingerprint(task, package)}) == 3
+    assert first.startswith("sha256:")

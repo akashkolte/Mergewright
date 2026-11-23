@@ -32,6 +32,17 @@ class LiveSettings:
     api_key: str | None
 
 
+@dataclass(frozen=True)
+class Price:
+    """US dollars per million tokens, as the provider bills them."""
+
+    input_per_mtok: float
+    output_per_mtok: float
+
+    def cost(self, tokens_in: int, tokens_out: int) -> float:
+        return (tokens_in * self.input_per_mtok + tokens_out * self.output_per_mtok) / 1e6
+
+
 def load_dotenv(path: Path, environ: MutableMapping[str, str]) -> None:
     """Load KEY=VALUE lines from path into environ. Existing values win. A missing file is fine."""
     if not path.is_file():
@@ -59,3 +70,15 @@ def load_live_settings(environ: Mapping[str, str] = os.environ) -> LiveSettings:
         api_base=environ.get("MERGEWRIGHT_API_BASE", "").strip() or None,
         api_key=environ.get("MERGEWRIGHT_API_KEY", "").strip() or None,
     )
+
+
+def load_price(environ: Mapping[str, str] = os.environ) -> Price | None:
+    """The configured price, or None: a cost is never guessed."""
+    names = ("MERGEWRIGHT_PRICE_IN_PER_MTOK", "MERGEWRIGHT_PRICE_OUT_PER_MTOK")
+    values = [environ.get(name, "").strip() for name in names]
+    if not any(values):
+        return None
+    try:
+        return Price(*(float(value) for value in values))
+    except ValueError as exc:
+        raise ConfigError(f"set both {names[0]} and {names[1]} as numbers (US$)") from exc
