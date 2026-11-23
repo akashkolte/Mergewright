@@ -237,6 +237,29 @@ Base runs on the owner's Apple Silicon Mac (Docker Desktop; under 35 GB free dis
    `runs/*/base/<k>.json` and `report.md` (decision pending: traces may stay out of git if they
    are large). Record here: eval id, dates, resolve rate with interval, time per trial, issues.
 
+**Prompt for the local Claude session** (on the Mac, in the checkout, after `git pull` on
+`checkpoint-2`, with the VPN on, Docker Desktop running and `.env` written by the owner):
+
+```
+Do Phase 1 step 14 (the Base run) by following the runbook in docs/plans/phase-1.md,
+section "Step 14: Base run". This is the owner's Mac (Apple Silicon, Docker Desktop, under
+35 GB free disk, UB VPN on); run commands as the current user, not root.
+
+1. Setup and checks (runbook steps 1-2): venv + pip install -e ".[dev]", build
+   mergewright-python:1, ruff check, pytest -q, the smoke record check and one smoke eval.
+   If scripts/eval-tasks.sh fails on macOS (bash 3.2), fix it in a small commit.
+2. Pilot (runbook step 3): the 3 named dev tasks, k=1, --llm live, --jobs 1. Report to me
+   the wall time, steps, tokens and failure category of each trial, and any pipeline bug.
+   Stop there and wait for my go.
+3. Only after my go: the full Base run (runbook step 4), then the report and commit
+   (runbook steps 5-6).
+
+Rules: ask me before the full Base run, before deleting anything other than the task images
+the script pulls, and before re-running any trial. Do not change code, prompts, .env or
+package versions during the Base run (--resume refuses). Never print, log or commit .env or
+the API key. Commit and push only to checkpoint-2.
+```
+
 ## Step 15: CI (done)
 
 `.github/workflows/ci.yml`, on every push and pull request: `ruff format --check`, `ruff check`,
