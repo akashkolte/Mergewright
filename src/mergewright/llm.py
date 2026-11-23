@@ -1,6 +1,10 @@
 """Model access behind one small interface.
 
 - OpenAIClient: a live model on any OpenAI-compatible chat server, through the openai package.
+- BedrockConverseClient: a live model on Amazon Bedrock Runtime's Converse API (every Bedrock
+  model, Anthropic's included). The agent's history stays in OpenAI chat format; the client
+  translates it to Converse and back.
+- live_client: picks one of the two from LiveSettings.api_style.
 - ScriptedLLM: returns pre-set responses in order. Used by replay mode and by the tests.
 - RecordingLLM: wraps a live client and saves its responses, so a live run can be replayed.
 """
@@ -8,10 +12,14 @@
 from __future__ import annotations
 
 import json
+import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
+from urllib.parse import quote
 
+import httpx
 import openai
 
 from mergewright.config import LiveSettings
@@ -114,6 +122,152 @@ def _parse_completion(raw: Any) -> LLMResponse:
         prompt_tokens=getattr(usage, "prompt_tokens", 0) or 0,
         completion_tokens=getattr(usage, "completion_tokens", 0) or 0,
     )
+
+
+CONVERSE_MAX_TOKENS = 8192  # output cap per call; Converse needs one, and edits can be long
+_RETRY_STATUS = {408, 429, 500, 502, 503, 504}
+
+
+class BedrockConverseClient:
+    """A live model on Amazon Bedrock Runtime (POST {api_base}/model/{model}/converse).
+
+    The key is sent as a Bearer token (a Bedrock API key). Timeouts, connection errors, 408,
+    429 and 5xx are retried with backoff, as the openai SDK does; other 4xx (a wrong model id,
+    a refused key) are not, because they cannot succeed. Converse does not report a model ID,
+    so served_models stays empty.
+    """
+
+    def __init__(
+        self,
+        settings: LiveSettings,
+        timeout_s: float,
+        retries: int = 2,
+        http: httpx.Client | None = None,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
+        self.model = settings.model
+        self.served_models: set[str] = set()
+        self._url = f"{(settings.api_base or '').rstrip('/')}/model/{quote(self.model, safe='')}"
+        self._headers = {"Authorization": f"Bearer {settings.api_key or 'unused'}"}
+        self._http = http or httpx.Client(timeout=timeout_s)
+        self._retries = retries
+        self._sleep = sleep
+
+    def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> LLMResponse:
+        body = converse_request(messages, tools)
+        for attempt in range(self._retries + 1):
+            try:
+                reply = self._http.post(f"{self._url}/converse", json=body, headers=self._headers)
+            except httpx.HTTPError as exc:  # timeout or connection error
+                error = f"model call failed: {exc!r}"
+            else:
+                if reply.status_code == 200:
+                    return converse_response(reply.json())
+                error = f"model call failed: HTTP {reply.status_code}: {reply.text[:300]}"
+                if reply.status_code not in _RETRY_STATUS:
+                    raise LLMError(error)
+            if attempt < self._retries:
+                self._sleep(2.0 * 2**attempt)
+        raise LLMError(error)
+
+
+def converse_request(messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict:
+    """OpenAI chat messages and tool schemas -> a Converse request body.
+
+    System messages go to `system`; tool results become user turns with toolResult blocks;
+    consecutive turns of one role are merged, because Converse needs user and assistant turns
+    to alternate.
+    """
+    system = [{"text": m["content"]} for m in messages if m["role"] == "system" and m["content"]]
+    turns: list[dict[str, Any]] = []
+    for message in messages:
+        role, blocks = _converse_blocks(message)
+        if not blocks:
+            continue
+        if turns and turns[-1]["role"] == role:
+            turns[-1]["content"].extend(blocks)
+        else:
+            turns.append({"role": role, "content": blocks})
+    body: dict[str, Any] = {
+        "messages": turns,
+        "inferenceConfig": {"temperature": 0, "maxTokens": CONVERSE_MAX_TOKENS},
+    }
+    if system:
+        body["system"] = system
+    if tools:
+        body["toolConfig"] = {
+            "tools": [
+                {
+                    "toolSpec": {
+                        "name": tool["function"]["name"],
+                        "description": tool["function"]["description"],
+                        "inputSchema": {"json": tool["function"]["parameters"]},
+                    }
+                }
+                for tool in tools
+            ]
+        }
+    return body
+
+
+def _converse_blocks(message: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
+    role = message["role"]
+    if role == "system":
+        return role, []
+    if role == "tool":
+        result = {"toolUseId": message["tool_call_id"], "content": [{"text": message["content"]}]}
+        return "user", [{"toolResult": result}]
+    blocks: list[dict[str, Any]] = [{"text": message["content"]}] if message.get("content") else []
+    for call in message.get("tool_calls", []):
+        blocks.append(
+            {
+                "toolUse": {
+                    "toolUseId": call["id"],
+                    "name": call["function"]["name"],
+                    "input": _json_object(call["function"]["arguments"]),
+                }
+            }
+        )
+    return role, blocks
+
+
+def _json_object(arguments: str) -> dict[str, Any]:
+    """Converse needs an object; arguments the model sent as invalid JSON are kept as text."""
+    try:
+        value = json.loads(arguments or "{}")
+    except json.JSONDecodeError:
+        return {"invalid_json": arguments}
+    return value if isinstance(value, dict) else {"value": value}
+
+
+def converse_response(data: dict[str, Any]) -> LLMResponse:
+    blocks = data.get("output", {}).get("message", {}).get("content", [])
+    if not isinstance(blocks, list):
+        raise LLMError("model returned no message")
+    text = "".join(block["text"] for block in blocks if "text" in block)
+    calls = [
+        ToolCall(
+            id=block["toolUse"]["toolUseId"],
+            name=block["toolUse"]["name"],
+            arguments=json.dumps(block["toolUse"].get("input", {})),
+        )
+        for block in blocks
+        if "toolUse" in block
+    ]
+    usage = data.get("usage", {})
+    return LLMResponse(
+        content=text or None,
+        tool_calls=calls,
+        prompt_tokens=usage.get("inputTokens", 0),
+        completion_tokens=usage.get("outputTokens", 0),
+    )
+
+
+def live_client(settings: LiveSettings, timeout_s: float) -> LLMClient:
+    """The live client for settings.api_style. The agent sees only the LLMClient interface."""
+    if settings.api_style == "bedrock-converse":
+        return BedrockConverseClient(settings, timeout_s=timeout_s)
+    return OpenAIClient(settings, timeout_s=timeout_s)
 
 
 class ScriptedLLM:

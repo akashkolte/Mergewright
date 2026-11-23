@@ -28,7 +28,7 @@ from mergewright.graph import (
     next_after_tester,
     next_after_tools,
 )
-from mergewright.llm import LLMClient, OpenAIClient, RecordingLLM, ScriptedLLM
+from mergewright.llm import LLMClient, RecordingLLM, ScriptedLLM, live_client
 from mergewright.oracle import validate_task, validation_state
 from mergewright.report import ReportError, load_eval, render
 from mergewright.runner import run_agent
@@ -130,7 +130,7 @@ def _make_llm(args: argparse.Namespace, limits: Limits) -> LLMClient:
             raise ConfigError(f"replay file not found: {args.replay_file}")
         return ScriptedLLM.from_file(args.replay_file)
     load_dotenv(Path(".env"), os.environ)
-    client: LLMClient = OpenAIClient(load_live_settings(), timeout_s=limits.llm_timeout_s)
+    client: LLMClient = live_client(load_live_settings(), timeout_s=limits.llm_timeout_s)
     return RecordingLLM(client, args.record) if args.record else client
 
 
@@ -221,7 +221,7 @@ def _eval_llm(
     settings = load_live_settings()
 
     def live(task: Task) -> LLMClient:  # one client per trial: parallel trials share no state
-        return OpenAIClient(settings, timeout_s=limits.llm_timeout_s)
+        return live_client(settings, timeout_s=limits.llm_timeout_s)
 
     return settings.model, load_price(), live
 

@@ -31,11 +31,18 @@ class Limits:
 
 @dataclass(frozen=True)
 class LiveSettings:
-    """Settings for a live model on an OpenAI-compatible chat server."""
+    """Settings for a live model. api_style names the wire format the server speaks."""
 
     model: str
     api_base: str | None
     api_key: str | None
+    api_style: str = "openai"  # one of API_STYLES
+
+
+# openai: any OpenAI-compatible chat server (POST <base>/chat/completions).
+# bedrock-converse: Amazon Bedrock Runtime's Converse API (POST <base>/model/<id>/converse),
+# one format for every Bedrock model, Anthropic's included.
+API_STYLES = ("openai", "bedrock-converse")
 
 
 @dataclass(frozen=True)
@@ -71,10 +78,20 @@ def load_live_settings(environ: Mapping[str, str] = os.environ) -> LiveSettings:
             "Live mode needs MERGEWRIGHT_MODEL. Copy .env.example to .env and set it, "
             "or use --llm replay, which needs no model or key."
         )
+    api_style = environ.get("MERGEWRIGHT_API_STYLE", "").strip() or "openai"
+    if api_style not in API_STYLES:
+        raise ConfigError(f"MERGEWRIGHT_API_STYLE must be one of {', '.join(API_STYLES)}")
+    api_base = environ.get("MERGEWRIGHT_API_BASE", "").strip() or None
+    if api_style == "bedrock-converse" and not api_base:
+        raise ConfigError(
+            "bedrock-converse needs MERGEWRIGHT_API_BASE, for example "
+            "https://bedrock-runtime.us-east-1.amazonaws.com"
+        )
     return LiveSettings(
         model=model,
-        api_base=environ.get("MERGEWRIGHT_API_BASE", "").strip() or None,
+        api_base=api_base,
         api_key=environ.get("MERGEWRIGHT_API_KEY", "").strip() or None,
+        api_style=api_style,
     )
 
 

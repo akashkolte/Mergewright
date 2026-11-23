@@ -402,6 +402,17 @@ it: 21–73 s per call). So the loop, the tools and the gate work end to end; Ne
 in pilots 2–5 are the model's. Minor: `search_code` returned a match in the binary `.coverage`
 file (it does not skip binary files); harmless here.
 
+**Bedrock Converse client (model-agnostic live mode).** Claude on Amazon Bedrock is served only
+in Bedrock's own formats: Bedrock Mantle refuses `/v1/chat/completions` for Claude ("does not
+support the '/v1/chat/completions' API") and does not list Sonnet 4.6. `MERGEWRIGHT_API_STYLE`
+now picks the client behind `LLMClient`: `openai` (unchanged; NIM, vLLM, OpenAI) or
+`bedrock-converse` (`llm.BedrockConverseClient`: every Bedrock model through the Converse API,
+Bearer Bedrock API key; the agent's history stays in OpenAI format and is translated each call;
+throttling and 5xx retried). No new package: `httpx` was already installed with `openai` and is
+now declared. Sonnet 4.6 needs the inference profile id `us.anthropic.claude-sonnet-4-6` (the bare
+id is refused on demand). `buggy_calc` check: DONE in 5 steps, 11 s, 1.1–2.3 s per call. Tests:
+`tests/test_bedrock_converse.py`.
+
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
 
