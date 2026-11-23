@@ -136,3 +136,31 @@ of 23 candidates dropped. Smoke: 5 valid. `tasks select` reproduces the order in
 `eval/PLAN.md` (first 30 identical). Tests: 187 passed, 1 failed (the cgroup v1 file test).
 Open: `validation.json` still keeps no log tail; every root cause above needed a manual
 re-run to see the test output.
+
+## Step 12: `mergewright eval` (planned)
+
+Besides the eval runner itself (agenda step 12):
+
+- **Validation fingerprint.** `validation.json` gets a `fingerprint`: a SHA-256 over the code
+  that decides a verdict (`oracle.py`, `sandbox/`, `environments.py`, `tasks.py`, the pytest
+  parser in `tools.py`) and the task's own files (`task.json`, patches; the image digest is in
+  `task.json`). File level on purpose: simple, and a comment-only edit marks records stale,
+  which is safe. `mergewright tasks validate --stale` re-validates only the tasks whose
+  record is missing or whose fingerprint differs; `tasks list` shows the stale ones.
+- **Eval uses only current records.** `mergewright eval` refuses a task whose record is
+  invalid or stale, and the manifest stores each task's fingerprint, so a result traces to
+  the validation it relied on.
+
+When to re-validate (agreed 2026-11-23): only after a change that can alter a verdict (the
+files in the fingerprint). Quick check while working: the 5 smoke tasks and the dev tasks
+whose images are local (about 2–3 min, no pulls). Full re-validation (about 25–30 min, mostly
+image pulls) once, right before a run that produces numbers (e.g. step 14). Other changes
+need only `ruff` and `pytest` (about 1 min; `pytest -m "not docker"` about 20 s).
+
+## Step 15: CI (planned)
+
+On every push: `ruff format --check`, `ruff check`, `pytest` (unit and Docker guard tests, with
+`mergewright-python:1` built in CI) and the replay smoke suite. Also `tasks validate --stale`
+for the smoke split (cheap: local tasks, no task images). For SWE-rebench tasks, CI only checks
+fingerprints (no image pulls) and reports stale records as a warning, not a failure; they are
+re-validated in a cloud session before the next measured run.
