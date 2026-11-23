@@ -281,7 +281,23 @@ connection or context-length error in any call; served model = requested model.
    checked between steps, and one model call is at most `llm_timeout_s` (120 s).
 
 Both changes are part of the frozen Base system (new git SHA), so pilot 1 is not comparable with
-Base and is not resumed. Pilot 2 repeats the same 3 tasks with the changes.
+Base and is not resumed. Pilot 2 repeats the same 3 tasks with the changes. The `tools.py` change
+made every validation record stale (the fingerprint covers the oracle's code, which includes
+`tools.py`); the smoke records were re-validated, and Base re-validates each dev task first.
+
+**Pilot 2 (eval `20261123T162131Z-fd542f`, committed as evidence).** 0 of 3 resolved, all
+`FAILED_BUDGET` at the step cap (25), no test run in any trial. The hint works (failed edits
+per trial 1, 3 and 2; each task got its edit in), and the wall clock no longer binds (93–697 s).
+New failure: after its edit the model never ends its turn. It keeps searching and reading test
+files (sceptre: edit done at step 11, then 14 searches for tests) until the step cap, although
+the prompt says the test suite runs after its summary. Endpoint: 2 calls of 251 s and 295 s
+(120 s per attempt, retried by the SDK); no error reached a trial.
+
+| Task | Wall | Steps | Tokens in / out | `edit_file` (failed) | First good edit |
+|---|---|---|---|---|---|
+| `sql-metadata-127` | 697 s | 25 | 315k / 7.2k | 2 (1) | step 11 |
+| `dbt-metabase-158` | 355 s | 25 | 1151k / 7.4k | 4 (3) | step 20 |
+| `sceptre-1249` | 93 s | 25 | 281k / 3.3k | 4 (2) | step 5 |
 
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
