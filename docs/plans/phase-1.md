@@ -299,6 +299,18 @@ the prompt says the test suite runs after its summary. Endpoint: 2 calls of 251 
 | `dbt-metabase-158` | 355 s | 25 | 1151k / 7.4k | 4 (3) | step 20 |
 | `sceptre-1249` | 93 s | 25 | 281k / 3.3k | 4 (2) | step 5 |
 
+3. **Explicit `finish` tool (agent-loop defect).** The Coder ended its turn only by replying
+   without a tool call: an implicit signal that a tool-calling model may never give (pilot 2:
+   0 of 3 ended a turn in 75 steps). The Coder now has a fourth tool, `finish(summary)`; after
+   it, the graph goes from the tools node to the tester (`next_after_tools`). The tester node
+   is unchanged and stays deterministic: the Coder still cannot run tests. A reply without a
+   tool call still ends the turn (replay fixtures). The prompt names `finish` in step 4 and
+   says the test suite runs automatically. Tests: `test_finish_tool_hands_over_to_the_tester`,
+   `test_finish_after_other_calls_in_one_message_runs_them_first`.
+
+Pilot 3 checks the change on one task (`sceptre-1249`, the easiest of the three: bug found in 2
+steps in both pilots), at the owner's request; the next step is decided from its result.
+
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
 

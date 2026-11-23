@@ -278,6 +278,15 @@ class EditFileArgs(BaseModel):
     new: str = Field(description="Replacement text")
 
 
+class FinishArgs(BaseModel):
+    summary: str = Field(default="", description="One paragraph: the cause and your change")
+
+
+def finish(ws: Workspace, summary: str = "") -> str:
+    """End the Coder's turn. The graph routes to the tester; this only acknowledges the call."""
+    return "finished; the test suite runs now"
+
+
 @dataclass(frozen=True)
 class ToolSpec:
     name: str
@@ -311,10 +320,17 @@ TOOLS: dict[str, ToolSpec] = {
             EditFileArgs,
             edit_file,
         ),
+        ToolSpec(
+            "finish",
+            "Call when the fix is complete. The repository's test suite then runs "
+            "automatically (you cannot run it yourself); if tests fail, you get the failures.",
+            FinishArgs,
+            finish,
+        ),
     )
 }
 
-CODER_TOOLS = ("read_file", "search_code", "edit_file")
+CODER_TOOLS = ("read_file", "search_code", "edit_file", "finish")
 
 
 @dataclass

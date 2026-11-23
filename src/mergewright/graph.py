@@ -1,7 +1,8 @@
 """The workflow graph: a bounded Coder <-> Tester loop in LangGraph.
 
     START -> coder -> tools -> coder ...        (the model calls read/search/edit tools)
-             coder -> tester                   (the model says it is done)
+             tools -> tester                   (the model called finish)
+             coder -> tester                   (the model replied without a tool call)
              tester -> coder                   (tests fail, attempts left)
              tester -> END                     (DONE, or FAILED_NO_FIX)
              coder -> END                      (FAILED_BUDGET or FAILED_ERROR)
@@ -165,6 +166,13 @@ def next_after_coder(state: AgentState) -> str:
     return "tools" if state["messages"][-1].get("tool_calls") else "tester"
 
 
+def next_after_tools(state: AgentState) -> str:
+    """To the tester when the assistant message whose calls just ran called finish."""
+    assistant = next(m for m in reversed(state["messages"]) if m["role"] == "assistant")
+    names = [call["function"]["name"] for call in assistant.get("tool_calls", [])]
+    return "tester" if "finish" in names else "coder"
+
+
 def next_after_tester(state: AgentState) -> str:
     return END if state["status"] != "RUNNING" else "coder"
 
@@ -175,6 +183,7 @@ def assemble_graph(
     tools: Callable[..., Any],
     tester: Callable[..., Any],
     after_coder: Callable[..., Any],
+    after_tools: Callable[..., Any],
     after_tester: Callable[..., Any],
     state_schema: type = AgentState,
     context_schema: type | None = None,
@@ -191,7 +200,7 @@ def assemble_graph(
         graph.add_node(name, node, metadata=metadata.get(name))
     graph.add_edge(START, "coder")
     graph.add_conditional_edges("coder", after_coder, ["tools", "tester", END])
-    graph.add_edge("tools", "coder")
+    graph.add_conditional_edges("tools", after_tools, ["coder", "tester"])
     graph.add_conditional_edges("tester", after_tester, ["coder", END])
     return graph
 
@@ -204,6 +213,7 @@ def build_graph(deps: AgentDeps):
         tools=lambda state: tools_step(state, deps),
         tester=lambda state: tester_step(state, deps),
         after_coder=next_after_coder,
+        after_tools=next_after_tools,
         after_tester=next_after_tester,
     ).compile()
 

@@ -22,7 +22,12 @@ from mergewright.config import (
 )
 from mergewright.environments import DEFAULT_IMAGE, LocalRepo
 from mergewright.evaluation import SYSTEMS, EvalRefused, EvalSpec, run_eval
-from mergewright.graph import assemble_graph, next_after_coder, next_after_tester
+from mergewright.graph import (
+    assemble_graph,
+    next_after_coder,
+    next_after_tester,
+    next_after_tools,
+)
 from mergewright.llm import LLMClient, OpenAIClient, RecordingLLM, ScriptedLLM
 from mergewright.oracle import validate_task, validation_state
 from mergewright.report import ReportError, load_eval, render
@@ -288,6 +293,7 @@ def _graph() -> int:
         tools=noop,
         tester=noop,
         after_coder=next_after_coder,
+        after_tools=next_after_tools,
         after_tester=next_after_tester,
     )
     print(graph.compile().get_graph().draw_mermaid())

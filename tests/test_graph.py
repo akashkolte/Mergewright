@@ -61,6 +61,35 @@ def test_happy_path_fixes_the_bug_and_reaches_done(buggy_calc: Path):
     assert tools_called == ["search_code", "edit_file", "run_tests"]
 
 
+def test_finish_tool_hands_over_to_the_tester(buggy_calc: Path):
+    llm = ScriptedLLM([edit(BUGGY_LINE, FIXED_LINES), call("finish", summary="even median")])
+
+    final, events = run(buggy_calc, llm)
+
+    assert final["status"] == "DONE" and final["steps"] == 2
+    tools_called = [e["tool"] for e in events if e["event"] == "tool_call"]
+    assert tools_called == ["edit_file", "finish", "run_tests"]
+
+
+def test_finish_after_other_calls_in_one_message_runs_them_first(buggy_calc: Path):
+    both = LLMResponse(
+        tool_calls=[
+            ToolCall(
+                id="c-1",
+                name="edit_file",
+                arguments=json.dumps({"path": "calc.py", "old": BUGGY_LINE, "new": FIXED_LINES}),
+            ),
+            ToolCall(id="c-2", name="finish", arguments="{}"),  # summary is optional
+        ]
+    )
+
+    final, events = run(buggy_calc, ScriptedLLM([both]))
+
+    assert final["status"] == "DONE" and final["steps"] == 1
+    tools_called = [e["tool"] for e in events if e["event"] == "tool_call"]
+    assert tools_called == ["edit_file", "finish", "run_tests"]
+
+
 def test_failing_tests_loop_back_to_the_coder(buggy_calc: Path):
     llm = ScriptedLLM([edit(BUGGY_LINE, WRONG_FIX), done(), edit(WRONG_FIX, FIXED_LINES), done()])
 
@@ -144,7 +173,7 @@ def test_coder_is_offered_only_its_allowed_tools(buggy_calc: Path):
 
     run(buggy_calc, SpyLLM([edit(BUGGY_LINE, FIXED_LINES), done()]))
 
-    assert seen[0] == ["read_file", "search_code", "edit_file"]
+    assert seen[0] == ["read_file", "search_code", "edit_file", "finish"]
 
 
 def test_tester_ignores_errors_known_at_base(buggy_calc: Path):
@@ -198,6 +227,7 @@ def test_graph_has_the_expected_nodes_and_edges(tmp_path: Path):
         ("coder", "tester"),
         ("coder", "__end__"),
         ("tools", "coder"),
+        ("tools", "tester"),
         ("tester", "coder"),
         ("tester", "__end__"),
     }
