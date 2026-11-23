@@ -21,6 +21,7 @@ Commands (from the repo root, venv active):
 - Lint and format: `ruff check .` and `ruff format .`
 - Tasks: `mergewright tasks import <instance-id> --split dev`, `mergewright tasks validate [ids]`, `mergewright tasks list`
 - Eval: `mergewright eval --split smoke --system base --k 3 --llm replay` (refuses tasks whose validation is not valid and current: `mergewright tasks validate --stale`; never pulls images)
+- Report: `mergewright report results/<eval-id> [results/<other-id> ...] [--out report.md] [--seed 0] [--resamples 10000]` (Markdown tables: bootstrap intervals over tasks; paired deltas and McNemar for each pair, delta = later minus earlier argument)
 - Run: `mergewright run --llm replay` (no key) or `mergewright run --llm live` (needs `.env`, see `.env.example`); `mergewright graph` prints the workflow graph.
 
 Tests must stay deterministic: use `ScriptedLLM` or pass a fake SDK client to `OpenAIClient(client=...)`, never a real model. The full system keeps the `openai` package; LiteLLM is deferred (spec Section 14).

@@ -169,6 +169,20 @@ whose images are local (about 2–3 min, no pulls). Full re-validation (about 25
 image pulls) once, right before a run that produces numbers (e.g. step 14). Other changes
 need only `ruff` and `pytest` (about 1 min; `pytest -m "not docker"` about 20 s).
 
+## Step 13: `mergewright report` (done)
+
+`src/mergewright/stats.py` (standard library only) and `src/mergewright/report.py`; CLI
+`mergewright report <eval-dir> [...] [--out] [--seed] [--resamples]`. The task is the unit
+(spec 9.4): resolve rate = mean of per-task resolved fractions; 95 % percentile bootstrap over
+tasks (10,000 resamples, seeded; one RNG per interval, so adding an eval leaves the others'
+intervals unchanged); pass^k and pass@k; paired bootstrap of the delta over shared tasks
+(the baseline is the first argument; "not distinguishable" when the interval contains 0);
+McNemar exact only when both evals have k = 1. Infra trials count as not resolved and are also
+reported as their own rate; overclaim = DONE trials the oracle rejects / DONE trials without an
+infra error. Refuses evals on different splits; warns when models or a shared task's
+fingerprint differ, or an eval is incomplete. Check: two smoke evals (k = 2 and k = 1) report
+100 % each and a delta of +0.0 [+0.0, +0.0], not distinguishable.
+
 ## Step 15: CI (planned)
 
 On every push: `ruff format --check`, `ruff check`, `pytest` (unit and Docker guard tests, with

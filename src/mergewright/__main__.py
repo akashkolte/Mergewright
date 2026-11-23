@@ -1,6 +1,7 @@
 """Command line: `mergewright run ...` runs the agent; `mergewright eval ...` runs it on a split
-and judges it; `mergewright tasks ...` selects, imports, validates and lists eval tasks;
-`mergewright graph` prints the graph."""
+and judges it; `mergewright report ...` turns eval results into Markdown tables;
+`mergewright tasks ...` selects, imports, validates and lists eval tasks; `mergewright graph`
+prints the graph."""
 
 from __future__ import annotations
 
@@ -24,9 +25,11 @@ from mergewright.evaluation import SYSTEMS, EvalRefused, EvalSpec, run_eval
 from mergewright.graph import assemble_graph, next_after_coder, next_after_tester
 from mergewright.llm import LLMClient, OpenAIClient, RecordingLLM, ScriptedLLM
 from mergewright.oracle import validate_task, validation_state
+from mergewright.report import ReportError, load_eval, render
 from mergewright.runner import run_agent
 from mergewright.sandbox import SandboxError
 from mergewright.selection import DEV_WHERE, dev_candidates
+from mergewright.stats import RESAMPLES
 from mergewright.tasks import (
     REPLAY_FILE,
     Split,
@@ -72,6 +75,12 @@ def _parser() -> argparse.ArgumentParser:
     ev.add_argument("--tasks-dir", type=Path, default=Path("eval/tasks"))
     ev.add_argument("--out", type=Path, default=Path("results"))
     ev.add_argument("--work-dir", type=Path, default=Path("runs/eval"))
+
+    rep = sub.add_parser("report", help="Markdown tables with intervals from eval results")
+    rep.add_argument("evals", nargs="+", type=Path, metavar="EVAL_DIR", help="results/<eval-id>")
+    rep.add_argument("--out", type=Path, help="write the report here (default: print it)")
+    rep.add_argument("--seed", type=int, default=0, help="seed of the bootstrap")
+    rep.add_argument("--resamples", type=int, default=RESAMPLES, help="bootstrap resamples")
 
     tasks = sub.add_parser("tasks", help="import, validate and list eval tasks")
     tasks_sub = tasks.add_subparsers(dest="tasks_command", required=True)
@@ -158,6 +167,20 @@ def _eval(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_CONFIG
     print(f"manifest: {out / 'manifest.json'}")
+    return EXIT_DONE
+
+
+def _report(args: argparse.Namespace) -> int:
+    try:
+        if args.resamples < 1:
+            raise ReportError("--resamples must be at least 1")
+        report = render([load_eval(path) for path in args.evals], args.seed, args.resamples)
+        if args.out:
+            args.out.write_text(report, encoding="utf-8")
+    except (ReportError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_CONFIG
+    print(f"report: {args.out}" if args.out else report, end="\n" if args.out else "")
     return EXIT_DONE
 
 
@@ -256,6 +279,8 @@ def main(argv: list[str] | None = None) -> int:
         return _tasks(args)
     if args.command == "eval":
         return _eval(args)
+    if args.command == "report":
+        return _report(args)
     return _run(args) if args.command == "run" else _graph()
 
 

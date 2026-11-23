@@ -24,8 +24,8 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 9. ✅ `task.json` format + `mergewright tasks validate`: gold-patch check 3× (F2P fails on base and passes with the gold patch; P2P passes on both); flaky tasks dropped and counted.
 10. ✅ Oracle: fresh sandbox per trial, hidden tests the agent never sees, result per test. The oracle is ground truth, never the agent's own test run.
 11. ✅ Splits: smoke (5, local, recorded responses, for CI); dev: 5 SWE-rebench tasks to prove the pipeline, then 20 (at most 3 per repo); held-out selection rule frozen in `eval/PLAN.md` (ids drawn by it at Phase 5, after the headline model is chosen), never run or inspected before Phase 5.
-12. `mergewright eval --split --system --k` → `results/` per trial (resolved, tokens, $, latency, steps, tool calls, failure category, trace) + manifest (server-reported model ID and dates, task fingerprints). Validation fingerprint + `tasks validate --stale`; eval refuses invalid or stale tasks.
-13. `mergewright report`: bootstrap over tasks; paired bootstrap and McNemar for system pairs → Markdown tables.
+12. ✅ `mergewright eval --split --system --k` → `results/` per trial (resolved, tokens, $, latency, steps, tool calls, failure category, trace) + manifest (server-reported model ID and dates, task fingerprints). Validation fingerprint + `tasks validate --stale`; eval refuses invalid or stale tasks.
+13. ✅ `mergewright report`: bootstrap over tasks; paired bootstrap and McNemar for system pairs → Markdown tables.
 14. Baseline (Base): the current agent unchanged, config frozen, dev at k = 3 → the reference results.
 15. CI: ruff, pytest (unit and Docker guard tests), replay smoke suite, `tasks validate --stale` for smoke; fingerprint check (warning) for SWE-rebench tasks.
 
