@@ -6,28 +6,21 @@ Skipped otherwise. Run only these: pytest -m docker
 """
 
 import json
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
 
 from mergewright.sandbox import Canary, DockerSandbox, SandboxLimits
+from tests.fakes import has_image
 
 IMAGE = "mergewright-python:1"
 LIMITS = SandboxLimits(cpus=1, mem_floor_mb=128, mem_ceiling_mb=256, pids=64)
 
 
-def _image_ready() -> bool:
-    if shutil.which("docker") is None:
-        return False
-    probe = subprocess.run(["docker", "image", "inspect", IMAGE], capture_output=True)
-    return probe.returncode == 0
-
-
 pytestmark = [
     pytest.mark.docker,
-    pytest.mark.skipif(not _image_ready(), reason=f"needs Docker and the {IMAGE} image"),
+    pytest.mark.skipif(not has_image(IMAGE), reason=f"needs Docker and the {IMAGE} image"),
 ]
 
 

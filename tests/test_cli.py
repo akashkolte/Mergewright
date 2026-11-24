@@ -1,6 +1,4 @@
 import json
-import shutil
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -9,15 +7,7 @@ import mergewright.__main__ as cli
 from mergewright.__main__ import EXIT_CONFIG, EXIT_DONE, EXIT_FAILED, main
 from mergewright.environments import DEFAULT_IMAGE
 from tests.conftest import BUGGY_LINE, EXAMPLES_DIR, REPO_ROOT
-from tests.test_evaluation import make_task, mark_valid
-from tests.test_tasks import DIGEST, ROW_FILE, TASK_ID
-
-
-def _image_ready() -> bool:
-    if shutil.which("docker") is None:
-        return False
-    probe = subprocess.run(["docker", "image", "inspect", DEFAULT_IMAGE], capture_output=True)
-    return probe.returncode == 0
+from tests.fakes import DIGEST, ROW_FILE, TASK_ID, has_image, make_task, mark_valid
 
 
 @pytest.fixture(autouse=True)
@@ -29,7 +19,7 @@ def _in_repo_root(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.mark.docker
-@pytest.mark.skipif(not _image_ready(), reason=f"needs Docker and {DEFAULT_IMAGE}")
+@pytest.mark.skipif(not has_image(DEFAULT_IMAGE), reason=f"needs Docker and {DEFAULT_IMAGE}")
 def test_replay_run_reaches_done_and_logs_every_tool(tmp_path: Path):
     code = main(["run", "--llm", "replay", "--runs-dir", str(tmp_path)])
 
@@ -43,14 +33,7 @@ def test_replay_run_reaches_done_and_logs_every_tool(tmp_path: Path):
         "run_tests",
     }
     assert events[-1]["event"] == "run_finished" and events[-1]["status"] == "DONE"
-
-
-@pytest.mark.docker
-@pytest.mark.skipif(not _image_ready(), reason=f"needs Docker and {DEFAULT_IMAGE}")
-def test_run_leaves_the_example_repo_unchanged(tmp_path: Path):
-    main(["run", "--llm", "replay", "--runs-dir", str(tmp_path)])
-
-    assert BUGGY_LINE in (EXAMPLES_DIR / "buggy_calc" / "calc.py").read_text()
+    assert BUGGY_LINE in (EXAMPLES_DIR / "buggy_calc" / "calc.py").read_text()  # original intact
 
 
 def test_live_mode_without_a_model_fails_fast(tmp_path: Path, monkeypatch, capsys):

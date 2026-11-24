@@ -1,18 +1,48 @@
-"""Test doubles for the Sandbox protocol. Test code only: never used to run untrusted code.
+"""Shared test helpers. Test code only: never used to run untrusted code.
 
 LocalSandbox runs commands as host subprocesses in the workspace, so graph and runner tests
 get real pytest results on the trusted fixture repos without Docker. ScriptedSandbox returns
-pre-set results and records every command, for unit tests of run_tests.
+pre-set results and records every command, for unit tests of run_tests. The spectree-64
+fixture constants, make_task and mark_valid build task directories; has_image gates the
+Docker tests.
 """
 
 from __future__ import annotations
 
+import json
+import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
 
+from mergewright.oracle import VALIDATION_FILE, fingerprint
 from mergewright.sandbox import Canary, ExecResult, SandboxError
+from mergewright.tasks import Task, import_swe_rebench
+
+ROW_FILE = Path(__file__).parent / "data" / "swe_rebench" / "0b01001001__spectree-64.json"
+TASK_ID = "0b01001001__spectree-64"
+DIGEST = "sha256:918c24cdc06282801eca6134c44d0521eceb98e395d2916c660ec92a0df75efd"
+SPECTREE = "swerebench/sweb.eval.x86_64.0b01001001_1776_spectree-64"
+
+
+def has_image(image: str) -> bool:
+    """True when the docker CLI is on PATH and the image is present locally."""
+    if shutil.which("docker") is None:
+        return False
+    probe = subprocess.run(["docker", "image", "inspect", image], capture_output=True)
+    return probe.returncode == 0
+
+
+def make_task(tasks_dir: Path, task_id: str) -> Task:
+    """The spectree fixture row imported as a dev task under another id."""
+    row = {**json.loads(ROW_FILE.read_text()), "instance_id": task_id}
+    return Task.load(import_swe_rebench(row, tasks_dir, "dev", lambda image: DIGEST))
+
+
+def mark_valid(task: Task, valid: bool = True) -> None:
+    record = {"valid": valid, "fingerprint": fingerprint(task), "validated_at": "x"}
+    (task.path / VALIDATION_FILE).write_text(json.dumps(record))
 
 
 class LocalSandbox:

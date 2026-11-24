@@ -19,8 +19,7 @@ from mergewright.oracle import (
 )
 from mergewright.sandbox import ExecResult, SandboxError
 from mergewright.tasks import Task, import_swe_rebench
-from tests.fakes import ScriptedSandbox
-from tests.test_tasks import DIGEST, ROW_FILE
+from tests.fakes import DIGEST, ROW_FILE, ScriptedSandbox
 
 APP = (
     "diff --git a/src/app.py b/src/app.py\n"
