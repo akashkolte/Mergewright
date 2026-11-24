@@ -163,8 +163,9 @@ models and lists each invocation (`invocations`: times, tasks, jobs); trial file
 manifest are written atomically. `scripts/eval-tasks.sh` (root, cloud) drives one eval task by
 task: pull the pinned image (refused below `MW_MIN_FREE_GB`, default 15), re-validate if stale,
 `mergewright eval --tasks <id>` (the first creates the eval, later ones `--resume` it), then
-remove the image it pulled. It skips tasks whose k trials exist, so a rerun with `--eval-id`
-continues. Check: driver on 2 smoke tasks at k = 2, `--jobs 2`, replay: 4 of 4 resolved, a
+remove the image it pulled (`MW_KEEP_IMAGES=1` keeps it, for a disk that holds the split: later
+evals of the same tasks then pull nothing). It skips tasks whose k trials exist, so a rerun with
+`--eval-id` continues. Check: driver on 2 smoke tasks at k = 2, `--jobs 2`, replay: 4 of 4 resolved, a
 rerun skips both, the report shows no warning.
 
 As planned:

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Run one eval over many tasks when the disk cannot hold every task image. Task by task: pull
 # its pinned image, re-validate it if its record is stale or missing, add its trials to the
-# eval, remove the image. Cloud session: run as root after scripts/cloud-setup.sh --no-images
-# (Mergewright then runs as the user mw). Own machine (Linux or macOS, bash 3.2 is enough): run
-# as yourself, from the repo, with the venv in .venv.
+# eval, remove the image (or keep it: MW_KEEP_IMAGES=1). Cloud session: run as root after
+# scripts/cloud-setup.sh --no-images (Mergewright then runs as the user mw). Own machine (Linux
+# or macOS, bash 3.2 is enough): run as yourself, from the repo, with the venv in .venv.
 #
 #   bash scripts/eval-tasks.sh --split dev --system base --k 3 --llm live --jobs 3 \
 #     [--eval-id ID] [task ids...]       # default: every task of the split, in list order
@@ -15,6 +15,8 @@
 # Environment: MW_MIN_FREE_GB (default 15): no pull starts with less free disk (checked where
 # Docker's data folder is on this host; skipped on Docker Desktop, whose disk is in a VM). MW_TASKS,
 # MW_RESULTS, MW_WORK: tasks, results and work folders (default eval/tasks, results, runs).
+# MW_KEEP_IMAGES=1: keep the pulled images, so later evals of the same tasks need no pull (a disk
+# that holds the whole split, e.g. about 120 GB for dev; on a small disk keep the default, 0).
 # Only images pinned by digest are pulled and removed, and only those this script pulled; local
 # tasks (mergewright-python:1) and the Docker tests' spectree fixture are never removed.
 set -euo pipefail
@@ -24,6 +26,7 @@ TASKS="${MW_TASKS:-$REPO/eval/tasks}"
 RESULTS="${MW_RESULTS:-$REPO/results}"
 WORK="${MW_WORK:-$REPO/runs}"
 MIN_FREE_GB="${MW_MIN_FREE_GB:-15}"
+KEEP_IMAGES="${MW_KEEP_IMAGES:-0}"
 FIXTURE=swerebench/sweb.eval.x86_64.0b01001001_1776_spectree-64  # as in cloud-setup.sh
 log() { printf '\n== %s\n' "$*"; }
 die() { echo "error: $*" >&2; exit 1; }
@@ -91,7 +94,9 @@ for id in "${IDS[@]}"; do
   else
     echo "INVALID: $id is skipped (see its validation.json)"
   fi
-  if ((pulled)) && [[ ${image%@*} != "$FIXTURE" ]]; then
+  if ((pulled)) && [[ $KEEP_IMAGES == 1 ]]; then
+    echo "kept $image (MW_KEEP_IMAGES=1)"
+  elif ((pulled)) && [[ ${image%@*} != "$FIXTURE" ]]; then
     # Removing the tag also deletes the image when no other tag holds it; then the digest
     # reference is gone too, so remove it only if it is still there.
     docker rmi "${image%@*}:latest" >/dev/null
