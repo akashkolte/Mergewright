@@ -272,7 +272,7 @@ def test_gate_fails_when_no_test_ran():
 
 
 def test_run_tests_timeout_is_a_result_not_an_exception():
-    sandbox = ScriptedSandbox([ExecResult(124, "", True, seconds=1.0)])
+    sandbox = ScriptedSandbox([ExecResult(124, "", True)])
 
     report = run_tests(sandbox, "pytest", timeout_s=1)
 

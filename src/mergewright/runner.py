@@ -71,9 +71,7 @@ def run_agent(
         )
         status, reason = final["status"], final["reason"]
         try:
-            diff = env.diff(workspace_dir, sandbox)
-            if sandbox.canary.found_in(diff):
-                raise CanaryLeakError("the canary is in the diff")
+            diff = env.diff(workspace_dir, sandbox)  # raises CanaryLeakError on the canary
         except CanaryLeakError:
             # Never let the canary leave: withhold the diff and fail the run.
             status, reason, diff = "FAILED_POLICY", "the canary is in the diff", ""

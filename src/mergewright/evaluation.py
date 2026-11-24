@@ -39,7 +39,7 @@ from mergewright.runner import RunResult, run_agent
 from mergewright.sandbox import SandboxError
 from mergewright.sandbox.docker import Docker
 from mergewright.sandbox.process import docker_cli
-from mergewright.tasks import Task
+from mergewright.tasks import Task, utc_stamp
 
 SYSTEMS = ("base",)  # base: the Milestone 2 agent, default config, frozen (spec 9.2)
 RUNTIME = "R0"  # in-process LangGraph; the durable runtimes come in Phase 3
@@ -278,7 +278,7 @@ def run_eval(
     out.mkdir(parents=True, exist_ok=resume)
     manifest["tasks"].update(task_info)
     manifest["finished_at"] = None
-    invocation = {"started_at": _utc(started), "finished_at": None, "jobs": jobs}
+    invocation = {"started_at": utc_stamp(started), "finished_at": None, "jobs": jobs}
     invocation["tasks"] = [task.id for task in pending]
     manifest.setdefault("invocations", []).append(invocation)
     _write_json(out / "manifest.json", manifest)  # rewritten at the end
@@ -302,7 +302,7 @@ def run_eval(
                     echo(f"{task.id} k={record['k']}: {record['failure_category']} "
                          f"({record['status']})")  # fmt: skip
     manifest["model"]["served"] = sorted(served)
-    manifest["finished_at"] = invocation["finished_at"] = _utc(now())
+    manifest["finished_at"] = invocation["finished_at"] = utc_stamp(now())
     _write_json(out / "manifest.json", manifest)
     if echo:
         resolved = sum(record["resolved"] for record in records)
@@ -354,7 +354,7 @@ def _manifest(
         "temperature": 0,
         "model": {"requested": spec.model, "served": []},
         "price": asdict(spec.price) if spec.price else None,
-        "started_at": _utc(started),
+        "started_at": utc_stamp(started),
         "finished_at": None,
         "git": git,
         "versions": {"python": platform.python_version(), **_versions()},
@@ -382,10 +382,6 @@ def _versions() -> dict[str, str | None]:
             return None
 
     return {name: version(name) for name in _PACKAGES}
-
-
-def _utc(moment: datetime) -> str:
-    return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _write_json(path: Path, data: dict[str, Any]) -> None:

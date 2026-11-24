@@ -7,6 +7,7 @@ Skipped otherwise. Run only these: pytest -m docker
 
 import json
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -114,9 +115,10 @@ def test_pid_limit_stops_a_fork_bomb(sandbox):
 
 
 def test_timeout_kills_the_command_inside_the_container(sandbox):
+    begin = time.monotonic()
     result = sandbox.exec(["sleep", "30"], timeout_s=1)
 
-    assert result.timed_out and result.seconds < 6
+    assert result.timed_out and time.monotonic() - begin < 6
     # Count `sleep 30` only: the container's own keep-alive process is `sleep infinity`.
     count_sleeps = (
         "import pathlib\n"

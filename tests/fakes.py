@@ -1,7 +1,8 @@
 """Shared test helpers. Test code only: never used to run untrusted code.
 
 LocalSandbox runs commands as host subprocesses in the workspace, so graph and runner tests
-get real pytest results on the trusted fixture repos without Docker. ScriptedSandbox returns
+get real pytest results on the trusted fixture repos without Docker; its reset() and diff() run
+git on the host as DockerSandbox does in the container. ScriptedSandbox returns
 pre-set results and records every command, for unit tests of run_tests. The spectree-64
 fixture constants, make_task and mark_valid build task directories; has_image gates the
 Docker tests.
@@ -13,11 +14,11 @@ import json
 import shutil
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 from mergewright.oracle import VALIDATION_FILE, fingerprint
-from mergewright.sandbox import Canary, ExecResult, SandboxError
+from mergewright.sandbox import Canary, CanaryLeakError, ExecResult, SandboxError
+from mergewright.sandbox.docker import GIT
 from mergewright.tasks import Task, import_swe_rebench
 
 ROW_FILE = Path(__file__).parent / "data" / "swe_rebench" / "0b01001001__spectree-64.json"
@@ -51,30 +52,52 @@ class LocalSandbox:
         self.canary = canary or Canary.new()
         self.closed = False
         self.commands: list[list[str]] = []
+        self._base: str | None = None
+        # The venv's python first, so `python -m pytest` finds pytest; no other host env, so the
+        # host's git config (e.g. diff.noprefix) does not change the diff either.
+        self._env = {"PATH": f"{Path(sys.executable).parent}:/usr/bin:/bin", "HOME": str(root)}
 
     def exec(self, argv: list[str], timeout_s: float) -> ExecResult:
         if self.closed:
             raise SandboxError("sandbox is closed")
         self.commands.append(list(argv))
-        # The venv's python first, so `python -m pytest` finds pytest; no other host env.
-        env = {"PATH": f"{Path(sys.executable).parent}:/usr/bin:/bin", "HOME": str(self.root)}
-        begin = time.monotonic()
         try:
             proc = subprocess.run(
-                argv, cwd=self.root, env=env, capture_output=True, text=True, timeout=timeout_s
+                argv,
+                cwd=self.root,
+                env=self._env,
+                capture_output=True,
+                text=True,
+                timeout=timeout_s,
             )
         except subprocess.TimeoutExpired:
-            return ExecResult(124, "", True, seconds=timeout_s)
+            return ExecResult(124, "", True)
         output, leaked = self.canary.redact(proc.stdout + proc.stderr)
-        return ExecResult(
-            proc.returncode, output, False, canary_leaked=leaked, seconds=time.monotonic() - begin
-        )
+        return ExecResult(proc.returncode, output, False, canary_leaked=leaked)
 
     def reset(self, base_sha: str, patch: str) -> None:
-        raise NotImplementedError("LocalSandbox does not manage git state")
+        self._git("checkout", "--force", "--detach", base_sha)
+        self._git("clean", "-ffdq")
+        if patch:
+            self._git("apply", "--whitespace=nowarn", input=patch)
+        self._base = base_sha
 
     def diff(self) -> str:
-        raise NotImplementedError("LocalSandbox does not manage git state")
+        if self._base is None:
+            raise SandboxError("diff() needs a reset() first, to know the base commit")
+        self._git("add", "-A")
+        diff = self._git("diff", "--cached", "--binary", self._base)
+        if self.canary.found_in(diff):
+            raise CanaryLeakError("the canary is in the diff; it must never leave the sandbox")
+        return diff
+
+    def _git(self, *args: str, input: str | None = None) -> str:
+        proc = subprocess.run(
+            [*GIT, *args], cwd=self.root, env=self._env, input=input, capture_output=True, text=True
+        )
+        if proc.returncode != 0:
+            raise SandboxError(f"git {args[0]} failed: {proc.stderr.strip()[-1000:]}")
+        return proc.stdout
 
     def close(self) -> None:
         self.closed = True
@@ -99,6 +122,8 @@ class ScriptedSandbox:
         self.resets.append((base_sha, patch))
 
     def diff(self) -> str:
+        if self.canary.found_in(self._diff):
+            raise CanaryLeakError("the canary is in the diff; it must never leave the sandbox")
         return self._diff
 
     def close(self) -> None:

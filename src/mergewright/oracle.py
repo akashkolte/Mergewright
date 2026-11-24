@@ -25,7 +25,7 @@ from typing import Any
 
 from mergewright.environments import Environment
 from mergewright.sandbox import SandboxError
-from mergewright.tasks import REPLAY_FILE, TASK_FILE, Task
+from mergewright.tasks import REPLAY_FILE, TASK_FILE, Task, utc_stamp
 from mergewright.tools import run_tests
 
 VALIDATION_FILE = "validation.json"
@@ -98,7 +98,6 @@ def evaluate(
     patch: str,
     work_dir: Path,
     env: Environment | None = None,
-    run_id: str | None = None,
     retries: int = 1,
     clock: Callable[[], float] = time.monotonic,
 ) -> OracleResult:
@@ -109,7 +108,7 @@ def evaluate(
     """
     begin = clock()
     env = env or task.environment()
-    run_id = run_id or f"oracle-{secrets.token_hex(4)}"
+    run_id = f"oracle-{secrets.token_hex(4)}"
     workspace = Path(work_dir) / run_id
     if workspace.exists():
         raise FileExistsError(f"{workspace} already exists")
@@ -250,7 +249,7 @@ def validate_task(
         "flaky": flaky,
         "image": task.image,
         "fingerprint": validated,
-        "validated_at": now().astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "validated_at": utc_stamp(now()),
         "seconds": round(sum(r[k]["seconds"] for r in records for k in ("empty", "gold")), 2),
         "runs": records,
     }

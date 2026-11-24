@@ -133,11 +133,11 @@ class DockerSandbox:
         output, leaked = self.canary.redact(result.output)
         if result.timed_out:  # the in-container timeout failed to stop it: destroy the sandbox
             self.close()
-            return ExecResult(-1, output, True, result.truncated, leaked, result.seconds)
+            return ExecResult(-1, output, True, canary_leaked=leaked)
         # timeout exits 124, or 137 if it had to SIGKILL; 137 before the deadline is another
         # kill, most likely the memory ceiling.
         timed_out = result.code == 124 or (result.code == 137 and result.seconds >= timeout_s)
-        return ExecResult(result.code, output, timed_out, result.truncated, leaked, result.seconds)
+        return ExecResult(result.code, output, timed_out, canary_leaked=leaked)
 
     def reset(self, base_sha: str, patch: str) -> None:
         if not _COMMIT.match(base_sha):

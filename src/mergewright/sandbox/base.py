@@ -21,9 +21,7 @@ class ExecResult:
     exit_code: int
     output: str  # stdout + stderr, last bytes only, canary redacted
     timed_out: bool
-    truncated: bool = False  # output was longer than the tail kept
     canary_leaked: bool = False  # the canary was in the output (and was redacted)
-    seconds: float = 0.0
 
 
 class Sandbox(Protocol):
