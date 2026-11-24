@@ -139,7 +139,7 @@ def test_image_repo_copies_the_repo_out_of_the_image(tmp_path: Path):
 
     create, cp, rm = docker.calls
     name = create[create.index("--name") + 1]
-    assert re.fullmatch(  # labelled like a sandbox, so sweep_orphans finds it after a crash
+    assert re.fullmatch(  # labelled like a sandbox, so the labels identify it after a crash
         rf"create --name {name} --label mergewright\.sandbox=1 --label mergewright\.run_id=copy "
         r"--label mergewright\.created=\d+ img@sha256:abc",
         " ".join(create),

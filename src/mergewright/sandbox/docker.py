@@ -3,8 +3,9 @@
 One long-lived container per sandbox. Guards, all set at `docker run`:
 no network; a non-root user with no capabilities and no privilege escalation; CPU, memory
 (floor and ceiling) and PID limits; only the workspace mounted; no host environment, only
-HOME and the planted canary; a run_id label for the orphan sweeper. Each command runs under
-`timeout` inside the container, with a host-side backstop that destroys the container.
+HOME and the planted canary; labels (sandbox, run_id, created) that identify sandbox
+containers. Each command runs under `timeout` inside the container, with a host-side
+backstop that destroys the container.
 
 Git for reset() and diff() also runs inside the container (hooks off), so repo content
 never makes the host execute anything.
@@ -18,7 +19,7 @@ import os
 import re
 import secrets
 import time
-from collections.abc import Callable, Collection
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -39,9 +40,6 @@ BACKSTOP_S = 15  # host-side margin over a command's own timeout
 DIFF_MAX_BYTES = 4_000_000
 GIT = ["git", "-c", "safe.directory=*", "-c", "core.hooksPath=/dev/null"]
 _COMMIT = re.compile(r"^[0-9a-f]{7,40}$")
-_PS_FORMAT = "\t".join(  # name, run id, created: one line per sandbox
-    ["{{.Names}}", f'{{{{.Label "{RUN_LABEL}"}}}}', f'{{{{.Label "{CREATED_LABEL}"}}}}']
-)
 
 
 @dataclass(frozen=True)
@@ -193,35 +191,6 @@ class DockerSandbox:
             raise SandboxError(f"sandbox {self.name} is closed")
 
 
-def sweep_orphans(
-    max_age_s: float,
-    active_run_ids: Collection[str] = (),
-    docker: Docker = docker_cli,
-    clock: Callable[[], float] = time.time,
-) -> list[str]:
-    """Remove sandboxes at least max_age_s old whose run is not active. Returns their names.
-
-    A sandbox whose age cannot be read is kept: never delete what cannot be dated.
-    """
-    listing = docker(["ps", "-a", "--filter", f"label={SANDBOX_LABEL}=1", "--format", _PS_FORMAT])
-    if listing.code != 0:
-        raise SandboxError(f"docker ps failed: {listing.output.strip()[-500:]}")
-    removed = []
-    now = clock()
-    for line in listing.output.splitlines():
-        name, run_id, created = (line.split("\t") + ["", ""])[:3]
-        if not name or run_id in active_run_ids:
-            continue
-        try:
-            age = now - float(created)
-        except ValueError:
-            continue
-        if age >= max_age_s:
-            docker(["rm", "-f", name])
-            removed.append(name)
-    return removed
-
-
 def _default_user() -> str:
     """The host user (so the mounted workspace stays writable), or nobody if that is root."""
     uid, gid = os.getuid(), os.getgid()
@@ -238,7 +207,8 @@ def copy_from_image(
     """Copy src_path (e.g. a task image's /testbed, with its .git) out of image into dest.
 
     Uses a created, never-started container, which is always removed. It carries the sandbox
-    labels, so sweep_orphans removes it if a crash skips the removal. dest must not exist.
+    labels, which identify it as a sandbox container if a crash skips the removal. dest must
+    not exist.
     """
     if dest.exists():
         raise SandboxError(f"{dest} already exists")

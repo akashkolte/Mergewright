@@ -36,20 +36,13 @@ The spec needs changes for four findings below (F1–F4).
 | `temporalio-langgraph` | 0.1.0 (Public Preview) |
 | `langgraph` / `langchain-core` | 1.2.20 / 1.7.7 |
 
-Code: `spikes/runtime/` (plan: `docs/plans/runtime-spike.md`). Task: `examples/buggy_calc`
-with the replay LLM (`TurnReplayLLM`, no live model). Workflows on queue `service`; `coder` on
-`llm`; `tools` and `tester` on `sandbox`. Retry policy on every node: 1 s initial interval,
+Code: `spikes/runtime/` (plan: `docs/plans/runtime-spike.md`; both removed, see below).
+Task: `examples/buggy_calc` with the replay LLM (`TurnReplayLLM`, no live model). Workflows
+on queue `service`; `coder` on `llm`; `tools` and `tester` on `sandbox`. Retry policy on every node: 1 s initial interval,
 3 attempts. Start-to-close timeouts: coder 60 s, tools 30 s, tester 60 s.
 
-How to reproduce:
-
-```bash
-pip install -e ".[dev,spike]"
-pytest spikes/runtime                          # criteria 2-5; starts throwaway servers
-temporal server start-dev                      # then, in another shell:
-python -m spikes.runtime.kill_test sandbox     # criterion 1
-python -m spikes.runtime.kill_test service     # criterion 1
-```
+The spike code (`spikes/`, with `TurnReplayLLM` and the `spike` extra) was removed; read it with
+`git show f828614:spikes/<path>` (and the plan with `git show f828614:docs/plans/runtime-spike.md`).
 
 `spikes/runtime/evidence.py` reads every result below from the workflow history (and from the
 run log for LLM call counts). Temporal records only the last attempt of an activity: its

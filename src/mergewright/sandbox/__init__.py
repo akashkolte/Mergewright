@@ -2,12 +2,7 @@
 
 from mergewright.sandbox.base import CanaryLeakError, ExecResult, Sandbox, SandboxError
 from mergewright.sandbox.canary import Canary
-from mergewright.sandbox.docker import (
-    DockerSandbox,
-    SandboxLimits,
-    copy_from_image,
-    sweep_orphans,
-)
+from mergewright.sandbox.docker import DockerSandbox, SandboxLimits, copy_from_image
 
 __all__ = [
     "Canary",
@@ -18,5 +13,4 @@ __all__ = [
     "SandboxError",
     "SandboxLimits",
     "copy_from_image",
-    "sweep_orphans",
 ]

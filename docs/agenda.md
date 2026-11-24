@@ -45,8 +45,8 @@ Step-by-step build order for [mergewright-spec.md](mergewright-spec.md) (v6). On
 ## Phase 3: durable core (spec Section 4, Section 9.5)
 
 22. Postgres schema: messages (by hash), runs, budget ledger, results. `MessageStore` + tests.
-23. Node functions read and write messages by hash; no Temporal imports in them. Merge `ScriptedLLM` into `TurnReplayLLM`.
-24. `mergewright/runtime/temporal_graph.py`: plugin setup, node metadata (`execute_in`, queues, timeouts, retries). Pin `temporalio` and `temporalio-langgraph`. Delete `spikes/runtime/` once this replaces it.
+23. Node functions read and write messages by hash; no Temporal imports in them. Make `ScriptedLLM` answer by turn (count assistant messages), as the removed `TurnReplayLLM` did (`git show f828614:src/mergewright/llm.py`), so a retried activity gets the same reply.
+24. `mergewright/runtime/temporal_graph.py`: plugin setup, node metadata (`execute_in`, queues, timeouts, retries). Pin `temporalio` and `temporalio-langgraph`. The spike code it replaces is in git history at `f828614` (`spikes/runtime/`).
 25. Candidate workflow: runs the graph; continue-as-new after each test attempt.
 26. Parent workflow: starts candidates, runs checks, `post_comment` (diff), diff gate (signal + 72 h timer), `open_pr`.
 27. Budget ledger: reservation before each LLM call, settle after, unsettled counted as spent.

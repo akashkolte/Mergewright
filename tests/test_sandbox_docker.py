@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from mergewright.sandbox import Canary, DockerSandbox, SandboxLimits, sweep_orphans
+from mergewright.sandbox import Canary, DockerSandbox, SandboxLimits
 
 IMAGE = "mergewright-python:1"
 LIMITS = SandboxLimits(cpus=1, mem_floor_mb=128, mem_ceiling_mb=256, pids=64)
@@ -237,22 +237,6 @@ def test_close_removes_the_container_and_is_idempotent(tmp_path: Path):
 
     assert labels["mergewright.run_id"] == "close"
     assert _inspect(box.name) is None
-
-
-def test_sweep_orphans_removes_a_sandbox_left_by_a_dead_run(tmp_path: Path):
-    make_repo(tmp_path / "repo")
-    left = DockerSandbox.start(IMAGE, tmp_path / "repo", run_id="dead-run", limits=LIMITS)
-    # Every other sandbox on this machine counts as active, so the test removes only its own.
-    listing = subprocess.run(
-        ["docker", "ps", "-a", "--filter", "label=mergewright.sandbox=1", "--format",
-         '{{.Label "mergewright.run_id"}}'],
-        capture_output=True, text=True, check=True,
-    )  # fmt: skip
-    others = set(listing.stdout.split()) - {"dead-run"}
-
-    removed = sweep_orphans(max_age_s=0, active_run_ids=others)
-
-    assert left.name in removed and _inspect(left.name) is None
 
 
 def _inspect(name: str) -> dict | None:
