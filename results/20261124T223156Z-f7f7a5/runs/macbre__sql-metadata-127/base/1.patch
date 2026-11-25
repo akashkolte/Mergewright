@@ -1,0 +1,59 @@
+diff --git a/_debug_out.txt b/_debug_out.txt
+new file mode 100644
+index 0000000..380bbec
+--- /dev/null
++++ b/_debug_out.txt
+@@ -0,0 +1 @@
++DEBUG COLUMNS: ['main_qry.*', 'subdays.DAYS_OFFER1', 'subdays.DAYS_OFFER2', 'subdays.DAYS_OFFER3', 'job_request.id', 'lifecycle.creation_date', 'job_request.creation_date', 'job_request_application.application_source', 'job_request_application.job_request_id', 'job_request_offer.job_request_application_id', 'job_request_application.id', 'lifecycle.object_id', 'lifecycle.lifecycle_object_type', 'lifecycle.event', 'job_request_offer.first_interview_scheduled_date', 'jrah2.job_request_application_id', 'job_request.client_id', 'client.id', 'job_request.from_point_break', 'client.name', 'PROJECT_ID', 'RowNo', 'days_to_offer', 'job_request_offer.first_presented_date', 'InitialChangeDate', 'presentation.id', 'presentation_job_request_offer.presentation_id', 'presentation_job_request_offer.job_request_offer_id', 'job_request_offer.id', 'presentation.job_request_id', 'subdays.PROJECT_ID', 'main_qry.PROJECT_ID']
+diff --git a/sql_metadata/parser.py b/sql_metadata/parser.py
+index 472ad57..2a5d1ba 100644
+--- a/sql_metadata/parser.py
++++ b/sql_metadata/parser.py
+@@ -144,7 +144,7 @@ class Parser:  # pylint: disable=R0902
+                     token.last_keyword_normalized in KEYWORDS_BEFORE_COLUMNS
+                     and token.previous_token.normalized != "AS"
+                 ):
+-                    if token.normalized not in FUNCTIONS_IGNORED and not (
++                    if not token.is_function and not (
+                         # aliases of sub-queries i.e.: select from (...) <alias>
+                         token.previous_token.is_right_parenthesis
+                         and token.value in subqueries_names
+@@ -504,3 +504,17 @@ class Parser:  # pylint: disable=R0902
+         query = re.sub(r"`([^`]+)`\.`([^`]+)`", r"\1.\2", query)
+ 
+         return query
++
++
++# TEMPORARY DEBUG - REMOVE ME
++with open("_debug_out.txt", "w") as _f:
++    import pathlib as _pl
++
++    _dir = _pl.Path("test")
++    _content = (_dir / "test_multiple_subqueries.py").read_text()
++    _start = _content.index('query = """') + len('query = """')
++    _end = _content.index('"""\n    parser = Parser(query)')
++    _q = _content[_start:_end]
++    _p = Parser(_q)
++    _f.write("DEBUG COLUMNS: %s\n" % _p.columns)
++# END TEMPORARY DEBUG
+diff --git a/sql_metadata/token.py b/sql_metadata/token.py
+index 7ec6e76..d5993b1 100644
+--- a/sql_metadata/token.py
++++ b/sql_metadata/token.py
+@@ -56,6 +56,16 @@ class SQLToken:  # pylint: disable=R0902
+         """
+         return self.value.translate(str.maketrans("", "", " \n\t\r")).upper()
+ 
++    @property
++    def is_function(self) -> bool:
++        """
++        Property checks if token is a function name,
++        i.e. a name token directly followed by an opening parenthesis
++        """
++        return bool(
++            self.is_name and self.next_token and self.next_token.is_left_parenthesis
++        )
++
+     @property
+     def stringified_token(self) -> str:
+         """

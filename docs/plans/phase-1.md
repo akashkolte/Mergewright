@@ -521,6 +521,31 @@ Two open problems, to fix before Base is run again:
    $60–150, and there is no per-run dollar cap yet (spec: caps on tokens, dollars, steps, wall
    clock).
 
+**Base attempt 2 (eval `20261124T230320Z-142ddf`, `zai-org/GLM-5.2` on the UB gateway, k = 3,
+git `8563c22`, 2026-11-24 23:03Z – 2026-11-25 03:12Z; committed as evidence, not yet Base).**
+Pilot before it: eval `20261124T223156Z-f7f7a5` (sceptre, dbt-metabase, sql-metadata; k = 1;
+1 resolved, 1 `504`, 1 step cap). All 20 dev tasks re-validated first (`validation.json`);
+`fastscape-32` is now invalid (9 P2P problems) and was skipped, so 19 tasks, 57 trials.
+
+| Outcome | Trials |
+|---|---|
+| Resolved (DONE and hidden tests pass) | 13 |
+| Overclaim (DONE, hidden tests fail) | 3 |
+| Step cap 50 | 17 |
+| No fix after 3 gate attempts | 1 |
+| Endpoint `504` (gateway timeout) | 13 |
+| Endpoint `429` "Budget has been exceeded" (gateway key cap $25.00) | 10 |
+
+Report (`results/20261124T230320Z-142ddf/report.md`): resolved 22.8% [7.0, 40.4], pass@3 31.6%,
+pass^3 15.8%, wall p50 / p95 362 s / 1794 s. The 23 endpoint failures count as unresolved, so
+this number is not Base. The $25 cap is set on the key by the gateway, not by Mergewright; with
+prices 0 in `.env`, Mergewright recorded $0 and could not see the spend. The report counts the
+endpoint errors as `error`, not `infra`.
+
+Next: after the gateway budget is reset, re-run the 23 lost trials once (runbook step 5) at git
+`8563c22` (`--resume` compares the exact HEAD SHA, so from a worktree of that commit), log each
+re-run here, then regenerate the report and freeze Base.
+
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
 

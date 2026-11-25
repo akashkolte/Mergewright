@@ -1,0 +1,425 @@
+{
+  "eval_id": "20261124T230320Z-142ddf",
+  "split": "dev",
+  "system": "base",
+  "runtime": "R0",
+  "k": 3,
+  "n": 1,
+  "seed": null,
+  "temperature": 0,
+  "model": {
+    "requested": "zai-org/GLM-5.2",
+    "served": [
+      "zai-org/GLM-5.2"
+    ]
+  },
+  "price": {
+    "input_per_mtok": 0.0,
+    "output_per_mtok": 0.0
+  },
+  "started_at": "2026-11-24T23:03:23Z",
+  "finished_at": "2026-11-25T03:12:36Z",
+  "git": {
+    "sha": "8563c22f69774ba5906763cecd0dfd7865f05d2e",
+    "dirty": false
+  },
+  "versions": {
+    "python": "3.12.14",
+    "mergewright": "0.1.0",
+    "langgraph": "1.2.20",
+    "openai": "3.49.0",
+    "pydantic": "2.14.3"
+  },
+  "prompt_hash": "sha256:620c4eee0f4f3226ec05165175101aa0488dd68dc43939f234a75ba9df08af08",
+  "caps": {
+    "max_steps": 50,
+    "max_test_attempts": 3,
+    "tool_timeout_s": 900.0,
+    "llm_timeout_s": 120.0,
+    "wall_clock_s": 5400.0
+  },
+  "tasks": {
+    "Sceptre__sceptre-1249": {
+      "image": "swerebench/sweb.eval.x86_64.sceptre_1776_sceptre-1249@sha256:d4966f2b7f9022d8a2ea40ba43f988dbcf3bae352d29617c1a3fd3482a6c86b3",
+      "image_id": "sha256:d4966f2b7f9022d8a2ea40ba43f988dbcf3bae352d29617c1a3fd3482a6c86b3",
+      "fingerprint": "sha256:e4898b3dbb4c13ba769c1a1679fda1ae0489295748d729a7be656649b358584f",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "Textualize__textual-3334": {
+      "image": "swerebench/sweb.eval.x86_64.textualize_1776_textual-3334@sha256:acd4efc865b49377d2e41876ceed0527aca230c6c884550733e4b7694038a22a",
+      "image_id": "sha256:acd4efc865b49377d2e41876ceed0527aca230c6c884550733e4b7694038a22a",
+      "fingerprint": "sha256:9b754162ab59fffeff83e341e072561137a150f11dd4e8286cdad4fa07905e2c",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "gouline__dbt-metabase-158": {
+      "image": "swerebench/sweb.eval.x86_64.gouline_1776_dbt-metabase-158@sha256:f6b02562c5526b4f8928b5f5b6507c5086526e6774adf09bad3a056d06be5b29",
+      "image_id": "sha256:f6b02562c5526b4f8928b5f5b6507c5086526e6774adf09bad3a056d06be5b29",
+      "fingerprint": "sha256:ad6c6a4e71e53f53ee0d023cbbf3fa0a6e57514ac102cc1a61a4a00e43948d4a",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "haddocking__arctic3d-181": {
+      "image": "swerebench/sweb.eval.x86_64.haddocking_1776_arctic3d-181@sha256:45789e8e4addce2716393a067afd65ebc2d9cf1c5b17b145f6572969ce7f32be",
+      "image_id": "sha256:45789e8e4addce2716393a067afd65ebc2d9cf1c5b17b145f6572969ce7f32be",
+      "fingerprint": "sha256:9d9dce1dc13b6e72402a067c7494faaea6c2a412bd2f31e863ff9f81c87f7e47",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "jackdewinter__pymarkdown-893": {
+      "image": "swerebench/sweb.eval.x86_64.jackdewinter_1776_pymarkdown-893@sha256:00f59267e86928ae69a083942d1e2fb749de3074f1e35925a903c6a07de2d625",
+      "image_id": "sha256:00f59267e86928ae69a083942d1e2fb749de3074f1e35925a903c6a07de2d625",
+      "fingerprint": "sha256:8eaf8d29ae0285e18a9b8f3ee03247acc3d78a840ec46e4f31f7a8586910df08",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "macbre__sql-metadata-127": {
+      "image": "swerebench/sweb.eval.x86_64.macbre_1776_sql-metadata-127@sha256:2979a7c7f0a90905356d97d4af0da68a344ba044a0f6476070ff363772bc12ba",
+      "image_id": "sha256:2979a7c7f0a90905356d97d4af0da68a344ba044a0f6476070ff363772bc12ba",
+      "fingerprint": "sha256:4b962ab09e74ffb579c11376c58e3f9bbc65fda1ee8d66488677c842604cc074",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "marshmallow-code__flask-smorest-318": {
+      "image": "swerebench/sweb.eval.x86_64.marshmallow-code_1776_flask-smorest-318@sha256:3a7a6447707b887bc49926ea587a0d93025661d490ab3b65a8f9f221ec6160b1",
+      "image_id": "sha256:3a7a6447707b887bc49926ea587a0d93025661d490ab3b65a8f9f221ec6160b1",
+      "fingerprint": "sha256:b13bd394ff711db959511ac53b3c4ef6781834b9567cd0f44115b05ff1308118",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "mirumee__ariadne-719": {
+      "image": "swerebench/sweb.eval.x86_64.mirumee_1776_ariadne-719@sha256:59a3e95ff50dd6249a6d5a3f1f9ac404f5eb513f43445a889224b9e882ecbd5f",
+      "image_id": "sha256:59a3e95ff50dd6249a6d5a3f1f9ac404f5eb513f43445a889224b9e882ecbd5f",
+      "fingerprint": "sha256:5c347ea1d68331cd707013b6f73e1c3922af960c7915b9a62260344865c8ca8b",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "ppizarror__pygame-menu-357": {
+      "image": "swerebench/sweb.eval.x86_64.ppizarror_1776_pygame-menu-357@sha256:e3cb9a510c71ca95a730c7abee98c3f6e3424511817fc613ce7d926ec561781f",
+      "image_id": "sha256:e3cb9a510c71ca95a730c7abee98c3f6e3424511817fc613ce7d926ec561781f",
+      "fingerprint": "sha256:6339a4b7e491c53008170afe805183dcbc3c3b52c0a66f9f53afecdc95038b11",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "pypa__hatch-377": {
+      "image": "swerebench/sweb.eval.x86_64.pypa_1776_hatch-377@sha256:aac600de3c7ea489ad52a372a336bad9ed85b700f3f15103edea296b59c5e80a",
+      "image_id": "sha256:aac600de3c7ea489ad52a372a336bad9ed85b700f3f15103edea296b59c5e80a",
+      "fingerprint": "sha256:e8b1f70d71ccc7f353e9a43558515536dae7a39862bd2fb79afb2ad6d25768ed",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "radiasoft__sirepo-6507": {
+      "image": "swerebench/sweb.eval.x86_64.radiasoft_1776_sirepo-6507@sha256:2f0c3e4a0be052c6bb05b57165b903c831eabdbc8fb8771363a3f6c0d6153b31",
+      "image_id": "sha256:2f0c3e4a0be052c6bb05b57165b903c831eabdbc8fb8771363a3f6c0d6153b31",
+      "fingerprint": "sha256:b302fffb4f4708a59f516c07c269322276bbeae2a65488d7b97cd63695600c7b",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "reanahub__reana-client-647": {
+      "image": "swerebench/sweb.eval.x86_64.reanahub_1776_reana-client-647@sha256:a2ffe612c17267cc5b46ffb36ef431bd20e02f5c5262ce317f7b850ca8d8ea75",
+      "image_id": "sha256:a2ffe612c17267cc5b46ffb36ef431bd20e02f5c5262ce317f7b850ca8d8ea75",
+      "fingerprint": "sha256:0d2a221a29a22c7428188169c9968646ab06031dc64610824a2da04c0c6406a0",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "reata__sqllineage-369": {
+      "image": "swerebench/sweb.eval.x86_64.reata_1776_sqllineage-369@sha256:549ffd6efa489c88954fa0a75a14084ac5deb486bc7afb0f8f5db8f46f230d19",
+      "image_id": "sha256:549ffd6efa489c88954fa0a75a14084ac5deb486bc7afb0f8f5db8f46f230d19",
+      "fingerprint": "sha256:468539f66ce8840b47c830b177ea788fbd26d521b74bfba27769b11e3a604b76",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "rsagroup__rsatoolbox-350": {
+      "image": "swerebench/sweb.eval.x86_64.rsagroup_1776_rsatoolbox-350@sha256:d3ba3872d9eba2f18d143c6ebb48453171af8911e338d6d88bdf214f0c14fcd0",
+      "image_id": "sha256:d3ba3872d9eba2f18d143c6ebb48453171af8911e338d6d88bdf214f0c14fcd0",
+      "fingerprint": "sha256:81490214b6a9bb0641c31fda4a021f37210bf71af7d6f82f87e32bb6d9afa544",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "scikit-image__scikit-image-5271": {
+      "image": "swerebench/sweb.eval.x86_64.scikit-image_1776_scikit-image-5271@sha256:bedfeba5ec28bd52bde105fda06222bbedc1f4cf7df0ce89432a41cf855d2ccb",
+      "image_id": "sha256:bedfeba5ec28bd52bde105fda06222bbedc1f4cf7df0ce89432a41cf855d2ccb",
+      "fingerprint": "sha256:50e50c5388e6eb3fadc0e125807f9ec2f8426c8b4460fb6e69ba4811ae6a0623",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "sqlfluff__sqlfluff-785": {
+      "image": "swerebench/sweb.eval.x86_64.sqlfluff_1776_sqlfluff-785@sha256:9dfb8bf38587c2b147eb9c5d34bdcf5f653ce1568cb7310573b3034e11e0ba8e",
+      "image_id": "sha256:9dfb8bf38587c2b147eb9c5d34bdcf5f653ce1568cb7310573b3034e11e0ba8e",
+      "fingerprint": "sha256:0def5816cbd8f7b4e9e2647b940f045787668c54f86e4b058070c8868ee5966a",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "tobymao__sqlglot-555": {
+      "image": "swerebench/sweb.eval.x86_64.tobymao_1776_sqlglot-555@sha256:86cdcca3fc27fb5e82bfd4f8e7791e2bebec4bf9f217681d80713abd21fbe4fb",
+      "image_id": "sha256:86cdcca3fc27fb5e82bfd4f8e7791e2bebec4bf9f217681d80713abd21fbe4fb",
+      "fingerprint": "sha256:c61dec50af3078743be06aa2286334b5c67e4d5496b691276d7b17075c456b7e",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "xonsh__xonsh-5013": {
+      "image": "swerebench/sweb.eval.x86_64.xonsh_1776_xonsh-5013@sha256:c8b5561085ea0d90f5255015a0d7bcb10b64105936380e93696dd6c0f1d648a5",
+      "image_id": "sha256:c8b5561085ea0d90f5255015a0d7bcb10b64105936380e93696dd6c0f1d648a5",
+      "fingerprint": "sha256:6c95c3e391582bb4dd182e4eba542df24b5ace0c4607774d32c434016610d152",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "yukinarit__pyserde-441": {
+      "image": "swerebench/sweb.eval.x86_64.yukinarit_1776_pyserde-441@sha256:6daf12ddd697e0909cddb1e6c83fc48c0e6af677347d6be033cf85d7b7676d64",
+      "image_id": "sha256:6daf12ddd697e0909cddb1e6c83fc48c0e6af677347d6be033cf85d7b7676d64",
+      "fingerprint": "sha256:148ec8397241098aff40ccea4958b7e4789ad36bc494975891a73b2b6b91cfab",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    }
+  },
+  "invocations": [
+    {
+      "started_at": "2026-11-24T23:03:23Z",
+      "finished_at": "2026-11-24T23:07:14Z",
+      "jobs": 3,
+      "tasks": [
+        "Sceptre__sceptre-1249"
+      ]
+    },
+    {
+      "started_at": "2026-11-24T23:09:48Z",
+      "finished_at": "2026-11-24T23:37:27Z",
+      "jobs": 3,
+      "tasks": [
+        "Textualize__textual-3334"
+      ]
+    },
+    {
+      "started_at": "2026-11-24T23:39:50Z",
+      "finished_at": "2026-11-24T23:47:51Z",
+      "jobs": 3,
+      "tasks": [
+        "gouline__dbt-metabase-158"
+      ]
+    },
+    {
+      "started_at": "2026-11-24T23:50:23Z",
+      "finished_at": "2026-11-24T23:52:53Z",
+      "jobs": 3,
+      "tasks": [
+        "haddocking__arctic3d-181"
+      ]
+    },
+    {
+      "started_at": "2026-11-24T23:54:36Z",
+      "finished_at": "2026-11-25T00:05:26Z",
+      "jobs": 3,
+      "tasks": [
+        "jackdewinter__pymarkdown-893"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T00:05:27Z",
+      "finished_at": "2026-11-25T00:09:23Z",
+      "jobs": 3,
+      "tasks": [
+        "macbre__sql-metadata-127"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T00:10:45Z",
+      "finished_at": "2026-11-25T00:22:34Z",
+      "jobs": 3,
+      "tasks": [
+        "marshmallow-code__flask-smorest-318"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T00:23:35Z",
+      "finished_at": "2026-11-25T00:26:26Z",
+      "jobs": 3,
+      "tasks": [
+        "mirumee__ariadne-719"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T00:28:29Z",
+      "finished_at": "2026-11-25T00:37:23Z",
+      "jobs": 3,
+      "tasks": [
+        "ppizarror__pygame-menu-357"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T00:38:46Z",
+      "finished_at": "2026-11-25T00:42:37Z",
+      "jobs": 3,
+      "tasks": [
+        "pypa__hatch-377"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T00:44:53Z",
+      "finished_at": "2026-11-25T00:54:19Z",
+      "jobs": 3,
+      "tasks": [
+        "radiasoft__sirepo-6507"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T00:59:53Z",
+      "finished_at": "2026-11-25T01:09:19Z",
+      "jobs": 3,
+      "tasks": [
+        "reanahub__reana-client-647"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T01:12:40Z",
+      "finished_at": "2026-11-25T01:28:01Z",
+      "jobs": 3,
+      "tasks": [
+        "reata__sqllineage-369"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T01:34:00Z",
+      "finished_at": "2026-11-25T01:45:29Z",
+      "jobs": 3,
+      "tasks": [
+        "rsagroup__rsatoolbox-350"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T01:49:05Z",
+      "finished_at": "2026-11-25T02:48:19Z",
+      "jobs": 3,
+      "tasks": [
+        "scikit-image__scikit-image-5271"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T02:49:49Z",
+      "finished_at": "2026-11-25T02:57:18Z",
+      "jobs": 3,
+      "tasks": [
+        "sqlfluff__sqlfluff-785"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T02:59:04Z",
+      "finished_at": "2026-11-25T02:59:18Z",
+      "jobs": 3,
+      "tasks": [
+        "tobymao__sqlglot-555"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T03:01:04Z",
+      "finished_at": "2026-11-25T03:09:55Z",
+      "jobs": 3,
+      "tasks": [
+        "xonsh__xonsh-5013"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T03:12:06Z",
+      "finished_at": "2026-11-25T03:12:36Z",
+      "jobs": 3,
+      "tasks": [
+        "yukinarit__pyserde-441"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+diff --git a/src/arctic3d/cli_resclust.py b/src/arctic3d/cli_resclust.py
+index d5f3b12..b75d952 100644
+--- a/src/arctic3d/cli_resclust.py
++++ b/src/arctic3d/cli_resclust.py
+@@ -12,6 +12,10 @@ Input arguments:
+     `residue_list` : the comma-separated list of residue IDs.
+ 
+     `threshold` : the number to be used as threshold for hierarchical clustering.
++    If `criterion` is `maxclust`, it is the maximum number of clusters.
++
++    `criterion` : the criterion to be used for hierarchical clustering
++    (`distance` or `maxclust`).
+ 
+     `chain` : the chain ID to be used.
+ """
+@@ -65,6 +69,15 @@ argument_parser.add_argument(
+     default="average",
+ )
+ 
++argument_parser.add_argument(
++    "--criterion",
++    help="Criterion for clustering",
++    type=str,
++    required=False,
++    choices=["distance", "maxclust"],
++    default="distance",
++)
++
+ argument_parser.add_argument(
+     "--chain", help="Segment ID to be considered", required=False
+ )
+@@ -109,7 +122,7 @@ def maincli():
+     cli(argument_parser, main)
+ 
+ 
+-def main(input_arg, residue_list, chain, threshold, linkage):
++def main(input_arg, residue_list, chain, threshold, linkage, criterion="distance"):
+     """Main function."""
+     log.setLevel("INFO")
+ 
+@@ -153,11 +166,15 @@ def main(input_arg, residue_list, chain, threshold, linkage):
+ 
+     # do the clustering
+     log.info(
+-        f"Clustering distance matrix with linkage {linkage} and threshold {threshold}"
++        f"Clustering distance matrix with linkage {linkage}, criterion {criterion} and threshold {threshold}"
+     )
+     distmap = pdist(u.positions)
+     clusters = cluster_similarity_matrix(
+-        distmap, unique_sorted_resids, threshold=threshold, linkage_strategy=linkage
++        distmap,
++        unique_sorted_resids,
++        threshold=threshold,
++        linkage_strategy=linkage,
++        criterion=criterion,
+     )
+ 
+     cl_dict = get_clustering_dict(clusters, unique_sorted_resids)
+diff --git a/src/arctic3d/modules/clustering.py b/src/arctic3d/modules/clustering.py
+index 0b4dd4e..31c0ec3 100644
+--- a/src/arctic3d/modules/clustering.py
++++ b/src/arctic3d/modules/clustering.py
+@@ -53,7 +53,12 @@ def plot_dendrogram(linkage_matrix, entries, filename, threshold, max_entries=50
+ 
+ 
+ def cluster_similarity_matrix(
+-    int_matrix, entries, linkage_strategy="average", threshold=0.866, plot=False
++    int_matrix,
++    entries,
++    linkage_strategy="average",
++    threshold=0.866,
++    plot=False,
++    criterion="distance",
+ ):
+     """
+     Does the clustering.
+@@ -70,19 +75,29 @@ def cluster_similarity_matrix(
+         threshold for clustering
+     plot : bool
+         if True, plot the dendrogram
++    criterion : str
++        criterion to use in the clustering (see scipy fcluster documentation).
++        `distance`: forms flat clusters so that the original observations in
++        each flat cluster have no greater a cophenetic distance than `threshold`.
++        `maxclust`: finds a minimum threshold so that no more than `threshold`
++        flat clusters are formed.
+ 
+     Returns
+     -------
+     clusters : list
+         list of clusters ID, each one associated to an entry
+     """
+-    log.info(f"Clustering with linkage {linkage_strategy} and threshold {threshold}")
++    log.info(
++        f"Clustering with linkage {linkage_strategy}, criterion {criterion} and threshold {threshold}"
++    )
+     Z = linkage(int_matrix, linkage_strategy)
+     if plot:
+         dendrogram_figure_filename = "dendrogram_" + linkage_strategy + ".png"
+         plot_dendrogram(Z, entries, dendrogram_figure_filename, threshold)
+     # clustering
+-    clusters = fcluster(Z, t=threshold, criterion="distance")
++    if criterion == "maxclust":
++        threshold = int(threshold)
++    clusters = fcluster(Z, t=threshold, criterion=criterion)
+     log.info("Dendrogram created and clustered.")
+     log.debug(f"Clusters = {clusters}")
+     return clusters
