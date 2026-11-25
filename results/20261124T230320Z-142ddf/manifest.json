@@ -18,7 +18,7 @@
     "output_per_mtok": 0.0
   },
   "started_at": "2026-11-24T23:03:23Z",
-  "finished_at": "2026-11-25T03:12:36Z",
+  "finished_at": "2026-11-25T22:59:58Z",
   "git": {
     "sha": "8563c22f69774ba5906763cecd0dfd7865f05d2e",
     "dirty": false
@@ -416,6 +416,78 @@
     {
       "started_at": "2026-11-25T03:12:06Z",
       "finished_at": "2026-11-25T03:12:36Z",
+      "jobs": 3,
+      "tasks": [
+        "yukinarit__pyserde-441"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T21:37:16Z",
+      "finished_at": "2026-11-25T21:48:34Z",
+      "jobs": 3,
+      "tasks": [
+        "gouline__dbt-metabase-158"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T21:48:35Z",
+      "finished_at": "2026-11-25T22:03:50Z",
+      "jobs": 3,
+      "tasks": [
+        "marshmallow-code__flask-smorest-318"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T22:03:52Z",
+      "finished_at": "2026-11-25T22:07:53Z",
+      "jobs": 3,
+      "tasks": [
+        "ppizarror__pygame-menu-357"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T22:07:55Z",
+      "finished_at": "2026-11-25T22:15:00Z",
+      "jobs": 3,
+      "tasks": [
+        "radiasoft__sirepo-6507"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T22:15:02Z",
+      "finished_at": "2026-11-25T22:23:31Z",
+      "jobs": 3,
+      "tasks": [
+        "reanahub__reana-client-647"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T22:23:33Z",
+      "finished_at": "2026-11-25T22:28:14Z",
+      "jobs": 3,
+      "tasks": [
+        "sqlfluff__sqlfluff-785"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T22:28:16Z",
+      "finished_at": "2026-11-25T22:34:10Z",
+      "jobs": 3,
+      "tasks": [
+        "tobymao__sqlglot-555"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T22:34:12Z",
+      "finished_at": "2026-11-25T22:50:41Z",
+      "jobs": 3,
+      "tasks": [
+        "xonsh__xonsh-5013"
+      ]
+    },
+    {
+      "started_at": "2026-11-25T22:50:43Z",
+      "finished_at": "2026-11-25T22:59:58Z",
       "jobs": 3,
       "tasks": [
         "yukinarit__pyserde-441"

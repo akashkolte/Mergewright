@@ -1,52 +1,27 @@
-diff --git a/CHANGELOG.md b/CHANGELOG.md
-index 7dd982442..e9cd815ee 100644
---- a/CHANGELOG.md
-+++ b/CHANGELOG.md
-@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
- and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+diff --git a/src/sqlfluff/core/config.py b/src/sqlfluff/core/config.py
+index f06701b5b..fc1b096d0 100644
+--- a/src/sqlfluff/core/config.py
++++ b/src/sqlfluff/core/config.py
+@@ -367,6 +367,14 @@ class FluffConfig:
+         if self._configs["core"].get("recurse", 0) == 0:
+             self._configs["core"]["recurse"] = True
  
- ## [Unreleased]
-+### Added
++        # Configs for file extensions
++        if self._configs["core"].get("sql_file_exts", None):
++            self._configs["core"]["sql_file_exts"] = self._configs["core"][
++                "sql_file_exts"
++            ].split(",")
++        else:
++            self._configs["core"]["sql_file_exts"] = []
 +
-+- Added the `sql_file_exts` config value to allow the user to configure
-+  which file extensions are treated as sql files when linting. This
-+  allows for example linting of jinja templated sql files with a
-+  `.sql.j2` extension.
- ### Changed
- 
- ## [0.4.1] - 2021-02-25
-diff --git a/docs/source/configuration.rst b/docs/source/configuration.rst
-index 6c3483823..4b1fe01a7 100644
---- a/docs/source/configuration.rst
-+++ b/docs/source/configuration.rst
-@@ -387,6 +387,22 @@ Ignore files can also be placed in subdirectories of a path which is being
- linted and the sub files will also be applied within that subdirectory.
- 
- 
-+File Extensions
-+---------------
-+
-+By default *SQLFluff* only considers files ending in :code:`.sql` when
-+searching for files to lint. If your project uses templated sql files
-+(for example jinja templates with a :code:`.sql.j2` extension), you can
-+configure which file extensions are considered using the
-+:code:`sql_file_exts` config value. Multiple extensions can be specified
-+as a comma separated list:
-+
-+.. code-block:: cfg
-+
-+    [sqlfluff]
-+    sql_file_exts = .sql,.sql.j2
-+
-+
- .. _`Git's`: https://git-scm.com/docs/gitignore#_pattern_format
- .. _`Docker's`: https://docs.docker.com/engine/reference/builder/#dockerignore-file
- .. _`pathspec library`: https://python-path-specification.readthedocs.io/
+         # Dialect and Template selection.
+         # NB: We import here to avoid a circular references.
+         from sqlfluff.core.dialects import dialect_selector
 diff --git a/src/sqlfluff/core/default_config.cfg b/src/sqlfluff/core/default_config.cfg
-index 04d3bef42..ef1fd75e1 100644
+index 04d3bef42..d83703680 100644
 --- a/src/sqlfluff/core/default_config.cfg
 +++ b/src/sqlfluff/core/default_config.cfg
-@@ -1,65 +1,67 @@
+@@ -1,65 +1,68 @@
 -[sqlfluff]
 -verbose = 0
 -nocolor = False
@@ -123,8 +98,9 @@ index 04d3bef42..ef1fd75e1 100644
 +output_line_length = 80
 +runaway_limit = 10
 +ignore_templated_areas = True
-+# Config to control which file extensions are treated as sql files
-+sql_file_exts = None
++# Comma separated list of file extensions to lint.
++# NB: This config only applies when specifying directories.
++sql_file_exts = .sql
 +
 +[sqlfluff:indentation]
 +indented_joins = False
@@ -180,10 +156,10 @@ index 04d3bef42..ef1fd75e1 100644
 +# By default, allow subqueries in from clauses, but not join clauses.
 +forbid_subquery_in = join
 diff --git a/src/sqlfluff/core/linter.py b/src/sqlfluff/core/linter.py
-index 0dacdd0da..9ac02d76d 100644
+index 0dacdd0da..71cbcf77a 100644
 --- a/src/sqlfluff/core/linter.py
 +++ b/src/sqlfluff/core/linter.py
-@@ -717,11 +717,12 @@ class Linter:
+@@ -717,11 +717,15 @@ class Linter:
          rules: Optional[Union[str, List[str]]] = None,
          user_rules: Optional[Union[str, List[str]]] = None,
      ) -> None:
@@ -192,46 +168,11 @@ index 0dacdd0da..9ac02d76d 100644
          self.config = FluffConfig.from_kwargs(
              config=config, dialect=dialect, rules=rules
          )
-+        # Get the file extensions to lint from config
-+        self.sql_exts = self._get_sql_exts(sql_exts, config=self.config)
++        # Get the file extensions to lint from the config
++        self.sql_exts = tuple(
++            "." + ext if not ext.startswith(".") else ext
++            for ext in self.config.get("sql_file_exts", [])
++        ) or sql_exts
          # Get the dialect and templater
          self.dialect = self.config.get("dialect_obj")
          self.templater = self.config.get("templater_obj")
-@@ -739,6 +740,37 @@ class Linter:
-         cfg = config or self.config
-         return rs.get_rulelist(config=cfg)
- 
-+    @staticmethod
-+    def _get_sql_exts(
-+        default_exts: Tuple[str, ...] = (".sql",),
-+        config: Optional[FluffConfig] = None,
-+    ) -> Tuple[str, ...]:
-+        """Get the file extensions to lint, from config or defaults.
-+
-+        The `sql_file_exts` config value is a comma separated list of
-+        file extensions (each of which should start with a dot), which
-+        are treated as sql files when searching for files to lint.
-+        """
-+        exts = config.get("sql_file_exts", default=None) if config else None
-+        if not exts:
-+            return default_exts
-+        # Split on commas (or accept an iterable) and normalise each
-+        # extension so that it starts with a dot.
-+        if isinstance(exts, str):
-+            raw_exts: Iterable[str] = exts.split(",")
-+        else:
-+            raw_exts = exts
-+        parsed = tuple(
-+            sorted(
-+                {
-+                    ext if ext.startswith(".") else "." + ext
-+                    for ext in (e.strip() for e in raw_exts)
-+                    if ext
-+                }
-+            )
-+        )
-+        return parsed or default_exts
-+
-     def rule_tuples(self) -> List[RuleTuple]:
-         """A simple pass through to access the rule tuples of the rule set."""
-         rs = self.get_ruleset()

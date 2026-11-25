@@ -200,14 +200,16 @@ infra error. Refuses evals on different splits; warns when models or a shared ta
 fingerprint differ, or an eval is incomplete. Check: two smoke evals (k = 2 and k = 1) report
 100 % each and a delta of +0.0 [+0.0, +0.0], not distinguishable.
 
-## Step 14: Base run (runbook; deferred by the owner)
+## Step 14: Base run (done)
 
 ### Summary of 2026-11-23: decisions and why (details and evidence below)
 
-**Status.** Base is not run yet. The owner deferred step 14 (2026-11-23) and will decide later
-when to start Phase 2. Everything needed to run it is in place; the open items are listed at the
-end of this summary. All pilot and attempt results are committed in `results/` (manifests,
-trial records, patches, traces).
+**Status (2026-11-25).** Base is frozen: eval `20261124T230320Z-142ddf` (GLM-5.2, git
+`8563c22`), resolved 22.8% [7.0, 40.4], 7 of 57 trials lost to the gateway's 150 s timeout. See
+"Base (frozen 2026-11-25)" at the end of this section. The summary below is from 2026-11-23,
+before attempt 2; its open items 1–2 and 4 were handled by running attempt 2 on the free UB
+gateway with every task image pulled ahead. All pilot and attempt results are committed in
+`results/` (manifests, trial records, patches, traces).
 
 **Agent changes before Base (each found by a pilot; all part of the frozen Base system):**
 
@@ -538,13 +540,63 @@ Pilot before it: eval `20261124T223156Z-f7f7a5` (sceptre, dbt-metabase, sql-meta
 
 Report (`results/20261124T230320Z-142ddf/report.md`): resolved 22.8% [7.0, 40.4], pass@3 31.6%,
 pass^3 15.8%, wall p50 / p95 362 s / 1794 s. The 23 endpoint failures count as unresolved, so
-this number is not Base. The $25 cap is set on the key by the gateway, not by Mergewright; with
+this number was not yet Base (see the re-run below). The $25 cap is set on the key by the gateway, not by Mergewright; with
 prices 0 in `.env`, Mergewright recorded $0 and could not see the spend. The report counts the
 endpoint errors as `error`, not `infra`.
 
-Next: after the gateway budget is reset, re-run the 23 lost trials once (runbook step 5) at git
-`8563c22` (`--resume` compares the exact HEAD SHA, so from a worktree of that commit), log each
-re-run here, then regenerate the report and freeze Base.
+**Re-run of the lost trials (runbook step 5, owner's approval, 2026-11-25).** The gateway budget
+was reset (a 5-token request returned 200; `/key/info` is refused with 403, so the remaining
+budget is not visible). All 23 trials lost to the endpoint were re-run once at git `8563c22`
+(from a detached worktree of that commit; `--resume` with the same eval id; all images local,
+no pull; validation records current), 2026-11-25 21:37Z – 22:59Z:
+
+| Task | k | Reason for the re-run | Result of the re-run |
+|---|---|---|---|
+| `dbt-metabase-158` | 1, 2, 3 | `504` | step cap, step cap, no fix |
+| `flask-smorest-318` | 1, 2, 3 | `504` | `504`, step cap, `504` |
+| `pygame-menu-357` | 2 | `504` | step cap |
+| `sirepo-6507` | 1, 2, 3 | `504` | `504`, `504`, step cap |
+| `reana-client-647` | 1, 2, 3 | `504` | `504`, `504`, `504` |
+| `sqlfluff-785` | 3 | `429` budget | step cap |
+| `sqlglot-555` | 1, 2, 3 | `429` budget | step cap ×3 |
+| `xonsh-5013` | 1, 2, 3 | `429` budget | step cap ×3 |
+| `pyserde-441` | 1, 2, 3 | `429` budget | step cap, overclaim, step cap |
+
+16 of 23 re-runs gave an agent result (none resolved); 7 got a `504` again and stay infra losses
+(spec 9.1: one re-run only). **Cause of the `504`s:** every one of the 7 arrived 151–152 s after
+the request, whatever the prompt size (16k–48k tokens), while successful calls took up to 140 s.
+The gateway ends any model call that runs longer than about 150 s; the likely trigger is a long
+GLM reasoning turn (inference: traces do not record reasoning length). Mergewright's client
+does not retry a `504`. So the losses are a property of this model on this gateway, not bad luck,
+and they cluster in 3 tasks (`reana-client` 6 of 6 trials over both runs, `sirepo` 5 of 6).
+
+### Base (frozen 2026-11-25, owner's decision)
+
+**Base = eval `20261124T230320Z-142ddf`**: `zai-org/GLM-5.2` on the UB gateway, git `8563c22`,
+prompts `620c4eee0f4f`, dev split (19 valid tasks; `fastscape-32` invalid), k = 3, 57 trials,
+2026-11-24 23:03Z – 2026-11-25 22:59Z (one interruption for the gateway budget).
+
+| Metric | Value |
+|---|---|
+| Resolved [95 % CI] | 22.8% [7.0, 40.4] (13 of 57 trials) |
+| pass@3 / pass^3 | 31.6% / 15.8% |
+| Overclaim | 4 trials (23.5% of DONE) |
+| Step cap 50 | 31 trials |
+| No fix after 3 gate attempts | 2 trials |
+| Infra (gateway `504` after one re-run) | 7 trials (12.3%), counted as unresolved |
+| Wall p50 / p95 | 322 s / 1794 s; mean 35.5 steps |
+| Cost | $0 recorded (prices 0 in `.env`); about $25+ of gateway budget, not visible to Mergewright |
+
+Report: `results/20261124T230320Z-142ddf/report.md`. Upper bound if all 7 infra trials had
+resolved: 20 of 57. The dominant failure is the step cap (31 of 57), so Phase 2 starts from the
+failure categories as planned.
+
+Known limitations of this Base: (1) the report lists the 7 endpoint losses as `error`, not
+`infra` (the client does not classify a `504` as infra); (2) a Phase 2 feature that changes
+prompts can change which calls exceed the 150 s gateway limit, so compare its infra count with
+Base's 7 before reading its resolve delta; (3) handling of `504` (retry, or a cap on reasoning
+length) belongs to the reliability layer (Phase 3) and changes the system, so it needs a new
+Base when it lands.
 
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):

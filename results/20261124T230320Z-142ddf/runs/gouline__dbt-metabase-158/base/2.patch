@@ -1,15 +1,17 @@
 diff --git a/dbtmetabase/parsers/dbt_manifest.py b/dbtmetabase/parsers/dbt_manifest.py
-index 0a1ca00..3ea7dd6 100644
+index 0a1ca00..dc3f0d1 100644
 --- a/dbtmetabase/parsers/dbt_manifest.py
 +++ b/dbtmetabase/parsers/dbt_manifest.py
-@@ -202,6 +202,16 @@ class DbtManifestReader(DbtReader):
+@@ -202,6 +202,18 @@ class DbtManifestReader(DbtReader):
                      )
                      continue
  
 +                # Skip the incoming relationship tests, in which the fk_target_table is the model currently being read.
 +                # Otherwise, the primary key of the current model would be (incorrectly) determined to be a foreign key.
-+                is_incoming_relationship_test = depends_on_nodes[1] != unique_id
-+                if len(depends_on_nodes) == 2 and is_incoming_relationship_test:
++                is_incoming_relationship_test = (
++                    len(depends_on_nodes) == 2 and depends_on_nodes[1] != unique_id
++                )
++                if is_incoming_relationship_test:
 +                    logger().debug(
 +                        "Skip this incoming relationship test, concerning nodes %s.",
 +                        depends_on_nodes,
