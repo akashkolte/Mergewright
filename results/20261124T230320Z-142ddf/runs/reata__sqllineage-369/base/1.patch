@@ -1,0 +1,12 @@
+diff --git a/sqllineage/core/parser/sqlparse/__init__.py b/sqllineage/core/parser/sqlparse/__init__.py
+index 14735e7..d094770 100644
+--- a/sqllineage/core/parser/sqlparse/__init__.py
++++ b/sqllineage/core/parser/sqlparse/__init__.py
+@@ -14,6 +14,7 @@ def _patch_adding_window_function_token() -> None:
+ def _patch_adding_builtin_type() -> None:
+     KEYWORDS["STRING"] = tokens.Name.Builtin
+     KEYWORDS["DATETIME"] = tokens.Name.Builtin
++    print("DEBUG_KEYWORDS:", {k: str(v) for k, v in KEYWORDS.items() if k in ("RAW", "MODEL", "STRING", "DATETIME", "DATE")})
+ 
+ 
+ def _patch_updating_lateral_view_lexeme() -> None:

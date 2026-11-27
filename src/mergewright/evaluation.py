@@ -161,6 +161,8 @@ def run_trial(
         except Exception as exc:
             error, infra_error = _describe(exc)
     status = result.status if result else "ERROR"
+    if status == "FAILED_INFRA":  # the endpoint failed the run, not the agent (spec 9.1)
+        infra_error = infra_error or result.reason
     patch_resolves = bool(verdict and verdict.resolved)
     resolved = status == "DONE" and patch_resolves
     category = failure_category(status, resolved, infra_error, error)

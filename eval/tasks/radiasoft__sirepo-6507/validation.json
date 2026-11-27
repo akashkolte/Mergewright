@@ -4,8 +4,9 @@
   "problems": [],
   "flaky": [],
   "image": "swerebench/sweb.eval.x86_64.radiasoft_1776_sirepo-6507@sha256:2f0c3e4a0be052c6bb05b57165b903c831eabdbc8fb8771363a3f6c0d6153b31",
-  "validated_at": "2026-11-23T00:48:34Z",
-  "seconds": 29.62,
+  "fingerprint": "sha256:b302fffb4f4708a59f516c07c269322276bbeae2a65488d7b97cd63695600c7b",
+  "validated_at": "2026-11-25T00:44:52Z",
+  "seconds": 84.18,
   "runs": [
     {
       "run": 1,
@@ -27,7 +28,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 6.19
+        "seconds": 14.87
       },
       "gold": {
         "resolved": true,
@@ -45,7 +46,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.86
+        "seconds": 13.99
       }
     },
     {
@@ -68,7 +69,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.8
+        "seconds": 12.83
       },
       "gold": {
         "resolved": true,
@@ -86,7 +87,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.47
+        "seconds": 14.17
       }
     },
     {
@@ -109,7 +110,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.46
+        "seconds": 12.92
       },
       "gold": {
         "resolved": true,
@@ -127,7 +128,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.84
+        "seconds": 15.4
       }
     }
   ]

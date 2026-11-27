@@ -1,0 +1,21 @@
+diff --git a/sceptre/resolvers/__init__.py b/sceptre/resolvers/__init__.py
+index 5dde952..da63fdb 100644
+--- a/sceptre/resolvers/__init__.py
++++ b/sceptre/resolvers/__init__.py
+@@ -238,7 +238,16 @@ class ResolvableContainerProperty(ResolvableProperty):
+             resolve, container, Resolver
+         )
+         # Remove keys and indexes from their containers that had resolvers resolve to None.
++        list_items_to_delete = []
+         for attr, key in keys_to_delete:
++            if isinstance(attr, list):
++                # Gather up the list items and sort them by index in reverse order...
++                list_items_to_delete.append((attr, key))
++            else:
++                # ...so that deleting them by index will not invalidate the indexes of other
++                # list items. Dict items can be deleted in any order.
++                del attr[key]
++        for attr, key in sorted(list_items_to_delete, key=lambda pair: pair[1], reverse=True):
+             del attr[key]
+ 
+         return container

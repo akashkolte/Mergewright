@@ -4,8 +4,9 @@
   "problems": [],
   "flaky": [],
   "image": "swerebench/sweb.eval.x86_64.ppizarror_1776_pygame-menu-357@sha256:e3cb9a510c71ca95a730c7abee98c3f6e3424511817fc613ce7d926ec561781f",
-  "validated_at": "2026-11-23T00:32:23Z",
-  "seconds": 26.58,
+  "fingerprint": "sha256:6339a4b7e491c53008170afe805183dcbc3c3b52c0a66f9f53afecdc95038b11",
+  "validated_at": "2026-11-25T00:28:28Z",
+  "seconds": 68.87,
   "runs": [
     {
       "run": 1,
@@ -28,7 +29,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 6.57
+        "seconds": 13.42
       },
       "gold": {
         "resolved": true,
@@ -47,7 +48,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.15
+        "seconds": 11.34
       }
     },
     {
@@ -71,7 +72,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.77
+        "seconds": 11.35
       },
       "gold": {
         "resolved": true,
@@ -90,7 +91,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.02
+        "seconds": 10.91
       }
     },
     {
@@ -114,7 +115,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 3.79
+        "seconds": 10.56
       },
       "gold": {
         "resolved": true,
@@ -133,7 +134,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 4.28
+        "seconds": 11.29
       }
     }
   ]

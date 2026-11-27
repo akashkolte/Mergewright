@@ -12,6 +12,7 @@ from mergewright.config import ConfigError, LiveSettings, load_live_settings
 from mergewright.llm import (
     BedrockConverseClient,
     LLMError,
+    LLMUnavailable,
     OpenAIClient,
     converse_request,
     live_client,
@@ -128,16 +129,16 @@ def test_a_client_error_is_not_retried():
         calls.append(request)
         return httpx.Response(400, json={"message": "on-demand throughput isn't supported"})
 
-    with pytest.raises(LLMError, match="HTTP 400.*on-demand"):
+    with pytest.raises(LLMError, match="HTTP 400.*on-demand") as caught:
         client_with(handler).complete(HISTORY, [])
-    assert len(calls) == 1
+    assert len(calls) == 1 and not isinstance(caught.value, LLMUnavailable)
 
 
 def test_timeouts_give_up_after_the_retries():
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ReadTimeout("timed out", request=request)
 
-    with pytest.raises(LLMError, match="ReadTimeout"):
+    with pytest.raises(LLMUnavailable, match="ReadTimeout"):  # the endpoint's failure
         client_with(handler).complete(HISTORY, [])
 
 

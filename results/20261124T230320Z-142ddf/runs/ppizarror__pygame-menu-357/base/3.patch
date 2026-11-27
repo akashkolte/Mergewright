@@ -1,0 +1,13 @@
+diff --git a/pygame_menu/widgets/widget/rangeslider.py b/pygame_menu/widgets/widget/rangeslider.py
+index f7d4d662..2929b627 100644
+--- a/pygame_menu/widgets/widget/rangeslider.py
++++ b/pygame_menu/widgets/widget/rangeslider.py
+@@ -768,7 +768,7 @@ class RangeSlider(Widget):
+         # Create the slider values
+         self._slider_text_value_surfaces = []
+         self._slider_text_value_surfaces_pos = []
+-        for v in self._value:
++        for v in self._value[:1 if self._single else 2]:
+             t = self._font_slider_value.render(self._value_format(v), self._font_antialias,
+                                                self._slider_text_value_color)  # Value text
+             st = make_surface(
