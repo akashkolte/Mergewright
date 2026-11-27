@@ -14,9 +14,14 @@ from mergewright.environments import (
 )
 from mergewright.sandbox import ExecResult, SandboxError, SandboxLimits
 from mergewright.sandbox.process import CommandResult
-from tests.fakes import ScriptedSandbox
+from tests.fakes import ScriptedSandbox, local_start
 
 LIMITS = SandboxLimits(cpus=1, mem_floor_mb=256, mem_ceiling_mb=512, pids=64)
+
+
+def git_ok(*outputs: str) -> list[ExecResult]:
+    """Results for commit_workspace's four git steps: init, add, commit, rev-parse."""
+    return [ExecResult(0, out, False) for out in ("", "", "", *outputs)]
 
 
 class RecordingStarter:
@@ -54,7 +59,7 @@ class FakeDocker:
 
 
 def test_local_repo_copies_the_repo_and_starts_the_default_image(buggy_calc: Path, tmp_path):
-    starter = RecordingStarter()
+    starter = RecordingStarter(ScriptedSandbox(git_ok("e" * 40)))
     env = LocalRepo(buggy_calc, limits=LIMITS, start_sandbox=starter)
     workspace = tmp_path / "ws"
 
@@ -70,22 +75,21 @@ def test_local_repo_copies_the_repo_and_starts_the_default_image(buggy_calc: Pat
         "mount_path": "/workspace",
     }
     assert env.test_command == DEFAULT_TEST_COMMAND
+    assert starter.sandbox.resets == [("e" * 40, "")]  # without a base_sha: its own commit
 
 
-def test_local_repo_diff_compares_with_the_original_folder(buggy_calc: Path, tmp_path):
-    env = LocalRepo(buggy_calc, start_sandbox=RecordingStarter())
+def test_local_repo_diff_is_git_in_the_sandbox(buggy_calc: Path, tmp_path):
+    env = LocalRepo(buggy_calc, start_sandbox=local_start)
     workspace = tmp_path / "ws"
     env.prepare(workspace)
+    sandbox = env.start(workspace, run_id="r1")
     (workspace / "calc.py").write_text("changed\n")
+    (workspace / "new.py").write_text("x = 1\n")
 
-    diff = env.diff(workspace, ScriptedSandbox([]))
+    diff = env.diff(workspace, sandbox)
 
-    assert "+changed" in diff and "a/calc.py" in diff
-
-
-def git_ok(*outputs: str) -> list[ExecResult]:
-    """Results for commit_workspace's four git steps: init, add, commit, rev-parse."""
-    return [ExecResult(0, out, False) for out in ("", "", "", *outputs)]
+    assert "diff --git a/calc.py b/calc.py" in diff and "+changed" in diff
+    assert "diff --git a/new.py b/new.py" in diff and "+x = 1" in diff
 
 
 def test_local_repo_with_a_base_sha_commits_the_copy_and_resets_to_it(tmp_path: Path):
@@ -139,7 +143,7 @@ def test_image_repo_copies_the_repo_out_of_the_image(tmp_path: Path):
 
     create, cp, rm = docker.calls
     name = create[create.index("--name") + 1]
-    assert re.fullmatch(  # labelled like a sandbox, so sweep_orphans finds it after a crash
+    assert re.fullmatch(  # labelled like a sandbox, so the labels identify it after a crash
         rf"create --name {name} --label mergewright\.sandbox=1 --label mergewright\.run_id=copy "
         r"--label mergewright\.created=\d+ img@sha256:abc",
         " ".join(create),

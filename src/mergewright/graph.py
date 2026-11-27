@@ -14,7 +14,7 @@ The node bodies are plain functions that take their deps as an argument, so a du
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal, TypedDict
 
@@ -202,19 +202,11 @@ def assemble_graph(
     after_coder: Callable[..., Any],
     after_tools: Callable[..., Any],
     after_tester: Callable[..., Any],
-    state_schema: type = AgentState,
-    context_schema: type | None = None,
-    metadata: Mapping[str, dict[str, Any]] | None = None,
 ) -> StateGraph:
-    """The Coder <-> Tester topology, with the given node and edge functions. Not compiled.
-
-    metadata maps a node name to its LangGraph node metadata (a durable runtime reads its
-    per-node settings from there).
-    """
-    metadata = metadata or {}
-    graph = StateGraph(state_schema, context_schema)
+    """The Coder <-> Tester topology, with the given node and edge functions. Not compiled."""
+    graph = StateGraph(AgentState)
     for name, node in (("coder", coder), ("tools", tools), ("tester", tester)):
-        graph.add_node(name, node, metadata=metadata.get(name))
+        graph.add_node(name, node)
     graph.add_edge(START, "coder")
     graph.add_conditional_edges("coder", after_coder, ["tools", "tester", END])
     graph.add_conditional_edges("tools", after_tools, ["coder", "tester"])

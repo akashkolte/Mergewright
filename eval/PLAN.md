@@ -9,8 +9,8 @@ Local tasks (`source: local`) in `mergewright-python:1`, with hand-written recor
 responses (`replay.json`), for CI without a model or a task image: `local__calc-median`,
 `local__cart-discount`, `local__config-parse-bool`, `local__dates-leap-year`,
 `local__text-slugify`. Each has visible P2P tests in `repo/` and hidden F2P tests in
-`test.patch`. `tests/test_smoke_docker.py` runs the agent on each replay and checks that the
-oracle resolves it.
+`test.patch`. `tests/test_eval_docker.py` runs `mergewright eval` on each replay and checks that
+the oracle resolves it.
 
 ## Dev (20 tasks, rule frozen 2026-11-22)
 

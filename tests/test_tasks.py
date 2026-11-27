@@ -19,11 +19,8 @@ from mergewright.tasks import (
     resolve_image_digest,
     task_from_swe_rebench,
 )
-
-ROW_FILE = Path(__file__).parent / "data" / "swe_rebench" / "0b01001001__spectree-64.json"
-TASK_ID = "0b01001001__spectree-64"
-DIGEST = "sha256:918c24cdc06282801eca6134c44d0521eceb98e395d2916c660ec92a0df75efd"
-IMAGE = "swerebench/sweb.eval.x86_64.0b01001001_1776_spectree-64"
+from tests.fakes import DIGEST, ROW_FILE, TASK_ID
+from tests.fakes import SPECTREE as IMAGE
 
 
 @pytest.fixture

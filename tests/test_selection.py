@@ -12,7 +12,7 @@ from mergewright.selection import (
     held_out_rule_failures,
     rank,
 )
-from tests.test_tasks import ROW_FILE
+from tests.fakes import ROW_FILE
 
 
 def candidate(**changes) -> dict:

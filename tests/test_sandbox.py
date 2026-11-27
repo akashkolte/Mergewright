@@ -1,4 +1,4 @@
-"""Sandbox unit tests: canary, bounded command runner, docker arguments, sweeper. No Docker."""
+"""Sandbox unit tests: canary, bounded command runner, docker arguments. No Docker."""
 
 import sys
 from pathlib import Path
@@ -11,7 +11,6 @@ from mergewright.sandbox import (
     DockerSandbox,
     SandboxError,
     SandboxLimits,
-    sweep_orphans,
 )
 from mergewright.sandbox.process import CommandResult, run_command
 
@@ -258,25 +257,3 @@ def test_close_is_idempotent(tmp_path: Path):
     sandbox.close()
 
     assert sum(c.startswith("rm -f") for c in docker.commands()) == 1
-
-
-# --- Orphan sweeper ----------------------------------------------------------------------
-
-
-def test_sweep_removes_old_sandboxes_of_inactive_runs_only():
-    listing = "\n".join(
-        [
-            "mw-old-dead\tdead\t100",  # old, run not active: removed
-            "mw-old-live\tlive\t100",  # old, but its run is active: kept
-            "mw-new-dead\tdead2\t950",  # too young: kept
-            "mw-bad-label\tx\tnot-a-number",  # age unknown: kept (never delete what we can't date)
-        ]
-    )
-    docker = FakeDocker([("ps -a", ok(listing))])
-
-    removed = sweep_orphans(
-        max_age_s=600, active_run_ids={"live"}, docker=docker, clock=lambda: 1000.0
-    )
-
-    assert removed == ["mw-old-dead"]
-    assert docker.commands()[1:] == ["rm -f mw-old-dead"]

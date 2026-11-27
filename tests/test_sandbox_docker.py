@@ -6,28 +6,22 @@ Skipped otherwise. Run only these: pytest -m docker
 """
 
 import json
-import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
 
-from mergewright.sandbox import Canary, DockerSandbox, SandboxLimits, sweep_orphans
+from mergewright.sandbox import Canary, DockerSandbox, SandboxLimits
+from tests.fakes import has_image
 
 IMAGE = "mergewright-python:1"
 LIMITS = SandboxLimits(cpus=1, mem_floor_mb=128, mem_ceiling_mb=256, pids=64)
 
 
-def _image_ready() -> bool:
-    if shutil.which("docker") is None:
-        return False
-    probe = subprocess.run(["docker", "image", "inspect", IMAGE], capture_output=True)
-    return probe.returncode == 0
-
-
 pytestmark = [
     pytest.mark.docker,
-    pytest.mark.skipif(not _image_ready(), reason=f"needs Docker and the {IMAGE} image"),
+    pytest.mark.skipif(not has_image(IMAGE), reason=f"needs Docker and the {IMAGE} image"),
 ]
 
 
@@ -121,9 +115,10 @@ def test_pid_limit_stops_a_fork_bomb(sandbox):
 
 
 def test_timeout_kills_the_command_inside_the_container(sandbox):
+    begin = time.monotonic()
     result = sandbox.exec(["sleep", "30"], timeout_s=1)
 
-    assert result.timed_out and result.seconds < 6
+    assert result.timed_out and time.monotonic() - begin < 6
     # Count `sleep 30` only: the container's own keep-alive process is `sleep infinity`.
     count_sleeps = (
         "import pathlib\n"
@@ -237,22 +232,6 @@ def test_close_removes_the_container_and_is_idempotent(tmp_path: Path):
 
     assert labels["mergewright.run_id"] == "close"
     assert _inspect(box.name) is None
-
-
-def test_sweep_orphans_removes_a_sandbox_left_by_a_dead_run(tmp_path: Path):
-    make_repo(tmp_path / "repo")
-    left = DockerSandbox.start(IMAGE, tmp_path / "repo", run_id="dead-run", limits=LIMITS)
-    # Every other sandbox on this machine counts as active, so the test removes only its own.
-    listing = subprocess.run(
-        ["docker", "ps", "-a", "--filter", "label=mergewright.sandbox=1", "--format",
-         '{{.Label "mergewright.run_id"}}'],
-        capture_output=True, text=True, check=True,
-    )  # fmt: skip
-    others = set(listing.stdout.split()) - {"dead-run"}
-
-    removed = sweep_orphans(max_age_s=0, active_run_ids=others)
-
-    assert left.name in removed and _inspect(left.name) is None
 
 
 def _inspect(name: str) -> dict | None:

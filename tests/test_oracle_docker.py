@@ -10,12 +10,11 @@ import pytest
 
 from mergewright.oracle import evaluate, validate_task
 from mergewright.tasks import Task, import_swe_rebench
-from tests.test_environments_docker import SPECTREE, _has_image
-from tests.test_tasks import DIGEST, ROW_FILE
+from tests.fakes import DIGEST, ROW_FILE, SPECTREE, has_image
 
 pytestmark = [
     pytest.mark.docker,
-    pytest.mark.skipif(not _has_image(SPECTREE), reason=f"needs {SPECTREE}"),
+    pytest.mark.skipif(not has_image(SPECTREE), reason=f"needs {SPECTREE}"),
 ]
 
 

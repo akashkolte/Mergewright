@@ -330,9 +330,12 @@ def row_test_ids(value: list[str] | str) -> list[str]:
     return list(json.loads(value) if isinstance(value, str) else value)
 
 
+def utc_stamp(moment: datetime) -> str:
+    """The moment in UTC as '2020-10-12T13:21:50Z', the timestamp format of every record."""
+    return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def _utc(value: str) -> str:
     """'2020-10-12 13:21:50' (UTC, no zone) -> '2020-10-12T13:21:50Z'."""
     moment = datetime.fromisoformat(value)
-    if moment.tzinfo is None:
-        moment = moment.replace(tzinfo=UTC)
-    return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return utc_stamp(moment if moment.tzinfo else moment.replace(tzinfo=UTC))

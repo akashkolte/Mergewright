@@ -94,7 +94,8 @@ Part 2 (local, 2026-11-22):
   replay must search first). A local task keeps its base code in `repo/`; `LocalRepo` with a
   `base_sha` commits the copy in the sandbox with a fixed author and date and checks the SHA,
   so the oracle resets and diffs it as it does a task image. `replay.json` holds hand-written
-  responses; `tests/test_smoke_docker.py` runs agent + oracle on each. All 5 valid, 7 s each.
+  responses; `tests/test_smoke_docker.py` (since merged into `tests/test_eval_docker.py`) runs
+  agent + oracle on each. All 5 valid, 7 s each.
 - Dev selection as code: `src/mergewright/selection.py` and `mergewright tasks select`. It
   reproduces the cloud session's order exactly (2,471 rows, 691 pass; candidates 1–5 are the
   four picked there and `fastscape-32`). `spectree-64` is swapped out: it fails the rule on
@@ -550,7 +551,7 @@ checkpoint-2.
 
 `.github/workflows/ci.yml`, on every push and pull request: `ruff format --check`, `ruff check`,
 `docker build` of `mergewright-python:1`, `pytest` (unit tests, Docker guard tests and the
-replay smoke suite: `tests/test_smoke_docker.py`, `tests/test_eval_docker.py`), then the record
+replay smoke suite: `tests/test_eval_docker.py`), then the record
 checks. `mergewright tasks list --split smoke --check` fails the build unless every smoke record
 is valid and current, so a change to verdict code must come with re-validated smoke records
 (`mergewright tasks validate --stale`, about 1 minute). For dev the same check is a warning only

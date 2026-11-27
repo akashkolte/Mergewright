@@ -1,4 +1,5 @@
-"""`mergewright eval` end to end on the smoke split: recorded responses, real sandbox and oracle.
+"""`mergewright eval` end to end on the smoke split (5 tasks): recorded responses, real
+sandbox and oracle; every trial must reach DONE and resolve.
 
 The committed validation records may be stale, so the test validates a copy of the smoke tasks
 first (one run each) and evaluates that copy: four tasks with --jobs 2, then --resume adds the
@@ -17,17 +18,20 @@ from mergewright.__main__ import EXIT_DONE, main
 from mergewright.environments import DEFAULT_IMAGE
 from mergewright.evaluation import run_eval
 from mergewright.oracle import validate_task
-from mergewright.tasks import Task
-from tests.test_environments_docker import _has_image
-from tests.test_smoke_docker import SMOKE
+from mergewright.tasks import Task, load_tasks
+from tests.fakes import has_image
+
+TASKS_DIR = Path(__file__).resolve().parents[1] / "eval" / "tasks"
+SMOKE = [task for task in load_tasks(TASKS_DIR) if task.split == "smoke"]
 
 pytestmark = [
     pytest.mark.docker,
-    pytest.mark.skipif(not _has_image(DEFAULT_IMAGE), reason=f"needs {DEFAULT_IMAGE}"),
+    pytest.mark.skipif(not has_image(DEFAULT_IMAGE), reason=f"needs {DEFAULT_IMAGE}"),
 ]
 
 
 def test_eval_on_the_smoke_split_resolves_every_task(tmp_path: Path, monkeypatch):
+    assert len(SMOKE) == 5
     tasks_dir = tmp_path / "tasks"
     for task in SMOKE:
         shutil.copytree(task.path, tasks_dir / task.id)
@@ -52,6 +56,6 @@ def test_eval_on_the_smoke_split_resolves_every_task(tmp_path: Path, monkeypatch
     for task_id in ids:
         for k in (1, 2):
             record = json.loads((out / "runs" / task_id / "base" / f"{k}.json").read_text())
-            assert record["resolved"], record
+            assert record["resolved"], record  # resolved implies status DONE
             assert record["tool_calls"] > 0 and record["test_attempts"] >= 1
             assert (out / "runs" / task_id / "base" / f"{k}.trace.jsonl").is_file()

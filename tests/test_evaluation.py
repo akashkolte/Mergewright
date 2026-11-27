@@ -13,27 +13,17 @@ import pytest
 from mergewright.config import Limits, Price
 from mergewright.evaluation import EvalRefused, EvalSpec, failure_category, git_state, run_eval
 from mergewright.llm import ScriptedLLM
-from mergewright.oracle import VALIDATION_FILE, OracleResult, fingerprint
+from mergewright.oracle import OracleResult, fingerprint
 from mergewright.report import load_eval, render
 from mergewright.runlog import RunLog
 from mergewright.runner import RunResult
 from mergewright.sandbox import SandboxError
-from mergewright.tasks import Task, import_swe_rebench
-from tests.test_tasks import DIGEST, ROW_FILE
+from mergewright.tasks import Task
+from tests.fakes import make_task, mark_valid
 
 NOW = datetime(2026, 11, 23, 9, 0, tzinfo=UTC)
 SPEC = EvalSpec("dev", "base", 2, "replay", Price(1.0, 10.0), Limits())
 PATCH = "diff --git a/src/app.py b/src/app.py\n"
-
-
-def make_task(tasks_dir: Path, task_id: str) -> Task:
-    row = {**json.loads(ROW_FILE.read_text()), "instance_id": task_id}
-    return Task.load(import_swe_rebench(row, tasks_dir, "dev", lambda image: DIGEST))
-
-
-def mark_valid(task: Task, valid: bool = True) -> None:
-    record = {"valid": valid, "fingerprint": fingerprint(task), "validated_at": "x"}
-    (task.path / VALIDATION_FILE).write_text(json.dumps(record))
 
 
 class FakeRun:

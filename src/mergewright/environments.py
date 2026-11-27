@@ -3,9 +3,9 @@
 An Environment fills the host workspace, starts the sandbox with the workspace mounted, and
 produces the final diff. Two kinds:
 
-- LocalRepo: a repo folder on the host (e.g. examples/buggy_calc), run in DEFAULT_IMAGE. With a
-  base_sha (local eval tasks), the sandbox commits the copy deterministically and checks that
-  the commit is base_sha, so the oracle can reset to it as it does for an image.
+- LocalRepo: a repo folder on the host (e.g. examples/buggy_calc), run in DEFAULT_IMAGE. The
+  sandbox commits the copy deterministically, so the diff comes from git as for an image. With
+  a base_sha (local eval tasks), the commit must be base_sha, so the oracle can reset to it.
 - ImageRepo: a task image (SWE-rebench). The repo is copied out of the image, with its .git,
   and mounted back at the same path, so the image's installed environment applies.
 
@@ -15,7 +15,6 @@ every command, tests included, runs in the sandbox.
 
 from __future__ import annotations
 
-import difflib
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -70,7 +69,7 @@ class LocalRepo:
     test_command: str = DEFAULT_TEST_COMMAND
     limits: SandboxLimits | None = None
     start_sandbox: StartSandbox = DockerSandbox.start
-    base_sha: str | None = None  # set: the copy is committed in the sandbox and must match
+    base_sha: str | None = None  # set: the copy's commit in the sandbox must be this SHA
 
     @property
     def name(self) -> str:
@@ -87,24 +86,20 @@ class LocalRepo:
             limits=self.limits,
             mount_path="/workspace",
         )
-        if self.base_sha is None:
-            return sandbox
         try:
             actual = commit_workspace(sandbox)
-            if actual != self.base_sha:
+            if self.base_sha is not None and actual != self.base_sha:
                 raise SandboxError(
                     f"{self.path} commits as {actual}, but the task's base_sha is {self.base_sha}"
                 )
-            sandbox.reset(self.base_sha, "")
+            sandbox.reset(actual, "")
         except BaseException:
             sandbox.close()
             raise
         return sandbox
 
     def diff(self, workspace_dir: Path, sandbox: Sandbox) -> str:
-        if self.base_sha is not None:
-            return sandbox.diff()
-        return workspace_diff(self.path, workspace_dir)
+        return sandbox.diff()
 
 
 @dataclass(frozen=True)
@@ -173,28 +168,3 @@ def copy_workspace(repo: Path, workspace_dir: Path) -> None:
     # symlinks=True copies links as links. The default copies the target's content, which would
     # bring files from outside the repo into the workspace, past the tools' path guard.
     shutil.copytree(repo, workspace_dir, symlinks=True, ignore=shutil.ignore_patterns(*SKIP_DIRS))
-
-
-def workspace_diff(original: Path, changed: Path) -> str:
-    """Unified diff of every text file that differs between the two trees."""
-
-    def files(root: Path) -> set[str]:
-        return {
-            p.relative_to(root).as_posix()
-            for p in root.rglob("*")
-            if p.is_file() and not SKIP_DIRS.intersection(p.relative_to(root).parts)
-        }
-
-    chunks: list[str] = []
-    for rel in sorted(files(original) | files(changed)):
-        before = _lines(original / rel)
-        after = _lines(changed / rel)
-        if before != after:
-            chunks.extend(difflib.unified_diff(before, after, f"a/{rel}", f"b/{rel}"))
-    return "".join(chunks)
-
-
-def _lines(path: Path) -> list[str]:
-    if not path.is_file():
-        return []
-    return path.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True)
