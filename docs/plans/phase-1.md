@@ -566,8 +566,12 @@ no pull; validation records current), 2026-11-25 21:37Z – 22:59Z:
 (spec 9.1: one re-run only). **Cause of the `504`s:** every one of the 7 arrived 151–152 s after
 the request, whatever the prompt size (16k–48k tokens), while successful calls took up to 140 s.
 The gateway ends any model call that runs longer than about 150 s; the likely trigger is a long
-GLM reasoning turn (inference: traces do not record reasoning length). Mergewright's client
-does not retry a `504`. So the losses are a property of this model on this gateway, not bad luck,
+GLM reasoning turn (inference: traces do not record reasoning length). The code does retry a
+`504`: `OpenAIClient` sets `max_retries=2`, and the openai SDK (3.49.0) retries every status
+≥ 500 unless the response has `x-should-retry: false` or a `Retry-After` above the SDK's
+maximum. But each failing call ended about 151.5 s after it started, so it was most likely one
+attempt with no retry (inference: the gateway probably sent one of those headers; the traces do
+not record response headers). So the losses are a property of this model on this gateway, not bad luck,
 and they cluster in 3 tasks (`reana-client` 6 of 6 trials over both runs, `sirepo` 5 of 6).
 
 ### Base (frozen 2026-11-25, owner's decision)
@@ -594,9 +598,9 @@ failure categories as planned.
 Known limitations of this Base: (1) the report lists the 7 endpoint losses as `error`, not
 `infra` (the client does not classify a `504` as infra); (2) a Phase 2 feature that changes
 prompts can change which calls exceed the 150 s gateway limit, so compare its infra count with
-Base's 7 before reading its resolve delta; (3) handling of `504` (retry, or a cap on reasoning
-length) belongs to the reliability layer (Phase 3) and changes the system, so it needs a new
-Base when it lands.
+Base's 7 before reading its resolve delta; (3) handling of `504` beyond the SDK's own retries
+(a retry the gateway's headers cannot block, or a cap on reasoning length) belongs to the
+reliability layer (Phase 3) and changes the system, so it needs a new Base when it lands.
 
 **Prompt for the cloud Claude session** (environment `mergewright_cloud`, branch
 `checkpoint-2`):
