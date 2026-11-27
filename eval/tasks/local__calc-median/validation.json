@@ -4,9 +4,9 @@
   "problems": [],
   "flaky": [],
   "image": "mergewright-python:1",
-  "fingerprint": "sha256:942eb9dbb62fa97b194256f470d7e395423a2a2a3409aebaa6dd2395331afb1b",
-  "validated_at": "2026-11-24T17:52:56Z",
-  "seconds": 7.31,
+  "fingerprint": "sha256:ab5d1fa4b0849c1394f862fb6a18f210104451da4558c2546d66e14bdb7ba1ff",
+  "validated_at": "2026-11-27T21:27:15Z",
+  "seconds": 7.49,
   "runs": [
     {
       "run": 1,
@@ -27,7 +27,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 1.5
+        "seconds": 1.63
       },
       "gold": {
         "resolved": true,
@@ -44,7 +44,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 1.04
+        "seconds": 1.24
       }
     },
     {
@@ -66,7 +66,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 1.05
+        "seconds": 1.15
       },
       "gold": {
         "resolved": true,
@@ -83,7 +83,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 1.42
+        "seconds": 1.19
       }
     },
     {
@@ -105,7 +105,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 1.24
+        "seconds": 1.15
       },
       "gold": {
         "resolved": true,
@@ -122,7 +122,7 @@
         "patch_applies": true,
         "timed_out": false,
         "infra_error": "",
-        "seconds": 1.06
+        "seconds": 1.13
       }
     }
   ]
