@@ -29,7 +29,16 @@ MAX_SEARCH_HITS = 50
 SKIP_DIRS = {".git", "__pycache__", ".pytest_cache", ".venv", "node_modules"}
 DENIED_EDIT_DIRS = {".git", ".github", "tests"}
 # conftest.py and the files pytest reads its config from: an edit could skip the failing tests.
-DENIED_EDIT_FILES = {"conftest.py", "pytest.ini", "pyproject.toml", "setup.cfg", "tox.ini"}
+DENIED_EDIT_FILES = {
+    "conftest.py",
+    "pytest.ini",
+    ".pytest.ini",
+    "pytest.toml",
+    ".pytest.toml",
+    "pyproject.toml",
+    "setup.cfg",
+    "tox.ini",
+}
 RESULT_WORDS = ("PASSED", "FAILED", "ERROR", "XFAIL", "XPASS")  # pytest short summary outcomes
 
 

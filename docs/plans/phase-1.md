@@ -317,9 +317,12 @@ steps work as the current user (no `cloud-setup.sh`, no `su mw`; Docker Desktop 
    versions between invocations. Lower `--jobs` if the endpoint returns 429 often.
 5. **Lost trials.** A trial whose run failed only because of the endpoint (connection error,
    or 429 after the client's retries: see its `error`) may be re-run once, with the owner's
-   approval: delete its `<k>.json`, `<k>.patch`, `<k>.trace.jsonl` and run the script again
-   with `--eval-id`. Write each re-run here (task, k, reason). Never re-run a trial for any
-   other reason (spec 9.1: infra re-runs once, reported apart).
+   approval. First commit the eval as it is, so git keeps the failed attempt's files; then
+   delete its `<k>.json`, `<k>.patch`, `<k>.trace.jsonl` and run the script again with
+   `--eval-id` (from a worktree of the eval's git SHA: `--resume` refuses another one). Write
+   each re-run here (task, k, reason, result) with the commit that holds the first attempt. Never
+   re-run a trial for any other reason (spec 9.1: infra re-runs once, reported apart). Base's
+   first attempts are in commit `cd2279e`.
 6. **Report and commit.** `mergewright report results/<id> --out results/<id>/report.md`.
    Commit the re-validated `eval/tasks/*/validation.json` and the eval's `manifest.json`,
    `runs/*/base/<k>.json` and `report.md` (decision pending: traces may stay out of git if they

@@ -154,3 +154,15 @@ def test_api_style_selects_the_client_and_is_validated():
         load_live_settings({**base, "MERGEWRIGHT_API_STYLE": "soap"})
     with pytest.raises(ConfigError, match="needs MERGEWRIGHT_API_BASE"):
         load_live_settings({"MERGEWRIGHT_MODEL": "m", "MERGEWRIGHT_API_STYLE": "bedrock-converse"})
+
+
+def test_bedrock_refuses_to_send_a_key_over_plain_http():
+    bedrock = {"MERGEWRIGHT_MODEL": "m", "MERGEWRIGHT_API_STYLE": "bedrock-converse"}
+    plain = {**bedrock, "MERGEWRIGHT_API_BASE": "http://bedrock.test"}
+
+    with pytest.raises(ConfigError, match="https://"):
+        load_live_settings({**plain, "MERGEWRIGHT_API_KEY": "secret"})
+    assert load_live_settings(plain).api_key is None  # no key: nothing to leak
+    # A local OpenAI-compatible server over http keeps working with a key.
+    openai_http = {"MERGEWRIGHT_MODEL": "m", "MERGEWRIGHT_API_BASE": "http://localhost:8000/v1"}
+    assert load_live_settings({**openai_http, "MERGEWRIGHT_API_KEY": "k"}).api_key == "k"

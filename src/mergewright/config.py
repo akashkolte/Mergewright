@@ -87,12 +87,11 @@ def load_live_settings(environ: Mapping[str, str] = os.environ) -> LiveSettings:
             "bedrock-converse needs MERGEWRIGHT_API_BASE, for example "
             "https://bedrock-runtime.us-east-1.amazonaws.com"
         )
-    return LiveSettings(
-        model=model,
-        api_base=api_base,
-        api_key=environ.get("MERGEWRIGHT_API_KEY", "").strip() or None,
-        api_style=api_style,
-    )
+    api_key = environ.get("MERGEWRIGHT_API_KEY", "").strip() or None
+    # The Bedrock key is a Bearer token: never send it in clear text.
+    if api_style == "bedrock-converse" and api_key and not api_base.startswith("https://"):
+        raise ConfigError("bedrock-converse sends the key as a Bearer token; use an https:// base")
+    return LiveSettings(model=model, api_base=api_base, api_key=api_key, api_style=api_style)
 
 
 def load_price(environ: Mapping[str, str] = os.environ) -> Price | None:

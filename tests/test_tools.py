@@ -134,6 +134,9 @@ def test_edit_file_blocks_paths_outside_the_workspace(buggy_calc: Path):
         "conftest.py",
         # pytest config: an edit here could skip or deselect the failing tests
         "pytest.ini",
+        ".pytest.ini",
+        "pytest.toml",
+        ".pytest.toml",
         "pyproject.toml",
         "setup.cfg",
         "tox.ini",
