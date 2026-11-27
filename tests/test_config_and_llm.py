@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import httpx
 import openai
 import pytest
 
@@ -16,6 +17,7 @@ from mergewright.config import (
 from mergewright.llm import (
     LLMError,
     LLMResponse,
+    LLMUnavailable,
     OpenAIClient,
     RecordingLLM,
     ScriptedLLM,
@@ -109,14 +111,34 @@ def test_openai_client_configures_the_sdk_from_settings():
     assert (sdk.api_key, sdk.timeout, sdk.max_retries) == ("placeholder", 7, 4)
 
 
-def test_openai_client_turns_sdk_errors_into_llm_error():
+_REQUEST = httpx.Request("POST", "http://llm.example.test/v1/chat/completions")
+
+
+def _status_error(code: int) -> openai.APIStatusError:
+    return openai.APIStatusError(
+        f"Error code: {code}", response=httpx.Response(code, request=_REQUEST), body=None
+    )
+
+
+@pytest.mark.parametrize(
+    ("raised", "unavailable"),
+    [
+        (_status_error(504), True),  # the SDK's retries are used up: the endpoint's failure
+        (_status_error(429), True),  # rate limit or the key's budget
+        (openai.APITimeoutError(request=_REQUEST), True),
+        (_status_error(401), False),  # a wrong key or model cannot succeed: configuration
+        (openai.OpenAIError("404 model not found"), False),
+    ],
+)
+def test_openai_client_marks_only_endpoint_failures_as_unavailable(raised, unavailable):
     def create(**kwargs):
-        raise openai.OpenAIError("404 model not found")
+        raise raised
 
     client = OpenAIClient(SETTINGS, timeout_s=5, client=_fake_sdk(create))
 
-    with pytest.raises(LLMError, match="model not found"):
+    with pytest.raises(LLMError, match="model call failed") as caught:
         client.complete([], [])
+    assert isinstance(caught.value, LLMUnavailable) == unavailable
 
 
 def test_openai_client_rejects_a_response_with_no_choices():

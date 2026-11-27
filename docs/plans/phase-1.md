@@ -541,8 +541,8 @@ Pilot before it: eval `20261124T223156Z-f7f7a5` (sceptre, dbt-metabase, sql-meta
 Report (`results/20261124T230320Z-142ddf/report.md`): resolved 22.8% [7.0, 40.4], pass@3 31.6%,
 pass^3 15.8%, wall p50 / p95 362 s / 1794 s. The 23 endpoint failures count as unresolved, so
 this number was not yet Base (see the re-run below). The $25 cap is set on the key by the gateway, not by Mergewright; with
-prices 0 in `.env`, Mergewright recorded $0 and could not see the spend. The report counts the
-endpoint errors as `error`, not `infra`.
+prices 0 in `.env`, Mergewright recorded $0 and could not see the spend. The report counted the
+endpoint errors as `error`, not `infra` (fixed on 2026-11-27, see below).
 
 **Re-run of the lost trials (runbook step 5, owner's approval, 2026-11-25).** The gateway budget
 was reset (a 5-token request returned 200; `/key/info` is refused with 403, so the remaining
@@ -595,8 +595,21 @@ Report: `results/20261124T230320Z-142ddf/report.md`. Upper bound if all 7 infra 
 resolved: 20 of 57. The dominant failure is the step cap (31 of 57), so Phase 2 starts from the
 failure categories as planned.
 
-Known limitations of this Base: (1) the report lists the 7 endpoint losses as `error`, not
-`infra` (the client does not classify a `504` as infra); (2) a Phase 2 feature that changes
+**Endpoint failures are infra (2026-11-27, owner's request).** At `8563c22` the Coder node
+turned every `LLMError` into `FAILED_ERROR`, so the report listed the 7 losses as `error` and
+showed infra 0%. Now the clients raise `LLMUnavailable` (a subclass of `LLMError`) when the
+endpoint still fails after their retries: connection error, timeout, 408, 429 or 5xx. The node
+ends such a run with `FAILED_INFRA` (spec 9.1), and the trial records it in `infra_error`
+(category `infra`). A wrong key or model name (other 4xx) and an unusable reply stay
+`FAILED_ERROR`. The 7 Base records were relabelled by the same rule (`status`, `infra_error`,
+`failure_category` only; the runs are unchanged), and the report was regenerated: infra 12.3%,
+error 0, every other number the same. The change is outside the verdict code, so no validation
+record became stale. Tests: `test_openai_client_marks_only_endpoint_failures_as_unavailable`,
+`test_model_failure_ends_the_run_cleanly` (both statuses),
+`test_an_endpoint_failure_is_recorded_as_infra_even_with_a_clean_verdict`.
+
+Known limitations of this Base: (1) its code (`8563c22`) predates the infra label above, so its
+records were relabelled after the run, not written so; (2) a Phase 2 feature that changes
 prompts can change which calls exceed the 150 s gateway limit, so compare its infra count with
 Base's 7 before reading its resolve delta; (3) handling of `504` beyond the SDK's own retries
 (a retry the gateway's headers cannot block, or a cap on reasoning length) belongs to the

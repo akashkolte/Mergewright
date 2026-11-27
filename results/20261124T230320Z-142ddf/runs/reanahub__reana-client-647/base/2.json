@@ -4,7 +4,7 @@
   "runtime": "R0",
   "k": 2,
   "candidates": 1,
-  "status": "FAILED_ERROR",
+  "status": "FAILED_INFRA",
   "reason": "model call failed: Error code: 504",
   "oracle": null,
   "resolved": false,
@@ -24,9 +24,9 @@
   "steps": 15,
   "test_attempts": 0,
   "tamper_events": null,
-  "infra_error": null,
+  "infra_error": "model call failed: Error code: 504",
   "error": null,
   "patch_hash": null,
-  "failure_category": "error",
+  "failure_category": "infra",
   "run_id": "reanahub__reana-client-647-base-2-935fff"
 }

@@ -5,7 +5,7 @@
              coder -> tester                   (the model replied without a tool call)
              tester -> coder                   (tests fail, attempts left)
              tester -> END                     (DONE, or FAILED_NO_FIX)
-             coder -> END                      (FAILED_BUDGET or FAILED_ERROR)
+             coder -> END                      (FAILED_BUDGET, FAILED_INFRA or FAILED_ERROR)
 
 The node bodies are plain functions that take their deps as an argument, so a durable runtime
 (spec Section 4.2) can reuse them. This module has no Temporal code.
@@ -21,7 +21,7 @@ from typing import Any, Literal, TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from mergewright.config import Limits
-from mergewright.llm import LLMClient, LLMError
+from mergewright.llm import LLMClient, LLMError, LLMUnavailable
 from mergewright.prompts import CODER_SYSTEM_PROMPT, issue_message, test_failure_message
 from mergewright.runlog import RunLog
 from mergewright.sandbox import Sandbox
@@ -38,7 +38,13 @@ from mergewright.tools import (
 )
 
 Status = Literal[
-    "RUNNING", "DONE", "FAILED_NO_FIX", "FAILED_BUDGET", "FAILED_ERROR", "FAILED_POLICY"
+    "RUNNING",
+    "DONE",
+    "FAILED_NO_FIX",
+    "FAILED_BUDGET",
+    "FAILED_INFRA",
+    "FAILED_ERROR",
+    "FAILED_POLICY",
 ]
 
 
@@ -95,7 +101,8 @@ def coder_step(state: AgentState, deps: AgentDeps, started: float) -> dict[str, 
         response = deps.llm.complete(state["messages"], [TOOLS[n].schema() for n in CODER_TOOLS])
     except LLMError as exc:
         deps.log.event("llm_error", step=step, error=str(exc))
-        return {"status": "FAILED_ERROR", "reason": str(exc), "steps": step}
+        status = "FAILED_INFRA" if isinstance(exc, LLMUnavailable) else "FAILED_ERROR"
+        return {"status": status, "reason": str(exc), "steps": step}
     deps.log.event(
         "llm_call",
         step=step,

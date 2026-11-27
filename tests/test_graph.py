@@ -5,7 +5,7 @@ import pytest
 
 from mergewright.config import Limits
 from mergewright.graph import AgentDeps, build_graph, initial_state, recursion_limit
-from mergewright.llm import LLMError, LLMResponse, ScriptedLLM, ToolCall
+from mergewright.llm import LLMError, LLMResponse, LLMUnavailable, ScriptedLLM, ToolCall
 from mergewright.runlog import RunLog
 from mergewright.sandbox import Canary, ExecResult
 from mergewright.tools import Workspace
@@ -150,16 +150,23 @@ def test_bad_tool_call_is_reported_to_the_model_and_the_run_continues(buggy_calc
     assert tool_message["content"] == first_tool["output"]
 
 
-def test_model_failure_ends_the_run_cleanly(buggy_calc: Path):
+@pytest.mark.parametrize(
+    ("error", "status"),
+    [
+        (LLMUnavailable("model call failed: Error code: 504"), "FAILED_INFRA"),
+        (LLMError("model returned no choices"), "FAILED_ERROR"),
+    ],
+)
+def test_model_failure_ends_the_run_cleanly(buggy_calc: Path, error: LLMError, status: str):
     class BrokenLLM:
         model = "broken"
 
         def complete(self, messages, tools):
-            raise LLMError("connection refused")
+            raise error
 
     final, events = run(buggy_calc, BrokenLLM())
 
-    assert final["status"] == "FAILED_ERROR"
+    assert final["status"] == status and final["reason"] == str(error)
     assert events[-1]["event"] == "llm_error"
 
 

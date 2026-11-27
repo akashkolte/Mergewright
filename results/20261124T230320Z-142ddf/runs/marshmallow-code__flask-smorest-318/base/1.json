@@ -4,7 +4,7 @@
   "runtime": "R0",
   "k": 1,
   "candidates": 1,
-  "status": "FAILED_ERROR",
+  "status": "FAILED_INFRA",
   "reason": "model call failed: Error code: 504",
   "oracle": {
     "tests/test_spec.py::TestAPISpec::test_api_lazy_registers_error_responses[AppConfig-2.0]": "PASSED",
@@ -86,9 +86,9 @@
   "steps": 48,
   "test_attempts": 1,
   "tamper_events": null,
-  "infra_error": null,
+  "infra_error": "model call failed: Error code: 504",
   "error": null,
   "patch_hash": "sha256:c51142e12de99976f01a130210941ba08ee9b3725dcaabd78344218630377fe3",
-  "failure_category": "error",
+  "failure_category": "infra",
   "run_id": "marshmallow-code__flask-smorest-318-base-1-387129"
 }

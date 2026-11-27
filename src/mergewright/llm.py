@@ -29,6 +29,12 @@ class LLMError(Exception):
     """The model could not be reached or returned something unusable."""
 
 
+class LLMUnavailable(LLMError):
+    """The endpoint failed the call after the client's retries: connection error, timeout, 408,
+    429 or 5xx (spec 9.1 FAILED_INFRA, not the agent's failure). Other 4xx (a wrong key or model
+    name) and unusable replies stay LLMError: they are configuration or model faults."""
+
+
 @dataclass
 class ToolCall:
     id: str
@@ -76,6 +82,9 @@ class LLMClient(Protocol):
         ...
 
 
+_RETRY_STATUS = {408, 429, 500, 502, 503, 504}  # the openai SDK retries the same statuses
+
+
 class OpenAIClient:
     """A live model on an OpenAI-compatible server (POST {base_url}/chat/completions).
 
@@ -100,6 +109,12 @@ class OpenAIClient:
             raw = self._client.chat.completions.create(
                 model=self.model, messages=messages, tools=tools, temperature=0
             )
+        except (openai.APIConnectionError, openai.APIStatusError) as exc:  # timeouts included
+            status = getattr(exc, "status_code", None)
+            unavailable = status is None or status in _RETRY_STATUS
+            raise (LLMUnavailable if unavailable else LLMError)(
+                f"model call failed: {exc}"
+            ) from exc
         except openai.OpenAIError as exc:
             raise LLMError(f"model call failed: {exc}") from exc
         if not raw.choices:
@@ -125,7 +140,6 @@ def _parse_completion(raw: Any) -> LLMResponse:
 
 
 CONVERSE_MAX_TOKENS = 8192  # output cap per call; Converse needs one, and edits can be long
-_RETRY_STATUS = {408, 429, 500, 502, 503, 504}
 
 
 class BedrockConverseClient:
@@ -168,7 +182,7 @@ class BedrockConverseClient:
                     raise LLMError(error)
             if attempt < self._retries:
                 self._sleep(2.0 * 2**attempt)
-        raise LLMError(error)
+        raise LLMUnavailable(error)  # only retryable failures reach this line
 
 
 def converse_request(messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict:

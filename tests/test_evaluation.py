@@ -128,6 +128,16 @@ def test_a_trial_that_raises_is_recorded_and_the_eval_goes_on(tasks, tmp_path: P
     assert trial(out, "org__repo-2", 2)["resolved"]
 
 
+def test_an_endpoint_failure_is_recorded_as_infra_even_with_a_clean_verdict(tasks, tmp_path):
+    outcomes = [("FAILED_INFRA", PATCH), ("DONE", PATCH), ("DONE", PATCH), ("DONE", PATCH)]
+
+    out = evaluate_with(tmp_path, tasks, outcomes, [verdict(True)] * 4)
+
+    lost = trial(out, "org__repo-1", 1)
+    assert lost["failure_category"] == "infra" and lost["infra_error"] == lost["reason"] == "why"
+    assert not lost["resolved"] and lost["error"] is None  # unresolved, apart from agent errors
+
+
 def test_the_manifest_records_provenance_and_each_tasks_fingerprint(tasks, tmp_path):
     out = evaluate_with(tmp_path, tasks, [("FAILED_NO_FIX", "")] * 4, [])
 
