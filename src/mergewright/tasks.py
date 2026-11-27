@@ -152,7 +152,7 @@ class Task(BaseModel):
                 limits=self.resources.limits(),
                 base_sha=self.base_sha,
                 **overrides,
-            )
+            )  # type: ignore
         return ImageRepo(
             image=self.image,
             base_sha=self.base_sha,
@@ -160,7 +160,7 @@ class Task(BaseModel):
             repo_dir=self.repo_dir,
             limits=self.resources.limits(),
             **overrides,
-        )
+        )  # type: ignore
 
     def _read(self, name: str) -> str:
         path = (self.path / name).resolve()
@@ -195,7 +195,7 @@ def task_from_swe_rebench(
         test_cmd=conda_test_command(config["test_cmd"]),
         env={key: str(value) for key, value in (config.get("env_vars") or {}).items()},
         created_at=_utc(row["created_at"]),
-    )
+    )  # type: ignore
     files = {
         task.issue: row["problem_statement"],
         task.gold_patch: row["patch"],
