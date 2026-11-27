@@ -1,0 +1,22 @@
+diff --git a/sqllineage/core/parser/sqlparse/__init__.py b/sqllineage/core/parser/sqlparse/__init__.py
+index 14735e7..7e39f2f 100644
+--- a/sqllineage/core/parser/sqlparse/__init__.py
++++ b/sqllineage/core/parser/sqlparse/__init__.py
+@@ -32,3 +32,17 @@ def _monkey_patch() -> None:
+ 
+ 
+ _monkey_patch()
++
++import inspect  # noqa: E402
++import warnings  # noqa: E402
++
++import sqlparse  # noqa: E402
++from sqlparse.engine import grouping as _grouping  # noqa: E402
++
++warnings.warn("sqlparse version: %s" % sqlparse.__version__)
++warnings.warn(
++    "KEYWORDS: RAW=%r DATE=%r MODEL=%r"
++    % (KEYWORDS.get("RAW"), KEYWORDS.get("DATE"), KEYWORDS.get("MODEL"))
++)
++warnings.warn("group pipeline:\n%s" % inspect.getsource(_grouping.group))
++warnings.warn("group_as:\n%s" % inspect.getsource(_grouping.group_as))

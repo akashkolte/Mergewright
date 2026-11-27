@@ -14,8 +14,9 @@ dist/
 .pytest_cache/
 .ruff_cache/
 
-# Agent run output (workspaces and run logs)
-runs/
+# Agent run output (workspaces and run logs) in the root runs/ folder only: eval results keep
+# their trial records in results/<eval-id>/runs/, which must be committed.
+/runs/
 
 # Notebooks
 .ipynb_checkpoints/

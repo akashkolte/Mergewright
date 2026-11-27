@@ -1,0 +1,30 @@
+diff --git a/src/rsatoolbox/rdm/combine.py b/src/rsatoolbox/rdm/combine.py
+index e8fc4a8b..809a6646 100644
+--- a/src/rsatoolbox/rdm/combine.py
++++ b/src/rsatoolbox/rdm/combine.py
+@@ -65,12 +65,11 @@ def from_partials(
+ 
+     rdm_desc_names = set(rdm_desc_names + list(desc_diff_names))
+     rdm_descriptors = dict([(n, [None]*n_rdms) for n in rdm_desc_names])
+-    measure = None
++    measure = list_of_rdms[0].dissimilarity_measure
+     vector_len = int(n_patterns * (n_patterns-1) / 2)
+     vectors = np.full((n_rdms, vector_len), np.nan)
+     rdm_id = 0
+     for rdms in list_of_rdms:
+-        measure = rdms.dissimilarity_measure
+         pidx = [all_patterns.index(i) for i in pdescs(rdms, descriptor)]
+         for rdm_local_id, utv in enumerate(rdms.dissimilarities):
+             rdm = np.full((len(all_patterns), len(all_patterns)), np.nan)
+diff --git a/src/rsatoolbox/rdm/rdms.py b/src/rsatoolbox/rdm/rdms.py
+index 655ad3d7..b3d78b50 100644
+--- a/src/rsatoolbox/rdm/rdms.py
++++ b/src/rsatoolbox/rdm/rdms.py
+@@ -571,6 +571,7 @@ def concat(*rdms):
+         ], axis=0)
+     rdm = RDMs(
+         dissimilarities=dissimilarities,
++        dissimilarity_measure=rdms_list[0].dissimilarity_measure,
+         rdm_descriptors=rdm_descriptors,
+         descriptors=rdms_list[0].descriptors,
+         pattern_descriptors=rdms_list[0].pattern_descriptors

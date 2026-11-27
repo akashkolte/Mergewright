@@ -1,0 +1,117 @@
+{
+  "task": "haddocking__arctic3d-181",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "swerebench/sweb.eval.x86_64.haddocking_1776_arctic3d-181@sha256:45789e8e4addce2716393a067afd65ebc2d9cf1c5b17b145f6572969ce7f32be",
+  "fingerprint": "sha256:9d9dce1dc13b6e72402a067c7494faaea6c2a412bd2f31e863ff9f81c87f7e47",
+  "validated_at": "2026-11-24T23:50:22Z",
+  "seconds": 107.79,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_cli_resclust.py::test_resclust_cli": "FAILED",
+          "tests/test_cli_resclust.py::test_wrong_residue_list": "FAILED",
+          "tests/test_cli_resclust.py::test_resclust_maxclust": "FAILED"
+        },
+        "f2p_failing": [
+          "tests/test_cli_resclust.py::test_resclust_cli",
+          "tests/test_cli_resclust.py::test_wrong_residue_list",
+          "tests/test_cli_resclust.py::test_resclust_maxclust"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 19.23
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_cli_resclust.py::test_resclust_cli": "PASSED",
+          "tests/test_cli_resclust.py::test_wrong_residue_list": "PASSED",
+          "tests/test_cli_resclust.py::test_resclust_maxclust": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 17.89
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_cli_resclust.py::test_resclust_cli": "FAILED",
+          "tests/test_cli_resclust.py::test_wrong_residue_list": "FAILED",
+          "tests/test_cli_resclust.py::test_resclust_maxclust": "FAILED"
+        },
+        "f2p_failing": [
+          "tests/test_cli_resclust.py::test_resclust_cli",
+          "tests/test_cli_resclust.py::test_wrong_residue_list",
+          "tests/test_cli_resclust.py::test_resclust_maxclust"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 18.22
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_cli_resclust.py::test_resclust_cli": "PASSED",
+          "tests/test_cli_resclust.py::test_wrong_residue_list": "PASSED",
+          "tests/test_cli_resclust.py::test_resclust_maxclust": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 18.55
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_cli_resclust.py::test_resclust_cli": "FAILED",
+          "tests/test_cli_resclust.py::test_wrong_residue_list": "FAILED",
+          "tests/test_cli_resclust.py::test_resclust_maxclust": "FAILED"
+        },
+        "f2p_failing": [
+          "tests/test_cli_resclust.py::test_resclust_cli",
+          "tests/test_cli_resclust.py::test_wrong_residue_list",
+          "tests/test_cli_resclust.py::test_resclust_maxclust"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 17.08
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_cli_resclust.py::test_resclust_cli": "PASSED",
+          "tests/test_cli_resclust.py::test_wrong_residue_list": "PASSED",
+          "tests/test_cli_resclust.py::test_resclust_maxclust": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 16.82
+      }
+    }
+  ]
+}

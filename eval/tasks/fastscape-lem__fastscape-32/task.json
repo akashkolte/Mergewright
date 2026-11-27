@@ -1,0 +1,27 @@
+{
+  "id": "fastscape-lem__fastscape-32",
+  "source": "swe-rebench",
+  "split": "dev",
+  "repo": "fastscape-lem/fastscape",
+  "base_sha": "6e717d56412c47c082c35db52f29eaa77b24c91a",
+  "image": "swerebench/sweb.eval.x86_64.fastscape-lem_1776_fastscape-32@sha256:1498ca0b497eaa51b010d5b482a54af3ad5f6ef7553aeb938a905347d28e8b07",
+  "repo_dir": "/testbed",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d"
+  ],
+  "p2p": [
+    "fastscape/tests/test_processes_grid.py::test_raster_grid_2d"
+  ],
+  "test_cmd": "source /opt/conda/etc/profile.d/conda.sh && conda activate testbed && pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2023-09-22T12:27:14Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 1800
+}

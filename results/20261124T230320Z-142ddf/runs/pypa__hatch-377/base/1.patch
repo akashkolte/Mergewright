@@ -1,0 +1,18 @@
+diff --git a/src/hatch/cli/env/show.py b/src/hatch/cli/env/show.py
+index 546e13e9..bb27460e 100644
+--- a/src/hatch/cli/env/show.py
++++ b/src/hatch/cli/env/show.py
+@@ -23,8 +23,11 @@ def show(app, envs, force_ascii, as_json):
+         if config.get('features'):
+             columns['Features'][i] = '\n'.join(sorted({normalize_project_name(f) for f in config['features']}))
+ 
+-        if config.get('dependencies'):
+-            columns['Dependencies'][i] = '\n'.join(get_normalized_dependencies(config['dependencies']))
++        if config.get('dependencies') or config.get('extra-dependencies'):
++            dependencies = get_normalized_dependencies(
++                [*(config.get('dependencies') or []), *(config.get('extra-dependencies') or [])]
++            )
++            columns['Dependencies'][i] = '\n'.join(dependencies)
+ 
+         if config.get('env-vars'):
+             columns['Environment variables'][i] = '\n'.join(

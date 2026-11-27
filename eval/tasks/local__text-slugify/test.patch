@@ -1,0 +1,15 @@
+diff --git a/tests/test_textutil.py b/tests/test_textutil.py
+index d7717f1..0a6ac47 100644
+--- a/tests/test_textutil.py
++++ b/tests/test_textutil.py
+@@ -13,6 +13,10 @@ def test_slugify_strips_leading_and_trailing_punctuation():
+     assert slugify("  Hello! ") == "hello"
+ 
+ 
++def test_slugify_collapses_runs_of_separators():
++    assert slugify("Hello,  World -- again") == "hello-world-again"
++
++
+ def test_truncate_keeps_short_text():
+     assert truncate("short", 10) == "short"
+ 

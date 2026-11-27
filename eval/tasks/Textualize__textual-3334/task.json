@@ -1,0 +1,46 @@
+{
+  "id": "Textualize__textual-3334",
+  "source": "swe-rebench",
+  "split": "dev",
+  "repo": "Textualize/textual",
+  "base_sha": "79e9f3bc16cefd9a9b2bece2b11bfa3ce35422b9",
+  "image": "swerebench/sweb.eval.x86_64.textualize_1776_textual-3334@sha256:acd4efc865b49377d2e41876ceed0527aca230c6c884550733e4b7694038a22a",
+  "repo_dir": "/testbed",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "tests/test_markdown.py::test_goto_anchor[hello-world-False]",
+    "tests/test_markdown.py::test_goto_anchor[hello-there-True]"
+  ],
+  "p2p": [
+    "tests/test_markdown.py::test_markdown_nodes[-expected_nodes0]",
+    "tests/test_markdown.py::test_markdown_nodes[#",
+    "tests/test_markdown.py::test_markdown_nodes[##",
+    "tests/test_markdown.py::test_markdown_nodes[###",
+    "tests/test_markdown.py::test_markdown_nodes[####",
+    "tests/test_markdown.py::test_markdown_nodes[#####",
+    "tests/test_markdown.py::test_markdown_nodes[######",
+    "tests/test_markdown.py::test_markdown_nodes[----expected_nodes7]",
+    "tests/test_markdown.py::test_markdown_nodes[Hello-expected_nodes8]",
+    "tests/test_markdown.py::test_markdown_nodes[Hello\\nWorld-expected_nodes9]",
+    "tests/test_markdown.py::test_markdown_nodes[>",
+    "tests/test_markdown.py::test_markdown_nodes[-",
+    "tests/test_markdown.py::test_markdown_nodes[1.",
+    "tests/test_markdown.py::test_markdown_nodes[",
+    "tests/test_markdown.py::test_markdown_nodes[```\\n1\\n```-expected_nodes14]",
+    "tests/test_markdown.py::test_markdown_nodes[```python\\n1\\n```-expected_nodes15]",
+    "tests/test_markdown.py::test_markdown_nodes[|",
+    "tests/test_markdown.py::test_softbreak_split_links_rendered_correctly",
+    "tests/test_markdown.py::test_load_non_existing_file"
+  ],
+  "test_cmd": "source /opt/conda/etc/profile.d/conda.sh && conda activate testbed && pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2023-09-17T09:38:33Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 1800
+}

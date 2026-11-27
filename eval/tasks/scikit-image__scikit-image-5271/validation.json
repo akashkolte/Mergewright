@@ -1,0 +1,207 @@
+{
+  "task": "scikit-image__scikit-image-5271",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "swerebench/sweb.eval.x86_64.scikit-image_1776_scikit-image-5271@sha256:bedfeba5ec28bd52bde105fda06222bbedc1f4cf7df0ce89432a41cf855d2ccb",
+  "fingerprint": "sha256:50e50c5388e6eb3fadc0e125807f9ec2f8426c8b4460fb6e69ba4811ae6a0623",
+  "validated_at": "2026-11-25T01:49:03Z",
+  "seconds": 167.9,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "skimage/segmentation/tests/test_watershed.py::test_connectivity": "FAILED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed01": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed02": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed03": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed04": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed05": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed06": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed07": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed08": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed09": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed10": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed11": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed12": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_compact_watershed": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_numeric_seed_watershed": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_incorrect_markers_shape": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_incorrect_mask_shape": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_markers_in_mask": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_no_markers": "PASSED"
+        },
+        "f2p_failing": [
+          "skimage/segmentation/tests/test_watershed.py::test_connectivity"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 29.28
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "skimage/segmentation/tests/test_watershed.py::test_connectivity": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed01": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed02": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed03": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed04": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed05": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed06": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed07": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed08": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed09": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed10": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed11": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed12": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_compact_watershed": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_numeric_seed_watershed": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_incorrect_markers_shape": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_incorrect_mask_shape": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_markers_in_mask": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_no_markers": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 26.5
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "skimage/segmentation/tests/test_watershed.py::test_connectivity": "FAILED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed01": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed02": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed03": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed04": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed05": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed06": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed07": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed08": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed09": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed10": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed11": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed12": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_compact_watershed": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_numeric_seed_watershed": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_incorrect_markers_shape": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_incorrect_mask_shape": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_markers_in_mask": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_no_markers": "PASSED"
+        },
+        "f2p_failing": [
+          "skimage/segmentation/tests/test_watershed.py::test_connectivity"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 28.56
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "skimage/segmentation/tests/test_watershed.py::test_connectivity": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed01": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed02": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed03": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed04": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed05": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed06": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed07": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed08": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed09": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed10": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed11": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed12": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_compact_watershed": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_numeric_seed_watershed": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_incorrect_markers_shape": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_incorrect_mask_shape": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_markers_in_mask": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_no_markers": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 27.97
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "skimage/segmentation/tests/test_watershed.py::test_connectivity": "FAILED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed01": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed02": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed03": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed04": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed05": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed06": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed07": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed08": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed09": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed10": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed11": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed12": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_compact_watershed": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_numeric_seed_watershed": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_incorrect_markers_shape": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_incorrect_mask_shape": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_markers_in_mask": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_no_markers": "PASSED"
+        },
+        "f2p_failing": [
+          "skimage/segmentation/tests/test_watershed.py::test_connectivity"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 27.03
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "skimage/segmentation/tests/test_watershed.py::test_connectivity": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed01": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed02": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed03": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed04": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed05": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed06": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed07": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed08": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed09": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed10": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed11": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::TestWatershed::test_watershed12": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_compact_watershed": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_numeric_seed_watershed": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_incorrect_markers_shape": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_incorrect_mask_shape": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_markers_in_mask": "PASSED",
+          "skimage/segmentation/tests/test_watershed.py::test_no_markers": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 28.56
+      }
+    }
+  ]
+}

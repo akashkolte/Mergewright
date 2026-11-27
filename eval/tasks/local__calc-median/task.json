@@ -1,0 +1,31 @@
+{
+  "id": "local__calc-median",
+  "source": "local",
+  "split": "smoke",
+  "repo": "local/calc",
+  "base_sha": "25a8bb5f30e074bee9042163424ec2b753ad49d8",
+  "image": "mergewright-python:1",
+  "repo_dir": "/workspace",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "tests/test_calc.py::test_median_even_length"
+  ],
+  "p2p": [
+    "tests/test_calc.py::test_mean",
+    "tests/test_calc.py::test_mean_empty_raises",
+    "tests/test_calc.py::test_median_odd_length",
+    "tests/test_calc.py::test_median_empty_raises",
+    "tests/test_calc.py::test_value_range"
+  ],
+  "test_cmd": "python -m pytest -q -rA -p no:cacheprovider --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2026-11-22T00:00:00Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 120
+}

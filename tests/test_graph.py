@@ -5,10 +5,12 @@ import pytest
 
 from mergewright.config import Limits
 from mergewright.graph import AgentDeps, build_graph, initial_state, recursion_limit
-from mergewright.llm import LLMError, LLMResponse, ScriptedLLM, ToolCall
+from mergewright.llm import LLMError, LLMResponse, LLMUnavailable, ScriptedLLM, ToolCall
 from mergewright.runlog import RunLog
+from mergewright.sandbox import Canary, ExecResult
 from mergewright.tools import Workspace
 from tests.conftest import BUGGY_LINE, FIXED_LINES
+from tests.fakes import LocalSandbox, ScriptedSandbox
 
 WRONG_FIX = "    return ordered[len(ordered) // 2 - 1]\n"  # wrong for both odd and even lengths
 
@@ -25,10 +27,17 @@ def edit(old: str, new: str) -> LLMResponse:
     return call("edit_file", path="calc.py", old=old, new=new)
 
 
-def run(workspace: Path, llm, limits: Limits | None = None, clock=None):
+def run(workspace: Path, llm, limits: Limits | None = None, clock=None, **deps_kwargs):
     limits = limits or Limits()
     log = RunLog(workspace.parent / "run.jsonl", echo=None)
-    deps = AgentDeps(llm=llm, workspace=Workspace(workspace), log=log, limits=limits)
+    deps = AgentDeps(
+        llm=llm,
+        workspace=Workspace(workspace),
+        log=log,
+        sandbox=deps_kwargs.pop("sandbox", None) or LocalSandbox(workspace),
+        limits=limits,
+        **deps_kwargs,
+    )
     if clock:
         deps.clock = clock
     final = build_graph(deps).invoke(
@@ -50,6 +59,35 @@ def test_happy_path_fixes_the_bug_and_reaches_done(buggy_calc: Path):
     assert FIXED_LINES in (buggy_calc / "calc.py").read_text()
     tools_called = [e["tool"] for e in events if e["event"] == "tool_call"]
     assert tools_called == ["search_code", "edit_file", "run_tests"]
+
+
+def test_finish_tool_hands_over_to_the_tester(buggy_calc: Path):
+    llm = ScriptedLLM([edit(BUGGY_LINE, FIXED_LINES), call("finish", summary="even median")])
+
+    final, events = run(buggy_calc, llm)
+
+    assert final["status"] == "DONE" and final["steps"] == 2
+    tools_called = [e["tool"] for e in events if e["event"] == "tool_call"]
+    assert tools_called == ["edit_file", "finish", "run_tests"]
+
+
+def test_finish_after_other_calls_in_one_message_runs_them_first(buggy_calc: Path):
+    both = LLMResponse(
+        tool_calls=[
+            ToolCall(
+                id="c-1",
+                name="edit_file",
+                arguments=json.dumps({"path": "calc.py", "old": BUGGY_LINE, "new": FIXED_LINES}),
+            ),
+            ToolCall(id="c-2", name="finish", arguments="{}"),  # summary is optional
+        ]
+    )
+
+    final, events = run(buggy_calc, ScriptedLLM([both]))
+
+    assert final["status"] == "DONE" and final["steps"] == 1
+    tools_called = [e["tool"] for e in events if e["event"] == "tool_call"]
+    assert tools_called == ["edit_file", "finish", "run_tests"]
 
 
 def test_failing_tests_loop_back_to_the_coder(buggy_calc: Path):
@@ -96,9 +134,9 @@ def test_wall_clock_cap_stops_the_run(buggy_calc: Path):
     [
         LLMResponse(tool_calls=[ToolCall(id="x", name="delete_repo", arguments="{}")]),
         LLMResponse(tool_calls=[ToolCall(id="x", name="read_file", arguments="{not json")]),
-        LLMResponse(tool_calls=[ToolCall(id="x", name="run_tests", arguments="{}")]),
+        call("edit_file", path="tests/test_calc.py", old="a", new="b"),
     ],
-    ids=["unknown-tool", "malformed-args", "tool-not-allowed"],
+    ids=["unknown-tool", "malformed-args", "protected-path"],
 )
 def test_bad_tool_call_is_reported_to_the_model_and_the_run_continues(buggy_calc: Path, bad_call):
     llm = ScriptedLLM([bad_call, edit(BUGGY_LINE, FIXED_LINES), done()])
@@ -112,16 +150,23 @@ def test_bad_tool_call_is_reported_to_the_model_and_the_run_continues(buggy_calc
     assert tool_message["content"] == first_tool["output"]
 
 
-def test_model_failure_ends_the_run_cleanly(buggy_calc: Path):
+@pytest.mark.parametrize(
+    ("error", "status"),
+    [
+        (LLMUnavailable("model call failed: Error code: 504"), "FAILED_INFRA"),
+        (LLMError("model returned no choices"), "FAILED_ERROR"),
+    ],
+)
+def test_model_failure_ends_the_run_cleanly(buggy_calc: Path, error: LLMError, status: str):
     class BrokenLLM:
         model = "broken"
 
         def complete(self, messages, tools):
-            raise LLMError("connection refused")
+            raise error
 
     final, events = run(buggy_calc, BrokenLLM())
 
-    assert final["status"] == "FAILED_ERROR"
+    assert final["status"] == status and final["reason"] == str(error)
     assert events[-1]["event"] == "llm_error"
 
 
@@ -135,12 +180,90 @@ def test_coder_is_offered_only_its_allowed_tools(buggy_calc: Path):
 
     run(buggy_calc, SpyLLM([edit(BUGGY_LINE, FIXED_LINES), done()]))
 
-    assert seen[0] == ["read_file", "search_code", "edit_file"]
+    assert seen[0] == ["read_file", "search_code", "edit_file", "run_tests", "finish"]
+
+
+def test_coder_runs_chosen_tests_in_the_loop_before_the_gate(buggy_calc: Path):
+    llm = ScriptedLLM(
+        [
+            edit(BUGGY_LINE, FIXED_LINES),
+            call("run_tests", test_ids=["tests/test_calc.py::test_median_even_length"]),
+            call("finish"),
+        ]
+    )
+
+    final, events = run(buggy_calc, llm)
+
+    assert final["status"] == "DONE" and final["test_attempts"] == 1  # the gate ran once
+    coder_run = next(e for e in events if e["event"] == "tool_call" and e["tool"] == "run_tests")
+    assert coder_run["agent"] == "coder" and "1 passed, 0 failed" in coder_run["output"]
+
+
+def test_tester_ignores_errors_known_at_base(buggy_calc: Path):
+    (buggy_calc / "tests" / "test_needs_flask.py").write_text("import flask\n")
+    llm = ScriptedLLM([edit(BUGGY_LINE, FIXED_LINES), done()])
+
+    final, _ = run(buggy_calc, llm, known_failing=frozenset({"tests/test_needs_flask.py"}))
+
+    assert final["status"] == "DONE"
+
+
+def test_tester_is_a_regression_check_that_ignores_tests_failing_at_base(buggy_calc: Path):
+    # A test that fails at base (here the bug's own visible test) does not block DONE: the gate
+    # asks only that nothing that worked at base breaks. The hidden-test oracle judges the fix.
+    known = frozenset({"tests/test_calc.py::test_median_even_length"})
+
+    final, _ = run(buggy_calc, ScriptedLLM([done()]), known_failing=known)
+
+    assert final["status"] == "DONE"
+
+
+def test_tester_rejects_a_test_that_passed_at_base_and_now_fails(buggy_calc: Path):
+    known = frozenset({"tests/test_calc.py::test_median_even_length"})
+    llm = ScriptedLLM([edit(BUGGY_LINE, WRONG_FIX), done(), done(), done()])
+
+    final, _ = run(buggy_calc, llm, known_failing=known)
+
+    assert final["status"] == "FAILED_NO_FIX"  # the wrong fix breaks the odd-length test
+
+
+def test_tester_ignores_a_failure_that_passes_when_re_run_alone(buggy_calc: Path):
+    flaky_run = ScriptedSandbox(
+        [
+            ExecResult(1, "FAILED tests/test_calc.py::test_median_even_length\n5 passed\n", False),
+            ExecResult(0, "1 passed in 0.01s\n", False),  # the re-run of the blamed test
+        ]
+    )
+
+    final, events = run(buggy_calc, ScriptedLLM([done()]), sandbox=flaky_run)
+
+    assert final["status"] == "DONE" and final["test_attempts"] == 1
+    (result,) = [e for e in events if e["event"] == "test_result"]
+    assert result["problems"] == [] and result["flaky"] == [
+        "tests/test_calc.py::test_median_even_length"
+    ]
+
+
+def test_tool_output_with_the_canary_is_redacted_and_logged(buggy_calc: Path):
+    canary = Canary.new()
+    (buggy_calc / "notes.txt").write_text(f"token={canary.value}\n")
+    llm = ScriptedLLM([call("read_file", path="notes.txt"), edit(BUGGY_LINE, FIXED_LINES), done()])
+
+    final, events = run(buggy_calc, llm, sandbox=LocalSandbox(buggy_calc, canary))
+
+    tool_message = next(m for m in final["messages"] if m["role"] == "tool")
+    assert canary.value not in tool_message["content"]
+    assert Canary.REDACTED in tool_message["content"]
+    read = next(e for e in events if e["event"] == "tool_call")
+    assert read["canary_leaked"] is True and canary.value not in json.dumps(events)
 
 
 def test_graph_has_the_expected_nodes_and_edges(tmp_path: Path):
     deps = AgentDeps(
-        llm=ScriptedLLM([]), workspace=Workspace(tmp_path), log=RunLog(tmp_path / "l", None)
+        llm=ScriptedLLM([]),
+        workspace=Workspace(tmp_path),
+        log=RunLog(tmp_path / "l", None),
+        sandbox=LocalSandbox(tmp_path),
     )
     graph = build_graph(deps).get_graph()
 
@@ -152,6 +275,7 @@ def test_graph_has_the_expected_nodes_and_edges(tmp_path: Path):
         ("coder", "tester"),
         ("coder", "__end__"),
         ("tools", "coder"),
+        ("tools", "tester"),
         ("tester", "coder"),
         ("tester", "__end__"),
     }

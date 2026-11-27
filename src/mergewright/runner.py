@@ -1,19 +1,19 @@
-"""One agent run: copy the repo into a workspace, run the graph, write the log and the diff."""
+"""One agent run: fill a workspace, start its sandbox, run the graph, write the log and the diff."""
 
 from __future__ import annotations
 
-import difflib
-import shutil
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
 from mergewright.config import Limits
+from mergewright.environments import Environment
 from mergewright.graph import AgentDeps, build_graph, initial_state, recursion_limit
 from mergewright.llm import LLMClient
 from mergewright.runlog import RunLog
-from mergewright.tools import SKIP_DIRS, Workspace
+from mergewright.sandbox import CanaryLeakError
+from mergewright.tools import Workspace, run_tests
 
 
 @dataclass
@@ -28,7 +28,7 @@ class RunResult:
 
 
 def run_agent(
-    repo: Path,
+    env: Environment,
     issue: str,
     llm: LLMClient,
     runs_dir: Path,
@@ -40,54 +40,57 @@ def run_agent(
     run_id = run_id or uuid.uuid4().hex[:8]
     run_dir = runs_dir / run_id
     workspace_dir = run_dir / "workspace"
-    shutil.copytree(repo, workspace_dir, ignore=shutil.ignore_patterns(*SKIP_DIRS))
+    env.prepare(workspace_dir)
 
     log = RunLog(run_dir / "run.jsonl", echo=echo)
-    log.event("run_started", run_id=run_id, repo=str(repo), model=llm.model, issue=issue)
-    deps = AgentDeps(llm=llm, workspace=Workspace(workspace_dir), log=log, limits=limits)
-    final = build_graph(deps).invoke(
-        initial_state(issue), config={"recursion_limit": recursion_limit(limits)}
-    )
-    diff = workspace_diff(repo, workspace_dir)
+    log.event("run_started", run_id=run_id, environment=env.name, model=llm.model, issue=issue)
+    sandbox = env.start(workspace_dir, run_id)
+    log.redact = lambda text: sandbox.canary.redact(text)[0]
+    try:
+        # Tests that already fail or error at base (e.g. a dependency the image lacks) are known
+        # gaps of the environment: the gate ignores them and the Coder sees them marked.
+        baseline = run_tests(sandbox, env.test_command, timeout_s=limits.tool_timeout_s)
+        log.event(
+            "test_baseline",
+            failures=baseline.failures,
+            errors=baseline.errors,
+            num_passed=baseline.num_passed,
+            timed_out=baseline.timed_out,
+        )
+        deps = AgentDeps(
+            llm=llm,
+            workspace=Workspace(workspace_dir),
+            log=log,
+            sandbox=sandbox,
+            limits=limits,
+            test_command=env.test_command,
+            known_failing=frozenset(baseline.failures + baseline.errors),
+        )
+        final = build_graph(deps).invoke(
+            initial_state(issue), config={"recursion_limit": recursion_limit(limits)}
+        )
+        status, reason = final["status"], final["reason"]
+        try:
+            diff = env.diff(workspace_dir, sandbox)  # raises CanaryLeakError on the canary
+        except CanaryLeakError:
+            # Never let the canary leave: withhold the diff and fail the run.
+            status, reason, diff = "FAILED_POLICY", "the canary is in the diff", ""
+    finally:
+        sandbox.close()
     log.event(
         "run_finished",
-        status=final["status"],
-        reason=final["reason"],
+        status=status,
+        reason=reason,
         steps=final["steps"],
         test_attempts=final["test_attempts"],
         diff=diff,
     )
     return RunResult(
         run_id=run_id,
-        status=final["status"],
-        reason=final["reason"],
+        status=status,
+        reason=reason,
         steps=final["steps"],
         test_attempts=final["test_attempts"],
         run_dir=run_dir,
         diff=diff,
     )
-
-
-def workspace_diff(original: Path, changed: Path) -> str:
-    """Unified diff of every text file that differs between the two trees."""
-
-    def files(root: Path) -> set[str]:
-        return {
-            p.relative_to(root).as_posix()
-            for p in root.rglob("*")
-            if p.is_file() and not SKIP_DIRS.intersection(p.relative_to(root).parts)
-        }
-
-    chunks: list[str] = []
-    for rel in sorted(files(original) | files(changed)):
-        before = _lines(original / rel)
-        after = _lines(changed / rel)
-        if before != after:
-            chunks.extend(difflib.unified_diff(before, after, f"a/{rel}", f"b/{rel}"))
-    return "".join(chunks)
-
-
-def _lines(path: Path) -> list[str]:
-    if not path.is_file():
-        return []
-    return path.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True)

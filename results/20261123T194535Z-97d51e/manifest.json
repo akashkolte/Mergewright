@@ -1,0 +1,103 @@
+{
+  "eval_id": "20261123T194535Z-97d51e",
+  "split": "dev",
+  "system": "base",
+  "runtime": "R0",
+  "k": 3,
+  "n": 1,
+  "seed": null,
+  "temperature": 0,
+  "model": {
+    "requested": "us.anthropic.claude-sonnet-4-6",
+    "served": []
+  },
+  "price": {
+    "input_per_mtok": 3.0,
+    "output_per_mtok": 15.0
+  },
+  "started_at": "2026-11-23T19:45:41Z",
+  "finished_at": "2026-11-23T20:34:47Z",
+  "git": {
+    "sha": "73977cf1b8d0b2b0d0ac7dbc59a56e45afb17851",
+    "dirty": false
+  },
+  "versions": {
+    "python": "3.13.18",
+    "mergewright": "0.1.0",
+    "langgraph": "1.2.20",
+    "openai": "3.49.0",
+    "pydantic": "2.14.3"
+  },
+  "prompt_hash": "sha256:620c4eee0f4f3226ec05165175101aa0488dd68dc43939f234a75ba9df08af08",
+  "caps": {
+    "max_steps": 50,
+    "max_test_attempts": 3,
+    "tool_timeout_s": 900.0,
+    "llm_timeout_s": 120.0,
+    "wall_clock_s": 5400.0
+  },
+  "tasks": {
+    "Sceptre__sceptre-1249": {
+      "image": "swerebench/sweb.eval.x86_64.sceptre_1776_sceptre-1249@sha256:d4966f2b7f9022d8a2ea40ba43f988dbcf3bae352d29617c1a3fd3482a6c86b3",
+      "image_id": "sha256:d4966f2b7f9022d8a2ea40ba43f988dbcf3bae352d29617c1a3fd3482a6c86b3",
+      "fingerprint": "sha256:358f066dd8a5a5b5a76d0948fb3cbceada5dec45f6c402fac6b09d87bd9f7694",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "Textualize__textual-3334": {
+      "image": "swerebench/sweb.eval.x86_64.textualize_1776_textual-3334@sha256:acd4efc865b49377d2e41876ceed0527aca230c6c884550733e4b7694038a22a",
+      "image_id": "sha256:acd4efc865b49377d2e41876ceed0527aca230c6c884550733e4b7694038a22a",
+      "fingerprint": "sha256:894864d7f49ecf30ed1000b40d6fb3d4d950136369b04cbfbddca8d49d84bb0f",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "fastscape-lem__fastscape-32": {
+      "image": "swerebench/sweb.eval.x86_64.fastscape-lem_1776_fastscape-32@sha256:1498ca0b497eaa51b010d5b482a54af3ad5f6ef7553aeb938a905347d28e8b07",
+      "image_id": "sha256:1498ca0b497eaa51b010d5b482a54af3ad5f6ef7553aeb938a905347d28e8b07",
+      "fingerprint": "sha256:ac8979aedbb6adb648415a715080a3014a6fab633ec50715120c2e95d27e2d98",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    }
+  },
+  "invocations": [
+    {
+      "started_at": "2026-11-23T19:45:41Z",
+      "finished_at": "2026-11-23T19:47:38Z",
+      "jobs": 3,
+      "tasks": [
+        "Sceptre__sceptre-1249"
+      ]
+    },
+    {
+      "started_at": "2026-11-23T20:12:17Z",
+      "finished_at": "2026-11-23T20:28:45Z",
+      "jobs": 3,
+      "tasks": [
+        "Textualize__textual-3334"
+      ]
+    },
+    {
+      "started_at": "2026-11-23T20:31:01Z",
+      "finished_at": "2026-11-23T20:34:47Z",
+      "jobs": 3,
+      "tasks": [
+        "fastscape-lem__fastscape-32"
+      ]
+    }
+  ]
+}

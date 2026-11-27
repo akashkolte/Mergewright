@@ -1,13 +1,14 @@
 """The workflow graph: a bounded Coder <-> Tester loop in LangGraph.
 
     START -> coder -> tools -> coder ...        (the model calls read/search/edit tools)
-             coder -> tester                   (the model says it is done)
+             tools -> tester                   (the model called finish)
+             coder -> tester                   (the model replied without a tool call)
              tester -> coder                   (tests fail, attempts left)
              tester -> END                     (DONE, or FAILED_NO_FIX)
-             coder -> END                      (FAILED_BUDGET or FAILED_ERROR)
+             coder -> END                      (FAILED_BUDGET, FAILED_INFRA or FAILED_ERROR)
 
-Later milestones run this graph inside one Temporal activity; Temporal then owns retries,
-crash recovery and the human approval gates. This module has no Temporal code.
+The node bodies are plain functions that take their deps as an argument, so a durable runtime
+(spec Section 4.2) can reuse them. This module has no Temporal code.
 """
 
 from __future__ import annotations
@@ -20,12 +21,31 @@ from typing import Any, Literal, TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from mergewright.config import Limits
-from mergewright.llm import LLMClient, LLMError
+from mergewright.llm import LLMClient, LLMError, LLMUnavailable
 from mergewright.prompts import CODER_SYSTEM_PROMPT, issue_message, test_failure_message
 from mergewright.runlog import RunLog
-from mergewright.tools import CODER_TOOLS, TOOLS, Workspace, execute, run_tests
+from mergewright.sandbox import Sandbox
+from mergewright.tools import (
+    CODER_TOOLS,
+    DEFAULT_TEST_COMMAND,
+    TOOLS,
+    Workspace,
+    confirm_failures,
+    execute,
+    gate,
+    run_tests,
+    run_tests_for_coder,
+)
 
-Status = Literal["RUNNING", "DONE", "FAILED_NO_FIX", "FAILED_BUDGET", "FAILED_ERROR"]
+Status = Literal[
+    "RUNNING",
+    "DONE",
+    "FAILED_NO_FIX",
+    "FAILED_BUDGET",
+    "FAILED_INFRA",
+    "FAILED_ERROR",
+    "FAILED_POLICY",
+]
 
 
 class AgentState(TypedDict):
@@ -41,10 +61,14 @@ class AgentDeps:
     """Everything the nodes need from outside. Injected, so tests can use fakes."""
 
     llm: LLMClient
-    workspace: Workspace
+    workspace: Workspace  # host side, for the file tools
     log: RunLog
+    sandbox: Sandbox  # where the workspace is mounted and the tests run
     limits: Limits = field(default_factory=Limits)
     clock: Callable[[], float] = time.monotonic
+    test_command: str = DEFAULT_TEST_COMMAND
+    # FAILED and ERROR ids at base: the gate ignores them, and the Coder sees them marked.
+    known_failing: frozenset[str] = frozenset()
 
 
 def initial_state(issue: str) -> AgentState:
@@ -60,98 +84,154 @@ def initial_state(issue: str) -> AgentState:
     }
 
 
-def build_graph(deps: AgentDeps):
-    """Build and compile the graph. The nodes close over deps."""
-    coder_schemas = [TOOLS[name].schema() for name in CODER_TOOLS]
-    started = deps.clock()
+# Node bodies. Each runtime wraps them: build_graph below runs them in-process, and a durable
+# runtime calls them from its own nodes. They take deps as an argument, so one graph can serve
+# many runs.
 
-    def coder(state: AgentState) -> dict[str, Any]:
-        if state["steps"] >= deps.limits.max_steps:
-            return {"status": "FAILED_BUDGET", "reason": f"step cap {deps.limits.max_steps}"}
-        if deps.clock() - started > deps.limits.wall_clock_s:
-            return {"status": "FAILED_BUDGET", "reason": f"wall clock {deps.limits.wall_clock_s}s"}
-        step = state["steps"] + 1
+
+def coder_step(state: AgentState, deps: AgentDeps, started: float) -> dict[str, Any]:
+    """One LLM call. started is the run's start time on deps.clock, for the wall-clock cap."""
+    if state["steps"] >= deps.limits.max_steps:
+        return {"status": "FAILED_BUDGET", "reason": f"step cap {deps.limits.max_steps}"}
+    if deps.clock() - started > deps.limits.wall_clock_s:
+        return {"status": "FAILED_BUDGET", "reason": f"wall clock {deps.limits.wall_clock_s}s"}
+    step = state["steps"] + 1
+    begin = deps.clock()
+    try:
+        response = deps.llm.complete(state["messages"], [TOOLS[n].schema() for n in CODER_TOOLS])
+    except LLMError as exc:
+        deps.log.event("llm_error", step=step, error=str(exc))
+        status = "FAILED_INFRA" if isinstance(exc, LLMUnavailable) else "FAILED_ERROR"
+        return {"status": status, "reason": str(exc), "steps": step}
+    deps.log.event(
+        "llm_call",
+        step=step,
+        model=deps.llm.model,
+        tool_calls=[call.name for call in response.tool_calls],
+        content=response.content,
+        prompt_tokens=response.prompt_tokens,
+        completion_tokens=response.completion_tokens,
+        seconds=round(deps.clock() - begin, 3),
+    )
+    return {"messages": [*state["messages"], response.as_message()], "steps": step}
+
+
+def tools_step(state: AgentState, deps: AgentDeps) -> dict[str, Any]:
+    """Run the tool calls in the last assistant message."""
+    results = []
+    for call in state["messages"][-1].get("tool_calls", []):
+        name, args = call["function"]["name"], call["function"]["arguments"]
         begin = deps.clock()
-        try:
-            response = deps.llm.complete(state["messages"], coder_schemas)
-        except LLMError as exc:
-            deps.log.event("llm_error", step=step, error=str(exc))
-            return {"status": "FAILED_ERROR", "reason": str(exc), "steps": step}
-        deps.log.event(
-            "llm_call",
-            step=step,
-            model=deps.llm.model,
-            tool_calls=[call.name for call in response.tool_calls],
-            content=response.content,
-            prompt_tokens=response.prompt_tokens,
-            completion_tokens=response.completion_tokens,
-            seconds=round(deps.clock() - begin, 3),
-        )
-        return {"messages": [*state["messages"], response.as_message()], "steps": step}
-
-    def tools(state: AgentState) -> dict[str, Any]:
-        results = []
-        for call in state["messages"][-1].get("tool_calls", []):
-            name, args = call["function"]["name"], call["function"]["arguments"]
-            begin = deps.clock()
-            result = execute(name, args, deps.workspace, CODER_TOOLS)
-            deps.log.event(
-                "tool_call",
-                agent="coder",
-                tool=name,
-                args=args,
-                ok=result.ok,
-                output=result.output,
-                seconds=round(deps.clock() - begin, 3),
+        if name == "run_tests":
+            result = run_tests_for_coder(
+                deps.sandbox,
+                deps.test_command,
+                args,
+                deps.limits.tool_timeout_s,
+                deps.known_failing,
             )
-            results.append({"role": "tool", "tool_call_id": call["id"], "content": result.output})
-        return {"messages": [*state["messages"], *results]}
-
-    def tester(state: AgentState) -> dict[str, Any]:
-        attempt = state["test_attempts"] + 1
-        begin = deps.clock()
-        report = run_tests(deps.workspace, timeout_s=deps.limits.tool_timeout_s)
+        else:
+            result = execute(name, args, deps.workspace, CODER_TOOLS)
+        # A command in the sandbox can copy the canary into a workspace file.
+        output, leaked = deps.sandbox.canary.redact(result.output)
         deps.log.event(
             "tool_call",
-            agent="tester",
-            tool="run_tests",
-            args="{}",
-            ok=report.passed,
-            output=report.log_tail,
+            agent="coder",
+            tool=name,
+            args=args,
+            ok=result.ok,
+            output=output,
+            canary_leaked=leaked,
             seconds=round(deps.clock() - begin, 3),
         )
-        deps.log.event("test_result", attempt=attempt, **asdict(report))
-        if report.passed:
-            return {"test_attempts": attempt, "status": "DONE", "reason": "all tests pass"}
-        if attempt >= deps.limits.max_test_attempts:
-            return {
-                "test_attempts": attempt,
-                "status": "FAILED_NO_FIX",
-                "reason": f"tests still fail after {attempt} attempts",
-            }
-        feedback = {
-            "role": "user",
-            "content": test_failure_message(report.failures, report.log_tail),
+        results.append({"role": "tool", "tool_call_id": call["id"], "content": output})
+    return {"messages": [*state["messages"], *results]}
+
+
+def tester_step(state: AgentState, deps: AgentDeps) -> dict[str, Any]:
+    """Run the test suite and decide: done, give up, or send the failures to the coder."""
+    attempt = state["test_attempts"] + 1
+    begin = deps.clock()
+    report = run_tests(deps.sandbox, deps.test_command, timeout_s=deps.limits.tool_timeout_s)
+    problems, flaky = confirm_failures(
+        deps.sandbox,
+        deps.test_command,
+        gate(report, deps.known_failing),
+        deps.limits.tool_timeout_s,
+    )
+    deps.log.event(
+        "tool_call",
+        agent="tester",
+        tool="run_tests",
+        args="{}",
+        ok=not problems,
+        output=report.log_tail,
+        seconds=round(deps.clock() - begin, 3),
+    )
+    deps.log.event("test_result", attempt=attempt, problems=problems, flaky=flaky, **asdict(report))
+    if not problems:
+        return {"test_attempts": attempt, "status": "DONE", "reason": "all tests pass"}
+    if attempt >= deps.limits.max_test_attempts:
+        return {
+            "test_attempts": attempt,
+            "status": "FAILED_NO_FIX",
+            "reason": f"tests still fail after {attempt} attempts",
         }
-        return {"test_attempts": attempt, "messages": [*state["messages"], feedback]}
+    feedback = {
+        "role": "user",
+        "content": test_failure_message(problems, report.log_tail),
+    }
+    return {"test_attempts": attempt, "messages": [*state["messages"], feedback]}
 
-    def after_coder(state: AgentState) -> str:
-        if state["status"] != "RUNNING":
-            return END
-        return "tools" if state["messages"][-1].get("tool_calls") else "tester"
 
-    def after_tester(state: AgentState) -> str:
-        return END if state["status"] != "RUNNING" else "coder"
+def next_after_coder(state: AgentState) -> str:
+    if state["status"] != "RUNNING":
+        return END
+    return "tools" if state["messages"][-1].get("tool_calls") else "tester"
 
+
+def next_after_tools(state: AgentState) -> str:
+    """To the tester when the assistant message whose calls just ran called finish."""
+    assistant = next(m for m in reversed(state["messages"]) if m["role"] == "assistant")
+    names = [call["function"]["name"] for call in assistant.get("tool_calls", [])]
+    return "tester" if "finish" in names else "coder"
+
+
+def next_after_tester(state: AgentState) -> str:
+    return END if state["status"] != "RUNNING" else "coder"
+
+
+def assemble_graph(
+    *,
+    coder: Callable[..., Any],
+    tools: Callable[..., Any],
+    tester: Callable[..., Any],
+    after_coder: Callable[..., Any],
+    after_tools: Callable[..., Any],
+    after_tester: Callable[..., Any],
+) -> StateGraph:
+    """The Coder <-> Tester topology, with the given node and edge functions. Not compiled."""
     graph = StateGraph(AgentState)
-    graph.add_node("coder", coder)
-    graph.add_node("tools", tools)
-    graph.add_node("tester", tester)
+    for name, node in (("coder", coder), ("tools", tools), ("tester", tester)):
+        graph.add_node(name, node)
     graph.add_edge(START, "coder")
     graph.add_conditional_edges("coder", after_coder, ["tools", "tester", END])
-    graph.add_edge("tools", "coder")
+    graph.add_conditional_edges("tools", after_tools, ["coder", "tester"])
     graph.add_conditional_edges("tester", after_tester, ["coder", END])
-    return graph.compile()
+    return graph
+
+
+def build_graph(deps: AgentDeps):
+    """Build and compile the in-process graph for one run."""
+    started = deps.clock()
+    return assemble_graph(
+        coder=lambda state: coder_step(state, deps, started),
+        tools=lambda state: tools_step(state, deps),
+        tester=lambda state: tester_step(state, deps),
+        after_coder=next_after_coder,
+        after_tools=next_after_tools,
+        after_tester=next_after_tester,
+    ).compile()
 
 
 def recursion_limit(limits: Limits) -> int:

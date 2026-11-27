@@ -1,0 +1,65 @@
+{
+  "eval_id": "20261123T171204Z-22495b",
+  "split": "dev",
+  "system": "base",
+  "runtime": "R0",
+  "k": 1,
+  "n": 1,
+  "seed": null,
+  "temperature": 0,
+  "model": {
+    "requested": "nvidia/nemotron-3-ultra-550b-a55b",
+    "served": [
+      "nvidia/nemotron-3-ultra-550b-a55b"
+    ]
+  },
+  "price": {
+    "input_per_mtok": 0.0,
+    "output_per_mtok": 0.0
+  },
+  "started_at": "2026-11-23T17:12:46Z",
+  "finished_at": "2026-11-23T17:16:48Z",
+  "git": {
+    "sha": "2c05dd362140be8edd4e403aecaf0b45e2c730bd",
+    "dirty": false
+  },
+  "versions": {
+    "python": "3.13.18",
+    "mergewright": "0.1.0",
+    "langgraph": "1.2.20",
+    "openai": "3.49.0",
+    "pydantic": "2.14.3"
+  },
+  "prompt_hash": "sha256:ce1f1c1011f1f836d21750318558ac4299dc595acecf666f18f9c010c1b70daa",
+  "caps": {
+    "max_steps": 25,
+    "max_test_attempts": 3,
+    "tool_timeout_s": 60.0,
+    "llm_timeout_s": 120.0,
+    "wall_clock_s": 1800.0
+  },
+  "tasks": {
+    "Sceptre__sceptre-1249": {
+      "image": "swerebench/sweb.eval.x86_64.sceptre_1776_sceptre-1249@sha256:d4966f2b7f9022d8a2ea40ba43f988dbcf3bae352d29617c1a3fd3482a6c86b3",
+      "image_id": "sha256:d4966f2b7f9022d8a2ea40ba43f988dbcf3bae352d29617c1a3fd3482a6c86b3",
+      "fingerprint": "sha256:54464b5f2ce9a65ff68b3ce81290b2cc28c04705c1212409f2671e901b4a1ec1",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    }
+  },
+  "invocations": [
+    {
+      "started_at": "2026-11-23T17:12:46Z",
+      "finished_at": "2026-11-23T17:16:48Z",
+      "jobs": 1,
+      "tasks": [
+        "Sceptre__sceptre-1249"
+      ]
+    }
+  ]
+}

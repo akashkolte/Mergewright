@@ -1,0 +1,105 @@
+{
+  "eval_id": "20261123T162131Z-fd542f",
+  "split": "dev",
+  "system": "base",
+  "runtime": "R0",
+  "k": 1,
+  "n": 1,
+  "seed": null,
+  "temperature": 0,
+  "model": {
+    "requested": "nvidia/nemotron-3-ultra-550b-a55b",
+    "served": [
+      "nvidia/nemotron-3-ultra-550b-a55b"
+    ]
+  },
+  "price": {
+    "input_per_mtok": 0.0,
+    "output_per_mtok": 0.0
+  },
+  "started_at": "2026-11-23T16:21:53Z",
+  "finished_at": "2026-11-23T16:43:39Z",
+  "git": {
+    "sha": "63ea9146d702ac7034a6abbed4448115488f4aa1",
+    "dirty": false
+  },
+  "versions": {
+    "python": "3.13.18",
+    "mergewright": "0.1.0",
+    "langgraph": "1.2.20",
+    "openai": "3.49.0",
+    "pydantic": "2.14.3"
+  },
+  "prompt_hash": "sha256:8f2f3c6da41bd7ad41cca7ac8b566a61a3305a8a1cc95e24083213e5af43fe70",
+  "caps": {
+    "max_steps": 25,
+    "max_test_attempts": 3,
+    "tool_timeout_s": 60.0,
+    "llm_timeout_s": 120.0,
+    "wall_clock_s": 1800.0
+  },
+  "tasks": {
+    "macbre__sql-metadata-127": {
+      "image": "swerebench/sweb.eval.x86_64.macbre_1776_sql-metadata-127@sha256:2979a7c7f0a90905356d97d4af0da68a344ba044a0f6476070ff363772bc12ba",
+      "image_id": "sha256:2979a7c7f0a90905356d97d4af0da68a344ba044a0f6476070ff363772bc12ba",
+      "fingerprint": "sha256:5da122e183c6f10f3942b15a3e95d3efbfa1c6b7f2dfae5901607913baa3d582",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "gouline__dbt-metabase-158": {
+      "image": "swerebench/sweb.eval.x86_64.gouline_1776_dbt-metabase-158@sha256:f6b02562c5526b4f8928b5f5b6507c5086526e6774adf09bad3a056d06be5b29",
+      "image_id": "sha256:f6b02562c5526b4f8928b5f5b6507c5086526e6774adf09bad3a056d06be5b29",
+      "fingerprint": "sha256:9e56a458a35e2cc3d25dc81b6b58cb14c74c196435e9e928a96a0108bc9243f2",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    },
+    "Sceptre__sceptre-1249": {
+      "image": "swerebench/sweb.eval.x86_64.sceptre_1776_sceptre-1249@sha256:d4966f2b7f9022d8a2ea40ba43f988dbcf3bae352d29617c1a3fd3482a6c86b3",
+      "image_id": "sha256:d4966f2b7f9022d8a2ea40ba43f988dbcf3bae352d29617c1a3fd3482a6c86b3",
+      "fingerprint": "sha256:118f3288129834f5e7edaf03938ddde4210acfac8557aae731003995b4156e22",
+      "resources": {
+        "cpus": 2.0,
+        "mem_floor_mb": 1024,
+        "mem_ceiling_mb": 4096,
+        "pids": 512
+      },
+      "timeout_s": 1800
+    }
+  },
+  "invocations": [
+    {
+      "started_at": "2026-11-23T16:21:53Z",
+      "finished_at": "2026-11-23T16:33:33Z",
+      "jobs": 1,
+      "tasks": [
+        "macbre__sql-metadata-127"
+      ]
+    },
+    {
+      "started_at": "2026-11-23T16:34:42Z",
+      "finished_at": "2026-11-23T16:40:41Z",
+      "jobs": 1,
+      "tasks": [
+        "gouline__dbt-metabase-158"
+      ]
+    },
+    {
+      "started_at": "2026-11-23T16:42:02Z",
+      "finished_at": "2026-11-23T16:43:39Z",
+      "jobs": 1,
+      "tasks": [
+        "Sceptre__sceptre-1249"
+      ]
+    }
+  ]
+}

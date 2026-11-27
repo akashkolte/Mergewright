@@ -1,0 +1,34 @@
+{
+  "id": "pypa__hatch-377",
+  "source": "swe-rebench",
+  "split": "dev",
+  "repo": "pypa/hatch",
+  "base_sha": "3f45eb3a7a1c9dbb32a0a405574d1eab052813b4",
+  "image": "swerebench/sweb.eval.x86_64.pypa_1776_hatch-377@sha256:aac600de3c7ea489ad52a372a336bad9ed85b700f3f15103edea296b59c5e80a",
+  "repo_dir": "/testbed",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "tests/cli/env/test_show.py::test_optional_columns"
+  ],
+  "p2p": [
+    "tests/cli/env/test_show.py::test_default",
+    "tests/cli/env/test_show.py::test_default_as_json",
+    "tests/cli/env/test_show.py::test_single_only",
+    "tests/cli/env/test_show.py::test_single_and_matrix",
+    "tests/cli/env/test_show.py::test_default_matrix_only",
+    "tests/cli/env/test_show.py::test_all_matrix_types_with_single",
+    "tests/cli/env/test_show.py::test_specific",
+    "tests/cli/env/test_show.py::test_specific_unknown"
+  ],
+  "test_cmd": "source /opt/conda/etc/profile.d/conda.sh && conda activate testbed && pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2022-07-28T00:26:24Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 1800
+}

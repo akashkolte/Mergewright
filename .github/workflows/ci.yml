@@ -1,0 +1,50 @@
+# Phase 1 step 15 (docs/plans/phase-1.md): lint, tests (unit, Docker guard and replay smoke
+# suite) and the validation-record checks. No model, no key and no task image is needed:
+# tests that need a SWE-rebench image skip, and the smoke tasks run in mergewright-python:1.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: |
+          ruff format --check .
+          ruff check .
+
+      - name: Build the sandbox image
+        run: docker build -t mergewright-python:1 docker/python
+
+      - name: Tests (unit, Docker guards, replay smoke suite)
+        run: pytest -q
+
+      - name: Smoke validation records are valid and current
+        run: mergewright tasks list --split smoke --check
+
+      - name: Dev validation records (warning only)
+        run: |
+          if ! mergewright tasks list --split dev --check; then
+            echo "::warning::Dev validation records are stale or invalid. Re-validate them in a cloud session (mergewright tasks validate --stale) before the next measured run."
+          fi

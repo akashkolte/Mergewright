@@ -1,0 +1,44 @@
+diff --git a/CHANGELOG.rst b/CHANGELOG.rst
+index 5661cad..f597cf1 100644
+--- a/CHANGELOG.rst
++++ b/CHANGELOG.rst
+@@ -8,6 +8,8 @@ Features:
+ 
+ - Don't force ``sort_keys=True`` in ``_generate_etag`` to respect
+   ``JSON_SORT_KEYS`` app setting (:pr:`305`).
++- Don't document a payload in responses for status codes that cannot have one
++  (1xx, 204 and 304) (:issue:`309`).
+ 
+ Other changes:
+ 
+diff --git a/flask_smorest/spec/__init__.py b/flask_smorest/spec/__init__.py
+index d78332d..d1e5463 100644
+--- a/flask_smorest/spec/__init__.py
++++ b/flask_smorest/spec/__init__.py
+@@ -142,6 +142,10 @@ class APISpecMixin(DocBlueprintMixin):
+ 
+     DEFAULT_ERROR_RESPONSE_NAME = "DEFAULT_ERROR"
+ 
++    # Status codes with no payload
++    # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.3
++    RESPONSES_WITHOUT_PAYLOAD = (*range(100, 200), 204, 304)
++
+     def _init_spec(
+         self,
+         *,
+@@ -305,10 +309,11 @@ class APISpecMixin(DocBlueprintMixin):
+         """Lazyly register default responses for all status codes"""
+         # Lazy register a response for each status code
+         for status in http.HTTPStatus:
+-            response = {
+-                "description": status.phrase,
+-                "schema": self.ERROR_SCHEMA,
+-            }
++            response = {"description": status.phrase}
++            # Only document a payload for status codes that can have one
++            # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.3
++            if status.value not in self.RESPONSES_WITHOUT_PAYLOAD:
++                response["schema"] = self.ERROR_SCHEMA
+             prepare_response(response, self.spec, DEFAULT_RESPONSE_CONTENT_TYPE)
+             self.spec.components.response(status.name, response, lazy=True)
+ 

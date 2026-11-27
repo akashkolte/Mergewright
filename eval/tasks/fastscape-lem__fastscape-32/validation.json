@@ -1,0 +1,133 @@
+{
+  "task": "fastscape-lem__fastscape-32",
+  "valid": false,
+  "problems": [
+    "run 1, empty patch: P2P fastscape/tests/test_processes_grid.py::test_raster_grid_2d is missing, expected PASSED",
+    "run 1, gold patch: fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d is missing, expected PASSED",
+    "run 1, gold patch: fastscape/tests/test_processes_grid.py::test_raster_grid_2d is missing, expected PASSED",
+    "run 2, empty patch: P2P fastscape/tests/test_processes_grid.py::test_raster_grid_2d is missing, expected PASSED",
+    "run 2, gold patch: fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d is missing, expected PASSED",
+    "run 2, gold patch: fastscape/tests/test_processes_grid.py::test_raster_grid_2d is missing, expected PASSED",
+    "run 3, empty patch: P2P fastscape/tests/test_processes_grid.py::test_raster_grid_2d is missing, expected PASSED",
+    "run 3, gold patch: fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d is missing, expected PASSED",
+    "run 3, gold patch: fastscape/tests/test_processes_grid.py::test_raster_grid_2d is missing, expected PASSED"
+  ],
+  "flaky": [],
+  "image": "swerebench/sweb.eval.x86_64.fastscape-lem_1776_fastscape-32@sha256:1498ca0b497eaa51b010d5b482a54af3ad5f6ef7553aeb938a905347d28e8b07",
+  "fingerprint": "sha256:ff77149e271bccdf416c45bc083a7151bdeee48f0ab7e71067aa60111f6cccb4",
+  "validated_at": "2026-11-24T23:39:48Z",
+  "seconds": 48.29,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d": "missing",
+          "fastscape/tests/test_processes_grid.py::test_raster_grid_2d": "missing"
+        },
+        "f2p_failing": [
+          "fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d"
+        ],
+        "p2p_failing": [
+          "fastscape/tests/test_processes_grid.py::test_raster_grid_2d"
+        ],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 10.18
+      },
+      "gold": {
+        "resolved": false,
+        "tests": {
+          "fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d": "missing",
+          "fastscape/tests/test_processes_grid.py::test_raster_grid_2d": "missing"
+        },
+        "f2p_failing": [
+          "fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d"
+        ],
+        "p2p_failing": [
+          "fastscape/tests/test_processes_grid.py::test_raster_grid_2d"
+        ],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.77
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d": "missing",
+          "fastscape/tests/test_processes_grid.py::test_raster_grid_2d": "missing"
+        },
+        "f2p_failing": [
+          "fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d"
+        ],
+        "p2p_failing": [
+          "fastscape/tests/test_processes_grid.py::test_raster_grid_2d"
+        ],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.7
+      },
+      "gold": {
+        "resolved": false,
+        "tests": {
+          "fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d": "missing",
+          "fastscape/tests/test_processes_grid.py::test_raster_grid_2d": "missing"
+        },
+        "f2p_failing": [
+          "fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d"
+        ],
+        "p2p_failing": [
+          "fastscape/tests/test_processes_grid.py::test_raster_grid_2d"
+        ],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.69
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d": "missing",
+          "fastscape/tests/test_processes_grid.py::test_raster_grid_2d": "missing"
+        },
+        "f2p_failing": [
+          "fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d"
+        ],
+        "p2p_failing": [
+          "fastscape/tests/test_processes_grid.py::test_raster_grid_2d"
+        ],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.63
+      },
+      "gold": {
+        "resolved": false,
+        "tests": {
+          "fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d": "missing",
+          "fastscape/tests/test_processes_grid.py::test_raster_grid_2d": "missing"
+        },
+        "f2p_failing": [
+          "fastscape/tests/test_processes_grid.py::test_uniform_rectilinear_grid_2d"
+        ],
+        "p2p_failing": [
+          "fastscape/tests/test_processes_grid.py::test_raster_grid_2d"
+        ],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.32
+      }
+    }
+  ]
+}

@@ -1,0 +1,196 @@
+diff --git a/src/sqlfluff/cli/commands.py b/src/sqlfluff/cli/commands.py
+index b7116e527..6719d2350 100644
+--- a/src/sqlfluff/cli/commands.py
++++ b/src/sqlfluff/cli/commands.py
+@@ -182,6 +182,16 @@ def core_options(f):
+         type=click.Choice(["parser", "linter", "rules"], case_sensitive=False),
+         help="Choose to limit the logging to one of the loggers.",
+     )(f)
++    f = click.option(
++        "--extension",
++        default=None,
++        help=(
++            "The file extension(s) of the SQL files to lint. Multiple extensions "
++            "can be specified with commas e.g. `--extension .sql,.sql.j2`. "
++            "This can also be configured in the config file with the "
++            "`sql_file_exts` config value."
++        ),
++    )(f)
+     return f
+ 
+ 
+@@ -196,6 +206,9 @@ def get_config(**kwargs):
+             sys.exit(66)
+     # Instantiate a config object (filtering out the nulls)
+     overrides = {k: kwargs[k] for k in kwargs if kwargs[k] is not None}
++    # The `extension` cli option maps to the `sql_file_exts` config value.
++    if "extension" in overrides:
++        overrides["sql_file_exts"] = overrides.pop("extension")
+     return FluffConfig.from_root(overrides=overrides)
+ 
+ 
+diff --git a/src/sqlfluff/core/default_config.cfg b/src/sqlfluff/core/default_config.cfg
+index 04d3bef42..c0c724d7c 100644
+--- a/src/sqlfluff/core/default_config.cfg
++++ b/src/sqlfluff/core/default_config.cfg
+@@ -1,65 +1,67 @@
+-[sqlfluff]
+-verbose = 0
+-nocolor = False
+-dialect = ansi
+-templater = jinja
+-rules = None
+-exclude_rules = None
+-recurse = 0
+-output_line_length = 80
+-runaway_limit = 10
+-ignore_templated_areas = True
+-
+-[sqlfluff:indentation]
+-indented_joins = False
+-template_blocks_indent = True
+-
+-[sqlfluff:templater]
+-unwrap_wrapped_queries = True
+-
+-[sqlfluff:templater:jinja]
+-apply_dbt_builtins = True
+-
+-[sqlfluff:templater:jinja:macros]
+-# Macros provided as builtins for dbt projects
+-dbt_ref = {% macro ref(model_ref) %}{{model_ref}}{% endmacro %}
+-dbt_source = {% macro source(source_name, table) %}{{source_name}}_{{table}}{% endmacro %}
+-dbt_config = {% macro config() %}{% for k in kwargs %}{% endfor %}{% endmacro %}
+-dbt_var = {% macro var(variable) %}item{% endmacro %}
+-dbt_is_incremental = {% macro is_incremental() %}True{% endmacro %}
+-
+-# Some rules can be configured directly from the config common to other rules.
+-[sqlfluff:rules]
+-tab_space_size = 4
+-max_line_length = 80
+-indent_unit = space
+-comma_style = trailing
+-allow_scalar = True
+-single_table_references = consistent
+-only_aliases = True
+-
+-# Some rules have their own specific config.
+-[sqlfluff:rules:L003]
+-lint_templated_tokens = True
+-
+-[sqlfluff:rules:L010]  # Keywords
+-capitalisation_policy = consistent
+-
+-[sqlfluff:rules:L014]  # Unquoted identifiers
+-capitalisation_policy = consistent
+-
+-[sqlfluff:rules:L016]
+-ignore_comment_lines = False
+-
+-[sqlfluff:rules:L030]  # Function names
+-capitalisation_policy = consistent
+-
+-[sqlfluff:rules:L038]
+-select_clause_trailing_comma = forbid
+-
+-[sqlfluff:rules:L040]  # Null & Boolean Literals
+-capitalisation_policy = consistent
+-
+-[sqlfluff:rules:L042]
+-# By default, allow subqueries in from clauses, but not join clauses.
+-forbid_subquery_in = join
++[sqlfluff]
++verbose = 0
++nocolor = False
++dialect = ansi
++templater = jinja
++rules = None
++exclude_rules = None
++recurse = 0
++output_line_length = 80
++runaway_limit = 10
++ignore_templated_areas = True
++# Config to control which file extensions are considered sql files
++sql_file_exts = .sql
++
++[sqlfluff:indentation]
++indented_joins = False
++template_blocks_indent = True
++
++[sqlfluff:templater]
++unwrap_wrapped_queries = True
++
++[sqlfluff:templater:jinja]
++apply_dbt_builtins = True
++
++[sqlfluff:templater:jinja:macros]
++# Macros provided as builtins for dbt projects
++dbt_ref = {% macro ref(model_ref) %}{{model_ref}}{% endmacro %}
++dbt_source = {% macro source(source_name, table) %}{{source_name}}_{{table}}{% endmacro %}
++dbt_config = {% macro config() %}{% for k in kwargs %}{% endfor %}{% endmacro %}
++dbt_var = {% macro var(variable) %}item{% endmacro %}
++dbt_is_incremental = {% macro is_incremental() %}True{% endmacro %}
++
++# Some rules can be configured directly from the config common to other rules.
++[sqlfluff:rules]
++tab_space_size = 4
++max_line_length = 80
++indent_unit = space
++comma_style = trailing
++allow_scalar = True
++single_table_references = consistent
++only_aliases = True
++
++# Some rules have their own specific config.
++[sqlfluff:rules:L003]
++lint_templated_tokens = True
++
++[sqlfluff:rules:L010]  # Keywords
++capitalisation_policy = consistent
++
++[sqlfluff:rules:L014]  # Unquoted identifiers
++capitalisation_policy = consistent
++
++[sqlfluff:rules:L016]
++ignore_comment_lines = False
++
++[sqlfluff:rules:L030]  # Function names
++capitalisation_policy = consistent
++
++[sqlfluff:rules:L038]
++select_clause_trailing_comma = forbid
++
++[sqlfluff:rules:L040]  # Null & Boolean Literals
++capitalisation_policy = consistent
++
++[sqlfluff:rules:L042]
++# By default, allow subqueries in from clauses, but not join clauses.
++forbid_subquery_in = join
+diff --git a/src/sqlfluff/core/linter.py b/src/sqlfluff/core/linter.py
+index 0dacdd0da..35c24b3db 100644
+--- a/src/sqlfluff/core/linter.py
++++ b/src/sqlfluff/core/linter.py
+@@ -729,6 +729,13 @@ class Linter:
+         self.formatter = formatter
+         # Store references to user rule classes
+         self.user_rules = user_rules or []
++        # Store the configured file extensions, if any are configured
++        # they take precedence over the sql_exts argument.
++        configured_exts = self.config.get("sql_file_exts")
++        if configured_exts:
++            self.sql_exts = tuple(
++                ext.strip() for ext in configured_exts.split(",") if ext.strip()
++            )
+ 
+     def get_ruleset(self, config: Optional[FluffConfig] = None) -> List[BaseCrawler]:
+         """Get hold of a set of rules."""
+@@ -1197,6 +1204,9 @@ class Linter:
+                     # is it a sql file?
+                     if fname.endswith(ext):
+                         buffer.append(fpath)
++                        # We don't want to add the same file twice
++                        # if it matches more than one of our extensions.
++                        break
+ 
+         if not ignore_files:
+             return sorted(buffer)

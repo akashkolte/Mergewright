@@ -1,0 +1,99 @@
+{
+  "task": "tobymao__sqlglot-555",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "swerebench/sweb.eval.x86_64.tobymao_1776_sqlglot-555@sha256:86cdcca3fc27fb5e82bfd4f8e7791e2bebec4bf9f217681d80713abd21fbe4fb",
+  "fingerprint": "sha256:c61dec50af3078743be06aa2286334b5c67e4d5496b691276d7b17075c456b7e",
+  "validated_at": "2026-11-25T02:59:03Z",
+  "seconds": 45.25,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/dialects/test_clickhouse.py::TestClickhouse::test_clickhouse": "FAILED"
+        },
+        "f2p_failing": [
+          "tests/dialects/test_clickhouse.py::TestClickhouse::test_clickhouse"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.84
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/dialects/test_clickhouse.py::TestClickhouse::test_clickhouse": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.48
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/dialects/test_clickhouse.py::TestClickhouse::test_clickhouse": "FAILED"
+        },
+        "f2p_failing": [
+          "tests/dialects/test_clickhouse.py::TestClickhouse::test_clickhouse"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.15
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/dialects/test_clickhouse.py::TestClickhouse::test_clickhouse": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.66
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/dialects/test_clickhouse.py::TestClickhouse::test_clickhouse": "FAILED"
+        },
+        "f2p_failing": [
+          "tests/dialects/test_clickhouse.py::TestClickhouse::test_clickhouse"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.58
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/dialects/test_clickhouse.py::TestClickhouse::test_clickhouse": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.54
+      }
+    }
+  ]
+}

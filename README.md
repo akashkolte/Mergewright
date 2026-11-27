@@ -2,14 +2,15 @@
 
 Mergewright is a bounded coding agent. It reads a bug report for a Python repository, finds and edits the code with its tools, and proves the fix by running the repository's pytest suite. It is the CSE 510 (Fall 2026) final project.
 
-The long-term design (a durable issue-to-pull-request service) is in [docs/proposal.md](docs/proposal.md) and [docs/architecture.md](docs/architecture.md). This milestone's plan is in [docs/checkpoint.md](docs/checkpoint.md).
+The design of the full system (a durable issue-to-pull-request service), its evaluation plan and its milestones are in [docs/mergewright-spec.md](docs/mergewright-spec.md).
 
 ## Requirements
 
 - Python 3.11 or later
 - git
+- Docker, running: the repository's tests always run in a sandbox container
 
-The quick start needs no API key and no network access after `pip install`.
+The quick start needs no API key and no network access after setup.
 
 ## Setup
 
@@ -19,6 +20,7 @@ cd Mergewright
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
+docker build -t mergewright-python:1 docker/python   # the default sandbox image
 ```
 
 Run every command below from the repository root, with the virtual environment active.
@@ -85,20 +87,26 @@ To save the live responses so the same run can be replayed later, add `--record 
 mergewright run --llm live --repo path/to/repo --issue path/to/issue.md
 ```
 
+## Eval tasks
+
+Tasks live in `eval/tasks/<id>/` (`task.json`, the issue, the reference fix and the hidden tests). The splits and their frozen selection rules are in `eval/PLAN.md`: 5 local smoke tasks with recorded model responses, and 20 dev tasks from SWE-rebench. List the dev candidates in rule order, import one, check it, and list what you have:
+
+```bash
+mergewright tasks select --count 25
+mergewright tasks import <instance-id> --split dev
+mergewright tasks validate
+mergewright tasks list
+```
+
+`validate` runs the task 3 times without and with the reference fix, in fresh sandboxes from the task's image (pinned by digest), and writes `validation.json`. A task is usable only if its fail-to-pass tests fail without the fix, everything passes with it, and no result changes between runs. SWE-rebench images are x86; on Apple Silicon they run under emulation.
+
 ## Run the tests
 
 ```bash
 pytest
 ```
 
-Expected: `54 passed`. The tests are deterministic and make no network or model calls: they use a scripted model and temporary copies of the demo repository. The demo repository's own test, which fails on purpose, is not part of this run.
-
-| File | What it tests |
-|---|---|
-| [tests/test_tools.py](tests/test_tools.py) | Each tool, its error cases, the path guard, the edit protections and the tool registry |
-| [tests/test_graph.py](tests/test_graph.py) | The graph: fix path, test-failure loop, step and wall-clock caps, bad tool calls, model failure |
-| [tests/test_cli.py](tests/test_cli.py) | The command line, end to end in replay mode |
-| [tests/test_config_and_llm.py](tests/test_config_and_llm.py) | Settings, the live model client (with a fake OpenAI client), error handling, record and replay |
+The tests marked `docker` (sandbox guards and the end-to-end runs) need Docker, the `mergewright-python:1` image and the spectree-64 fixture image; without them they are skipped. `pytest -m "not docker"` runs the others with a fake sandbox. The tests are deterministic and make no network or model calls. The demo repository's own test, which fails on purpose, is not part of this run.
 
 ## Workflow graph
 
@@ -112,8 +120,9 @@ mergewright graph
 flowchart LR
     START([START]) --> coder
     coder -->|tool calls| tools
-    tools --> coder
-    coder -->|final answer| tester
+    tools -->|other tools| coder
+    tools -->|finish| tester
+    coder -->|answer without tool calls| tester
     tester -->|tests fail, attempts left| coder
     tester -->|all tests pass: DONE| END([END])
     tester -->|attempts used: FAILED_NO_FIX| END
@@ -122,24 +131,27 @@ flowchart LR
 
 | Node | What it does |
 |---|---|
-| `coder` | Sends the issue, the history and any test failures to the model, with the schemas of the three Coder tools |
+| `coder` | Sends the issue, the history and any test failures to the model, with the schemas of the Coder tools |
 | `tools` | Validates and runs the tool calls the model asked for; any error goes back to the model as the tool's result |
-| `tester` | Runs the test suite with `run_tests` and decides: done, retry, or give up |
+| `tester` | The gate: runs the full test suite and decides: done, retry, or give up |
 
 ## Tools
 
-| Tool | Used by | What it does | Limits |
-|---|---|---|---|
-| `search_code` | Coder (model) | Regex search over the repository | 50 hits; invalid regex is an error result |
-| `read_file` | Coder (model) | Reads a line range with line numbers | 400 lines, 200 KB; path must stay inside the workspace |
-| `edit_file` | Coder (model) | Replaces one exact occurrence of a text | Test files, `conftest.py`, `.git` and `.github` are protected |
-| `run_tests` | Tester node | Runs `pytest` and returns a structured report | 60 s timeout; the subprocess gets no API keys or other secrets |
+All five tools belong to the Coder (the model). A call to any other tool is refused by code, not by the prompt.
 
-The model is offered only the three Coder tools. A call to any other tool is refused by code, not by the prompt.
+| Tool | What it does | Limits |
+|---|---|---|
+| `search_code` | Regex search over the repository | 50 hits; invalid regex is an error result |
+| `read_file` | Reads a line range with line numbers | 400 lines, 200 KB; path must stay inside the workspace |
+| `edit_file` | Replaces one exact occurrence of a text | Test files, `conftest.py`, pytest config (`pytest.ini`, `pyproject.toml`, `setup.cfg`, `tox.ini`), `.git` and `.github` are protected |
+| `run_tests` | Runs chosen existing tests (by id) in the sandbox and returns a structured report | Ids that start with `-` are refused; same timeout and sandbox limits as the gate |
+| `finish` | Ends the Coder's turn; the graph goes to the tester | None |
+
+The tester runs the full suite in the sandbox (no network, non-root, resource limits, no host environment). Tests known to fail at the task's base commit do not block `DONE`. A new failure is re-run alone once; only a repeat failure blocks.
 
 ## Run limits
 
-Set in `Limits` in [src/mergewright/config.py](src/mergewright/config.py): 25 model calls, 3 test runs, 60 s per test run, 120 s per model call, 5 minutes per run. A run that hits a limit ends with `FAILED_BUDGET` or `FAILED_NO_FIX`. The exit code is 0 for `DONE`, 1 for a failed run and 2 for a configuration error.
+Set in `Limits` in [src/mergewright/config.py](src/mergewright/config.py): 50 model calls, 3 gate test runs, 15 minutes per test run, 120 s per model call, 90 minutes per run (a safety stop; the step limit should end a run first). A run that hits a limit ends with `FAILED_BUDGET` or `FAILED_NO_FIX`. The exit code is 0 for `DONE`, 1 for a failed run and 2 for a configuration error.
 
 ## Run log
 
@@ -149,15 +161,20 @@ Each run writes `runs/<run_id>/run.jsonl`, one JSON object per line. Events: `ru
 
 | Path | Contents |
 |---|---|
-| `src/mergewright/` | The agent: `graph.py` (workflow graph), `tools.py`, `llm.py`, `prompts.py`, `runner.py`, `runlog.py`, `config.py`, `__main__.py` (command line) |
-| `tests/` | The project's tests |
-| `examples/buggy_calc/` | Demo repository with one bug and its pytest suite |
-| `examples/inputs/` | Demo issue text and the replay file |
-| `docs/` | Proposal, architecture, checkpoint plan |
+| `src/mergewright/` | The agent (`graph.py`, `tools.py`, `llm.py`, `prompts.py`, `runner.py`), the sandbox (`sandbox/`, `environments.py`), tasks and oracle (`tasks.py`, `oracle.py`, `selection.py`), evaluation and reports (`evaluation.py`, `report.py`, `stats.py`) and the command line (`__main__.py`) |
+| `tests/` | The project's tests; shared fakes and fixtures in `tests/fakes.py` |
+| `eval/` | Tasks (`eval/tasks/`) and the eval plan (`eval/PLAN.md`) |
+| `results/` | Committed eval results cited in the plans |
+| `docker/`, `scripts/` | The sandbox image and the cloud setup and eval scripts |
+| `examples/` | Demo repository with one bug, its issue text and the replay file |
+| `docs/` | Specification, agenda, phase plans and spike results |
 | `presentation/` | Proposal slide deck and the script that builds it |
+
+The current build state is in [CLAUDE.md](CLAUDE.md) ("Current state").
 
 ## Limitations
 
-- `run_tests` runs `pytest` as a local subprocess in the run's workspace, with a reduced environment and a timeout. That is not isolation. Run the agent only on repositories you trust. Later milestones move execution into E2B sandboxes.
+- Tests run in a Docker container with no network, a non-root user and resource limits, but containers share the host kernel; gVisor comes later (spec Phase 7). The file tools read and edit the workspace on the host.
+- `mergewright run` decides `DONE` with the repository's own tests, which the agent can read. `mergewright eval` grades with the hidden-test oracle.
 - The bundled replay file was written by hand to match the demo input. Record your own with `--record` from a live run.
-- This milestone has one agent (the Coder) and a test loop. The Planner and Reviewer agents, Temporal, the approval gates and GitHub integration come in later milestones.
+- One agent (the Coder) and a test loop. Temporal, the approval gate and GitHub integration come in later phases (`docs/agenda.md`).

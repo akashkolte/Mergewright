@@ -1,0 +1,33 @@
+diff --git a/publish/test-results.json b/publish/test-results.json
+index 817dff60..4d484a28 100644
+--- a/publish/test-results.json
++++ b/publish/test-results.json
+@@ -1631,7 +1631,7 @@
+             "totalTests": 110,
+             "failedTests": 0,
+             "errorTests": 0,
+-            "skippedTests": 2,
++            "skippedTests": 0,
+             "elapsedTimeInMilliseconds": 0
+         },
+         {
+diff --git a/test/test_markdown_extra.py b/test/test_markdown_extra.py
+index 59af7bec..2cefe6fc 100644
+--- a/test/test_markdown_extra.py
++++ b/test/test_markdown_extra.py
+@@ -4572,7 +4572,6 @@ def test_extra_033a():
+ 
+ 
+ @pytest.mark.gfm
+-@pytest.mark.skip
+ def test_extra_034d():
+     """
+     TBD - from https://github.com/jackdewinter/pymarkdown/issues/731
+@@ -4609,7 +4608,6 @@ block
+ 
+ 
+ @pytest.mark.gfm
+-@pytest.mark.skip
+ def test_extra_034e():
+     """
+     TBD - from https://github.com/jackdewinter/pymarkdown/issues/731

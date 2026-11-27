@@ -1,0 +1,20 @@
+diff --git a/ariadne/validation/query_cost.py b/ariadne/validation/query_cost.py
+index 4e74c74..613dccb 100644
+--- a/ariadne/validation/query_cost.py
++++ b/ariadne/validation/query_cost.py
+@@ -280,13 +280,13 @@ class CostValidator(ValidationRule):
+         for accessor in accessors:
+             val = field_args
+             for key in accessor:
+-                val = val.get(key)
++                val = val.get(key) if isinstance(val, dict) else 0
+             multipliers.append(val)
+         multipliers = [
+             len(multiplier) if isinstance(multiplier, (list, tuple)) else multiplier
+             for multiplier in multipliers
+         ]
+-        return [m for m in multipliers if m != 0]
++        return [m for m in multipliers if m > 0]
+ 
+     def get_cost_exceeded_error(self) -> GraphQLError:
+         return GraphQLError(

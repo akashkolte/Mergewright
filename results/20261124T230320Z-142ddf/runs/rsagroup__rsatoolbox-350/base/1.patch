@@ -1,0 +1,12 @@
+diff --git a/src/rsatoolbox/rdm/rdms.py b/src/rsatoolbox/rdm/rdms.py
+index 655ad3d7..b3d78b50 100644
+--- a/src/rsatoolbox/rdm/rdms.py
++++ b/src/rsatoolbox/rdm/rdms.py
+@@ -571,6 +571,7 @@ def concat(*rdms):
+         ], axis=0)
+     rdm = RDMs(
+         dissimilarities=dissimilarities,
++        dissimilarity_measure=rdms_list[0].dissimilarity_measure,
+         rdm_descriptors=rdm_descriptors,
+         descriptors=rdms_list[0].descriptors,
+         pattern_descriptors=rdms_list[0].pattern_descriptors

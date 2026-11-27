@@ -1,0 +1,33 @@
+{
+  "id": "reata__sqllineage-369",
+  "source": "swe-rebench",
+  "split": "dev",
+  "repo": "reata/sqllineage",
+  "base_sha": "c6a470135a4a2633b0f217ab147efebd727e9f75",
+  "image": "swerebench/sweb.eval.x86_64.reata_1776_sqllineage-369@sha256:549ffd6efa489c88954fa0a75a14084ac5deb486bc7afb0f8f5db8f46f230d19",
+  "repo_dir": "/testbed",
+  "issue": "issue.md",
+  "gold_patch": "gold.patch",
+  "test_patch": "test.patch",
+  "f2p": [
+    "tests/test_cte.py::test_with_insert_in_query"
+  ],
+  "p2p": [
+    "tests/test_cte.py::test_with_select",
+    "tests/test_cte.py::test_with_select_one",
+    "tests/test_cte.py::test_with_select_many",
+    "tests/test_cte.py::test_with_select_many_reference",
+    "tests/test_cte.py::test_with_select_using_alias",
+    "tests/test_cte.py::test_with_select_join_table_with_same_name",
+    "tests/test_cte.py::test_with_insert"
+  ],
+  "test_cmd": "source /opt/conda/etc/profile.d/conda.sh && conda activate testbed && pytest --no-header -rA --tb=line --color=no -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors",
+  "env": {},
+  "created_at": "2023-05-13T12:23:59Z",
+  "resources": {
+    "cpus": 2.0,
+    "mem_floor_mb": 1024,
+    "mem_ceiling_mb": 4096
+  },
+  "timeout_s": 1800
+}

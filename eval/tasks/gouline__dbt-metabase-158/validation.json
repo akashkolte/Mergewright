@@ -1,0 +1,105 @@
+{
+  "task": "gouline__dbt-metabase-158",
+  "valid": true,
+  "problems": [],
+  "flaky": [],
+  "image": "swerebench/sweb.eval.x86_64.gouline_1776_dbt-metabase-158@sha256:f6b02562c5526b4f8928b5f5b6507c5086526e6774adf09bad3a056d06be5b29",
+  "fingerprint": "sha256:ad6c6a4e71e53f53ee0d023cbbf3fa0a6e57514ac102cc1a61a4a00e43948d4a",
+  "validated_at": "2026-11-24T22:43:57Z",
+  "seconds": 45.35,
+  "runs": [
+    {
+      "run": 1,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_dbt_parsers.py::TestDbtManifestReader::test_read_models": "FAILED",
+          "tests/test_dbt_parsers.py::TestDbtFolderReader::test_read_models": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_dbt_parsers.py::TestDbtManifestReader::test_read_models"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 8.67
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_dbt_parsers.py::TestDbtManifestReader::test_read_models": "PASSED",
+          "tests/test_dbt_parsers.py::TestDbtFolderReader::test_read_models": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.41
+      }
+    },
+    {
+      "run": 2,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_dbt_parsers.py::TestDbtManifestReader::test_read_models": "FAILED",
+          "tests/test_dbt_parsers.py::TestDbtFolderReader::test_read_models": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_dbt_parsers.py::TestDbtManifestReader::test_read_models"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.32
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_dbt_parsers.py::TestDbtManifestReader::test_read_models": "PASSED",
+          "tests/test_dbt_parsers.py::TestDbtFolderReader::test_read_models": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.31
+      }
+    },
+    {
+      "run": 3,
+      "empty": {
+        "resolved": false,
+        "tests": {
+          "tests/test_dbt_parsers.py::TestDbtManifestReader::test_read_models": "FAILED",
+          "tests/test_dbt_parsers.py::TestDbtFolderReader::test_read_models": "PASSED"
+        },
+        "f2p_failing": [
+          "tests/test_dbt_parsers.py::TestDbtManifestReader::test_read_models"
+        ],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.34
+      },
+      "gold": {
+        "resolved": true,
+        "tests": {
+          "tests/test_dbt_parsers.py::TestDbtManifestReader::test_read_models": "PASSED",
+          "tests/test_dbt_parsers.py::TestDbtFolderReader::test_read_models": "PASSED"
+        },
+        "f2p_failing": [],
+        "p2p_failing": [],
+        "patch_applies": true,
+        "timed_out": false,
+        "infra_error": "",
+        "seconds": 7.3
+      }
+    }
+  ]
+}

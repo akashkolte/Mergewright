@@ -1,0 +1,37 @@
+diff --git a/src/textual/widgets/_markdown.py b/src/textual/widgets/_markdown.py
+index af125c4fa..fd9d95cbe 100644
+--- a/src/textual/widgets/_markdown.py
++++ b/src/textual/widgets/_markdown.py
+@@ -660,12 +660,15 @@ class Markdown(Widget):
+         location, _, anchor = location.partition("#")
+         return Path(location), anchor
+ 
+-    def goto_anchor(self, anchor: str) -> None:
++    def goto_anchor(self, anchor: str) -> bool:
+         """Try and find the given anchor in the current document.
+ 
+         Args:
+             anchor: The anchor to try and find.
+ 
++        Returns:
++            True if the anchor was found and scrolled to, False otherwise.
++
+         Note:
+             The anchor is found by looking at all of the headings in the
+             document and finding the first one whose slug matches the
+@@ -675,12 +678,13 @@ class Markdown(Widget):
+             GitHub.
+         """
+         if not self._table_of_contents or not isinstance(self.parent, Widget):
+-            return
++            return False
+         unique = TrackedSlugs()
+         for _, title, header_id in self._table_of_contents:
+             if unique.slug(title) == anchor:
+                 self.parent.scroll_to_widget(self.query_one(f"#{header_id}"), top=True)
+-                return
++                return True
++        return False
+ 
+     async def load(self, path: Path) -> None:
+         """Load a new Markdown document.

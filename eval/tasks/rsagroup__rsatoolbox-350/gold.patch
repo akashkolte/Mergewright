@@ -1,0 +1,12 @@
+diff --git a/src/rsatoolbox/rdm/calc.py b/src/rsatoolbox/rdm/calc.py
+index 03f8a992..0e31329f 100644
+--- a/src/rsatoolbox/rdm/calc.py
++++ b/src/rsatoolbox/rdm/calc.py
+@@ -164,6 +164,7 @@ def calc_rdm_movie(
+ 
+         rdm = concat(rdms)
+         rdm.rdm_descriptors[time_descriptor] = time
++    rdm.dissimilarity_measure = method
+     return rdm
+ 
+ 

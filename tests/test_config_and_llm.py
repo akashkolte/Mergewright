@@ -2,13 +2,22 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import httpx
 import openai
 import pytest
 
-from mergewright.config import ConfigError, LiveSettings, load_dotenv, load_live_settings
+from mergewright.config import (
+    ConfigError,
+    LiveSettings,
+    Price,
+    load_dotenv,
+    load_live_settings,
+    load_price,
+)
 from mergewright.llm import (
     LLMError,
     LLMResponse,
+    LLMUnavailable,
     OpenAIClient,
     RecordingLLM,
     ScriptedLLM,
@@ -45,6 +54,17 @@ def test_live_settings_for_an_openai_compatible_server():
     assert settings == SETTINGS
 
 
+def test_a_price_is_read_only_when_configured():
+    names = ("MERGEWRIGHT_PRICE_IN_PER_MTOK", "MERGEWRIGHT_PRICE_OUT_PER_MTOK")
+
+    price = load_price(dict(zip(names, ["0.5", "2"], strict=True)))
+
+    assert load_price({}) is None  # unknown, never a guess
+    assert price == Price(0.5, 2.0) and price.cost(2_000_000, 1_000_000) == 3.0
+    with pytest.raises(ConfigError, match="both"):
+        load_price({names[0]: "0.5"})
+
+
 SETTINGS = LiveSettings("zai-org/GLM-5.2", "http://llm.example.test/v1", "placeholder")
 
 
@@ -53,8 +73,9 @@ def _fake_sdk(create):
     return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
 
 
-def _completion(message):
+def _completion(message, model="zai-org/GLM-5.2-0901"):
     return SimpleNamespace(
+        model=model,  # the server-reported model ID
         choices=[SimpleNamespace(message=message)],
         usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5),
     )
@@ -79,6 +100,7 @@ def test_openai_client_sends_the_request_and_parses_tool_calls():
     assert (response.prompt_tokens, response.completion_tokens) == (10, 5)
     assert captured["model"] == "zai-org/GLM-5.2"  # sent as is, with no provider prefix
     assert captured["tools"] == tools and captured["temperature"] == 0
+    assert client.served_models == {"zai-org/GLM-5.2-0901"}
 
 
 def test_openai_client_configures_the_sdk_from_settings():
@@ -89,14 +111,34 @@ def test_openai_client_configures_the_sdk_from_settings():
     assert (sdk.api_key, sdk.timeout, sdk.max_retries) == ("placeholder", 7, 4)
 
 
-def test_openai_client_turns_sdk_errors_into_llm_error():
+_REQUEST = httpx.Request("POST", "http://llm.example.test/v1/chat/completions")
+
+
+def _status_error(code: int) -> openai.APIStatusError:
+    return openai.APIStatusError(
+        f"Error code: {code}", response=httpx.Response(code, request=_REQUEST), body=None
+    )
+
+
+@pytest.mark.parametrize(
+    ("raised", "unavailable"),
+    [
+        (_status_error(504), True),  # the SDK's retries are used up: the endpoint's failure
+        (_status_error(429), True),  # rate limit or the key's budget
+        (openai.APITimeoutError(request=_REQUEST), True),
+        (_status_error(401), False),  # a wrong key or model cannot succeed: configuration
+        (openai.OpenAIError("404 model not found"), False),
+    ],
+)
+def test_openai_client_marks_only_endpoint_failures_as_unavailable(raised, unavailable):
     def create(**kwargs):
-        raise openai.OpenAIError("404 model not found")
+        raise raised
 
     client = OpenAIClient(SETTINGS, timeout_s=5, client=_fake_sdk(create))
 
-    with pytest.raises(LLMError, match="model not found"):
+    with pytest.raises(LLMError, match="model call failed") as caught:
         client.complete([], [])
+    assert isinstance(caught.value, LLMUnavailable) == unavailable
 
 
 def test_openai_client_rejects_a_response_with_no_choices():
@@ -130,3 +172,18 @@ def test_scripted_llm_fails_when_responses_run_out():
 
     with pytest.raises(LLMError, match="exhausted"):
         llm.complete([], [])
+
+
+def test_run_log_redacts_every_string_once_a_redactor_is_set(tmp_path: Path):
+    from mergewright.runlog import RunLog
+
+    log = RunLog(tmp_path / "run.jsonl", echo=None)
+    log.event("before", text="SECRET")  # no redactor yet: kept as is
+    log.redact = lambda text: text.replace("SECRET", "[R]")
+
+    log.event("after", text="a SECRET", items=["SECRET"], nested={"k": "SECRET"}, n=3)
+
+    before, after = log.events()
+    assert before["text"] == "SECRET"
+    assert after["text"] == "a [R]" and after["items"] == ["[R]"]
+    assert after["nested"] == {"k": "[R]"} and after["n"] == 3

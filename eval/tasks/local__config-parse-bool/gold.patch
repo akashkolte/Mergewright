@@ -1,0 +1,13 @@
+diff --git a/settings.py b/settings.py
+index 4bca570..1514d00 100644
+--- a/settings.py
++++ b/settings.py
+@@ -9,7 +9,7 @@ def parse_bool(value: str) -> bool:
+     word = value.strip().lower()
+     if word not in TRUE_WORDS | FALSE_WORDS:
+         raise ValueError(f"not a boolean: {value!r}")
+-    return bool(word)
++    return word in TRUE_WORDS
+ 
+ 
+ def parse_int(value: str, default: int = 0) -> int:

@@ -1,0 +1,21 @@
+diff --git a/skimage/segmentation/_watershed.py b/skimage/segmentation/_watershed.py
+index c21ff54ec..44047e644 100644
+--- a/skimage/segmentation/_watershed.py
++++ b/skimage/segmentation/_watershed.py
+@@ -73,7 +73,15 @@ def _validate_inputs(image, markers, mask, connectivity):
+             raise ValueError(message)
+     if markers is None:
+         markers_bool = local_minima(image, connectivity=connectivity) * mask
+-        markers = ndi.label(markers_bool)[0]
++        if connectivity is None:
++            # `local_minima` uses maximal connectivity if none is given
++            connectivity = image.ndim
++        if np.isscalar(connectivity):
++            structure = ndi.generate_binary_structure(image.ndim, connectivity)
++        else:
++            # `connectivity` is already a structuring element
++            structure = connectivity
++        markers = ndi.label(markers_bool, structure=structure)[0]
+     elif not isinstance(markers, (np.ndarray, list, tuple)):
+         # not array-like, assume int
+         # given int, assume that number of markers *within mask*.

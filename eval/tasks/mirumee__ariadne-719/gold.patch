@@ -1,0 +1,34 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 478164c..87a6827 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -8,6 +8,7 @@
+ - Made `Query` type optional in federated schemas.
+ - Updated default resolvers to test for `Mapping` instead of `dict`.
+ - Removed `ariadne.contrib.django`. (Use [ariadne_django](https://github.com/reset-button/ariadne_django) instead).
++- Updated query cost validator to handle optional variables.
+ 
+ 
+ ## 0.13.0 (2021-03-17)
+diff --git a/ariadne/validation/query_cost.py b/ariadne/validation/query_cost.py
+index 4e74c74..92691d2 100644
+--- a/ariadne/validation/query_cost.py
++++ b/ariadne/validation/query_cost.py
+@@ -281,12 +281,15 @@ class CostValidator(ValidationRule):
+             val = field_args
+             for key in accessor:
+                 val = val.get(key)
+-            multipliers.append(val)
++            try:
++                multipliers.append(int(val))  # type: ignore
++            except (ValueError, TypeError):
++                pass
+         multipliers = [
+             len(multiplier) if isinstance(multiplier, (list, tuple)) else multiplier
+             for multiplier in multipliers
+         ]
+-        return [m for m in multipliers if m != 0]
++        return [m for m in multipliers if m > 0]  # type: ignore
+ 
+     def get_cost_exceeded_error(self) -> GraphQLError:
+         return GraphQLError(

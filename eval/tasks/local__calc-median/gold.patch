@@ -1,0 +1,16 @@
+diff --git a/calc.py b/calc.py
+index e25aeb0..1c5a6c5 100644
+--- a/calc.py
++++ b/calc.py
+@@ -13,7 +13,10 @@ def median(values: list[float]) -> float:
+     if not values:
+         raise ValueError("median() requires at least one value")
+     ordered = sorted(values)
+-    return ordered[len(ordered) // 2]
++    middle = len(ordered) // 2
++    if len(ordered) % 2 == 0:
++        return (ordered[middle - 1] + ordered[middle]) / 2
++    return ordered[middle]
+ 
+ 
+ def value_range(values: list[float]) -> float:
